@@ -149,6 +149,92 @@
     }, true);
     const istUngespeichertIrgendwo = () => [...ungespeichert].some((f) => f.isConnected);
     window.addEventListener("beforeunload", (e) => { if (istUngespeichertIrgendwo()) { e.preventDefault(); e.returnValue = ""; } });
+    // Datumsfelder in Safari (macOS): Das native Feld springt beim Tippen nicht vom Tag zum Monat und öffnet bei jedem
+    // Klick den Kalender. Dort wird jedes Datumsfeld (input type=date) um ein Textfeld TT.MM.JJJJ ergänzt (Punkte kommen von
+    // selbst; „1.2.26“, „1.2.“ und „010226“ werden beim Verlassen ergänzt). Das Original bleibt im Formular und trägt
+    // weiter den ISO-Wert (Server, Leasing-Knöpfe, Filter usw. unverändert); unsichtbar über dem Kalendersymbol öffnet
+    // ein Klick darauf weiterhin Safaris Kalender. Andere Browser und Touch-Geräte behalten das native Feld.
+    const datumAlsText = window.LADEFALKE_DATUM_TEXT ?? (matchMedia("(pointer: fine)").matches
+      && /^((?!chrome|chromium|crios|fxios|edg|android).)*safari/i.test(navigator.userAgent));
+    const isoAlsText = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(v || "") ? `${v.slice(8, 10)}.${v.slice(5, 7)}.${v.slice(0, 4)}` : "");
+    const textAlsIso = (text) => {  // "" = leer, null = ungültig
+      const t = text.trim().replace(/[,/-]/g, ".");
+      if (!t) return "";
+      const m = t.match(/^(\d{1,2})\.(\d{1,2})\.?(\d{2}|\d{4})?$/) || t.match(/^(\d{2})(\d{2})(\d{2}|\d{4})$/);
+      if (!m) return null;
+      const jahr = !m[3] ? new Date().getFullYear() : m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+      const d = new Date(Date.UTC(jahr, Number(m[2]) - 1, Number(m[1])));
+      return d.getUTCDate() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 ? d.toISOString().slice(0, 10) : null;
+    };
+    const WERT = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    const KALENDER = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">'
+      + '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+    const datumsfeldErgaenzen = (original) => {
+      if (original.dataset.datumText) return;
+      original.dataset.datumText = "1";
+      const stil = getComputedStyle(original);
+      const huelle = document.createElement("span");
+      huelle.className = "datum-feld";
+      huelle.style.marginBottom = stil.marginBottom;
+      // Formulare: volle Breite; Filterzeilen: schmal neben der Beschriftung (CSS .datum-feld.schmal)
+      huelle.classList.toggle("schmal", !!original.closest(".filterleiste, .filterzeile, .filter-formular, .inline"));
+      const text = document.createElement("input");
+      Object.assign(text, { type: "text", inputMode: "numeric", placeholder: "TT.MM.JJJJ", autocomplete: "off",
+                            className: "datum-text", value: isoAlsText(original.value) });
+      for (const a of ["aria-invalid", "aria-describedby", "aria-label", "title"]) {
+        if (original.hasAttribute(a)) text.setAttribute(a, original.getAttribute(a));
+      }
+      const symbol = document.createElement("span");
+      symbol.className = "datum-symbol";
+      symbol.innerHTML = KALENDER;
+      original.before(huelle);
+      huelle.append(text, symbol, original);
+      original.tabIndex = -1;
+      original.title = "Kalender";
+      // Pflicht/readonly/disabled gelten am Textfeld (ein verborgenes Pflichtfeld könnte der Browser nicht anzeigen);
+      // spätere Änderungen am Original (z. B. Vignette „nötig“) wandern mit
+      const spiegeln = () => {
+        if (original.required) { original.required = false; original.dataset.datumPflicht = "1"; }
+        text.required = original.dataset.datumPflicht === "1";
+        text.readOnly = original.readOnly;
+        text.disabled = original.disabled;
+        huelle.classList.toggle("gesperrt", original.readOnly || original.disabled);
+      };
+      spiegeln();
+      new MutationObserver(spiegeln).observe(original, { attributes: true, attributeFilter: ["required", "readonly", "disabled"] });
+      const melden = () => ["input", "change"].forEach((t) => original.dispatchEvent(new Event(t, { bubbles: true })));
+      const pruefen = (meldenWennGueltig) => {
+        const iso = textAlsIso(text.value);
+        text.setCustomValidity(iso === null ? "Bitte ein Datum TT.MM.JJJJ eingeben." : "");
+        if (iso === null) { text.setAttribute("aria-invalid", "true"); return; }
+        if (!original.hasAttribute("aria-invalid")) text.removeAttribute("aria-invalid");
+        if (iso === WERT.get.call(original)) return;
+        WERT.set.call(original, iso);
+        if (meldenWennGueltig) melden();
+      };
+      // Werte, die Skripte ins Original schreiben (Leasing-Knöpfe, Lücke schließen …), erscheinen im Textfeld
+      Object.defineProperty(original, "value", {
+        configurable: true,
+        get() { return WERT.get.call(this); },
+        set(v) { WERT.set.call(this, v); text.value = isoAlsText(WERT.get.call(this)); text.setCustomValidity(""); },
+      });
+      text.addEventListener("input", (e) => {
+        if (e.inputType === "insertText" && /^(\d{2}|\d{1,2}\.\d{2})$/.test(text.value)) text.value += ".";  // weiter zum nächsten Teil
+        if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(text.value)) pruefen(true);  // vollständig: sofort übernehmen
+      });
+      text.addEventListener("change", () => {
+        const iso = textAlsIso(text.value);
+        if (iso) text.value = isoAlsText(iso);
+        pruefen(true);
+      });
+      // Auswahl im Kalender (Original) → Textfeld
+      original.addEventListener("input", () => { text.value = isoAlsText(original.value); text.setCustomValidity(""); });
+    };
+    const datumsfelderErgaenzen = () => {
+      if (datumAlsText) document.querySelectorAll("input[type=date]:not([data-datum-text])").forEach(datumsfeldErgaenzen);
+    };
+    document.addEventListener("DOMContentLoaded", datumsfelderErgaenzen);
+    document.addEventListener("htmx:afterSettle", datumsfelderErgaenzen);
     // Zuordnungsformulare: „Gültig ab/bis“ = Leasingbeginn/-ende (_makros.leasing_knoepfe). Die Daten hängen am
     // Absatz; je nach Formular fest („*“) oder je gewähltem Fahrzeug. Ohne Leasingdaten sind die Knöpfe ausgegraut.
     const isoDeutsch = (iso) => iso.split("-").reverse().join(".");
