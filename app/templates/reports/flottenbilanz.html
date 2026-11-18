@@ -1,0 +1,109 @@
+{% extends "reports/_basis.html" %}
+{% import "reports/_basis.html" as r with context %}
+{# Flottenbilanz (Marketing-Report, services/reports.flottenbilanz): zum Weitergeben nach außen, 16:9 quer
+   (297 × 167 mm), ohne Kopf- und Fußzeile, Logo rechts oben – jede Seite auch als Bild bzw. Folie verwendbar.
+   Seite 1: Flottenzahlen und Heatmap des öffentlichen Ladens – keine Namen, Kennzeichen, Ladekarten, Adressen oder
+   Kostensummen (als Geldwert nur Ø €/kWh). Seite 2: die drei günstigsten Öffentlich-Lader:innen auf dem
+   Siegertreppchen – mit Namen, ohne Kennzeichen. Ohne TLP. #}
+{% block titel %}Ladefalke – Flottenbilanz {{ z.label }}{% endblock %}
+{% block seite %}
+  @page { size: 297mm 167.06mm; margin: 10mm 12mm 6mm;
+          @top-left { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+  .seitenkopf { display: flex; align-items: flex-start; gap: 6mm; margin-bottom: 5mm; }
+  .seitenkopf .titel { flex: 1; }
+  .seitenkopf h1 { font-size: 21pt; margin: 0 0 1mm; }
+  .seitenkopf .untertitel { margin: 0; }
+  .logo { display: flex; align-items: center; gap: 3mm; }
+  .logo img { height: 12mm; }
+  .logo .marke { font-weight: 700; color: var(--blau); font-size: 13pt; line-height: 1.05; }
+  .logo .marke small { display: block; font-weight: 400; font-size: 7.5pt; color: var(--grau); letter-spacing: .02em; }
+  .neue-seite { break-before: page; }
+  /* Seite 1 */
+  .folie { display: flex; gap: 7mm; }
+  .folie .zahlen { flex: 1.15; min-width: 0; }
+  .folie .bild { flex: 1; min-width: 0; }
+  .folie .kacheln.drei { margin: 0; gap: 2.5mm; height: 121mm; grid-auto-rows: 1fr; }  /* so hoch wie die Karte */
+  .folie .kacheln.drei .kachel { padding: 8mm 4mm 3mm; }  /* oben bündig: Zahlen einer Reihe auf einer Linie */
+  .folie .kacheln.drei .zahl { font-size: 23pt; line-height: 1.1; margin-bottom: 1mm; }
+  .folie .kacheln.drei .text { font-size: 10pt; }
+  .folie .bild img { width: 100%; height: 115mm; object-fit: cover; border-radius: 1.5mm; border: .4pt solid var(--linie); }
+  .folie .bild .leer { height: 115mm; border-radius: 1.5mm; background: var(--flaeche); display: flex;
+                       align-items: center; justify-content: center; color: var(--grau); }
+  .folie .bild p { margin-top: 1.5mm; }
+  /* Seite 2: Siegertreppchen (Reihenfolge 2 – 1 – 3, Stufen unten bündig) */
+  .podest { display: flex; justify-content: center; align-items: flex-end; gap: 4mm; margin-top: 2mm; }
+  .platz { width: 70mm; text-align: center; }
+  .platz .auszeichnung { display: block; margin: 0 auto 2mm; }
+  .platz .name { display: block; font-size: 15pt; font-weight: 700; color: #1f2933; line-height: 1.15; }
+  .platz .werte { display: block; font-size: 9.5pt; color: var(--grau); margin: 1mm 0 3mm; }
+  .platz .werte strong { color: #1f2933; font-size: 12pt; }
+  .stufe { border-radius: 2mm 2mm 0 0; color: #ffffff; font-weight: 700; text-align: center; padding-top: 4mm; }
+  .platz-1 .stufe { height: 70mm; background: #f5c518; font-size: 40pt; }
+  .platz-2 .stufe { height: 52mm; background: #b9c2cc; font-size: 32pt; }
+  .platz-3 .stufe { height: 38mm; background: #d99a6c; font-size: 28pt; }
+  .platz-leer .stufe { background: var(--flaeche); color: var(--grau); }
+  .boden { border-top: 1pt solid #9aa5b1; margin: 0 auto; width: 222mm; }
+  .erklaerung { text-align: center; margin: 4mm auto 0; width: 222mm; }
+{% endblock %}
+{% macro seitenkopf(titel, untertitel) %}
+<div class="seitenkopf">
+  <div class="titel"><h1>{{ titel }}</h1><p class="untertitel">{{ untertitel }}</p></div>
+  <div class="logo"><img src="ladefalke.svg" alt=""><span class="marke">Ladefalke<small>resch.cloud</small></span></div>
+</div>
+{% endmacro %}
+{% block inhalt %}
+{{ seitenkopf("Flottenbilanz " ~ z.label, (z.von | datum) ~ " – " ~ (z.bis | datum) ~ " · Preise netto") }}
+<div class="folie">
+  <div class="zahlen">
+    <div class="kacheln drei">
+      <div class="kachel"><span class="zahl">{{ g.anzahl | zahl(0) }}</span><span class="text">Ladevorgänge</span></div>
+      <div class="kachel"><span class="zahl">{{ g.kwh | zahl(0) }}</span><span class="text">kWh geladen</span></div>
+      <div class="kachel"><span class="zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span></div>
+      <div class="kachel"><span class="zahl">{{ g.anteil_oeffentlich_kwh | prozent if g.anteil_oeffentlich_kwh is not none else "–" }}</span>
+        <span class="text">öffentlich geladen (kWh)</span></div>
+      <div class="kachel"><span class="zahl">{{ r.dauer(dc.eigen) if dc.eigen is not none else "–" }}</span><span class="text">Ø Ladedauer DC</span>
+        <span class="vgl">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}</span></div>
+      <div class="kachel"><span class="zahl">{{ laender }} / {{ cpo_anzahl }}</span><span class="text">Länder / Betreiber (CPO)</span></div>
+      <div class="kachel"><span class="zahl">{{ fahrzeuge }}</span><span class="text">Fahrzeuge mit Ladungen</span></div>
+      <div class="kachel"><span class="zahl">{{ fahrer }}</span><span class="text">Fahrer:innen mit Ladungen</span></div>
+      <div class="kachel"><span class="zahl">{{ kwh_je_fahrzeug | zahl(0) if kwh_je_fahrzeug is not none else "–" }}</span>
+        <span class="text">Ø kWh je Fahrzeug</span></div>
+    </div>
+  </div>
+  <div class="bild">
+    {% if heatmap.bild %}<img src="{{ heatmap.bild }}" alt="Heatmap des öffentlichen Ladens">
+    <p class="klein">Öffentliches Laden: {{ heatmap.ladungen }} Ladung{{ "en" if heatmap.ladungen != 1 }} an
+      {{ heatmap.orte }} Ort{{ "en" if heatmap.orte != 1 }}{% if heatmap.ohne_ort %}, {{ heatmap.ohne_ort }} ohne genauen Ort nicht eingezeichnet{% endif %}.</p>
+    {% else %}<div class="leer">Keine öffentlichen Ladungen mit bekanntem Ort im Zeitraum.</div>{% endif %}
+  </div>
+</div>
+
+<div class="neue-seite">
+{{ seitenkopf("Die günstigsten Öffentlich-Lader:innen", "Flottenbilanz " ~ z.label ~ " · gereiht nach dem gewichteten Preis je kWh beim öffentlichen Laden") }}
+{% set plaetze = topliste.guenstigste[:3] if topliste else [] %}
+{% if plaetze %}
+<div class="podest">
+  {% for rang in (2, 1, 3) %}{% set e = plaetze[rang - 1] if plaetze | length >= rang else none %}
+  <div class="platz platz-{{ rang }}{{ ' platz-leer' if not e }}">
+    {% if e %}
+    {% if rang == 1 %}<svg class="auszeichnung" viewBox="-20 -8 40 36" width="68" height="61">{{ r.pokal(0, 0, 1) }}</svg>
+    {% elif rang == 2 %}<svg class="auszeichnung" viewBox="-12 -14 24 30" width="40" height="50">{{ r.medaille(0, 0, "#e3e8ee", "#9aa5b1") }}</svg>
+    {% else %}<svg class="auszeichnung" viewBox="-12 -14 24 30" width="40" height="50">{{ r.medaille(0, 0, "#e8b48a", "#a8693c") }}</svg>{% endif %}
+    <span class="name">{{ e.fahrer.name }}</span>
+    <span class="werte"><strong>{{ e.preis | zahl(2) }} €/kWh</strong> · {{ e.kwh | zahl(0) }} kWh öffentlich</span>
+    {% endif %}
+    <div class="stufe">{{ rang }}</div>
+  </div>
+  {% endfor %}
+</div>
+<div class="boden"></div>
+<p class="klein erklaerung">Gereiht nach dem gewichteten Preis je kWh (Score): Zu den eigenen Ladungen werden
+  {{ topliste.m | zahl(0) }} kWh zum Schnittpreis aller ({{ topliste.p_flotte | zahl(2) }} €/kWh) dazugerechnet – wer wenig
+  lädt, wird Richtung Schnitt gezogen. Dabei sind alle mit mindestens {{ topliste.mindestmenge | zahl(0) }} kWh öffentlich
+  geladen ({{ topliste.teilnehmer }} Fahrer:innen). Angezeigt ist der tatsächliche Ø-Preis.</p>
+{% else %}
+<p class="klein">Im Zeitraum hat niemand die Mindestmenge
+  {%- if topliste %} von {{ topliste.mindestmenge | zahl(0) }} kWh{% endif %} öffentlich geladen.</p>
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+# Direkte Abhängigkeiten der App (Bereiche). Installiert wird aus requirements.lock (feste Versionen),
+# neu erzeugen mit werkzeuge/abhaengigkeiten_sperren.sh – siehe README „Betrieb“.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0.30,<2.1
+alembic>=1.13
+psycopg[binary]>=3.2
+jinja2>=3.1
+python-multipart>=0.0.9
+itsdangerous>=2.2
+pydantic-settings>=2.4
+tzdata
+pdfplumber>=0.11
+openpyxl>=3.1
+pypdfium2>=4.30
+weasyprint>=62  # PDF-Reports aus HTML/CSS (services/reports.py)
+cryptography>=42  # selbstsigniertes HTTPS-Zertifikat (app/tls.py)

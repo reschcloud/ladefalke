@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% import "auswertungen/_bausteine.html" as b %}
+{% import "_makros.html" as m %}
+{% block titel %}Dashboard{% endblock %}
+{% block inhalt %}
+{% macro monat_details(st) %}
+  {% if st.offen %}<p>◷ Laufender Monat – Rechnungen folgen erst im Folgemonat.</p>{% endif %}
+  {% if st.luecken %}
+  <p><strong>⚠ Fehlende Daten</strong> <a href="/import" role="button" class="outline klein">zum Import</a></p>
+  <ul>
+    {% for l in st.luecken %}
+    <li><a href="/stammdaten/msp/{{ l.msp.id }}">{{ l.msp.name }}</a>:
+      {% if l.karten %}{{ l.karten | length }} von {{ l.karten_erwartet }} Karten ohne Eintrag –
+        {% for k in l.karten %}{{ m.karte(l.anzeigen.get(k.id), k, msp=false) }}{% if not loop.last %}, {% endif %}{% endfor %}
+      {% else %}kein Eintrag in diesem Monat{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if st.hinweise %}
+  <p><strong>Hinweise</strong> <small>(kein sicherer Fehler – bitte prüfen)</small></p>
+  <ul>
+    {% if st.fahrzeuge_ohne %}<li>Fahrzeuge mit Zuordnung, aber ohne Ladung:
+      {% for fz in st.fahrzeuge_ohne %}<a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endif %}
+    {% if st.fahrer_ohne %}<li>Fahrer:innen mit Fahrzeug oder Karte, aber ohne Ladung:
+      {% for f in st.fahrer_ohne %}<a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endif %}
+    {% if st.ohne_fahrzeug %}<li><a href="/aufgaben#ohne-fahrzeug">{{ st.ohne_fahrzeug }} Ladevorgänge ohne Fahrzeug</a></li>{% endif %}
+  </ul>
+  {% endif %}
+  {% if st.status == "ok" and not st.hinweise %}<p>✓ Alle erwarteten Daten sind vorhanden.</p>{% endif %}
+{% endmacro %}
+
+{% macro wert(x, einheit) %}{{ x | geld if einheit == "€" else (x | zahl(0)) ~ " " ~ einheit }}{% endmacro %}
+
+{# Monat: Torte; mehrere Monate: oben die Torte für den ganzen Zeitraum, darunter gestapelte Säulen je Monat.
+   Legende mit Summen, Tooltips je Segment #}
+{% macro torte_svg(v, feld, titel, einheit) %}
+    <svg viewBox="0 0 200 200" class="torte" role="img" aria-label="{{ titel | striptags }}{{ ' – gesamter Zeitraum' if not v.torte }}">
+      {% for s in dia.torte(v, feld) %}
+        {% set weitere = ("\n" ~ s.reihe.enthalten_text(feld, einheit)) if s.reihe.enthalten else "" %}
+        {% if s.pfad %}<path d="{{ s.pfad }}" class="slot-{{ s.reihe.slot }}"><title>{{ s.reihe.name }}: {{ wert(s.wert, einheit) }} ({{ s.anteil | prozent }}){{ weitere }}</title></path>
+        {% else %}<circle cx="100" cy="100" r="90" class="slot-{{ s.reihe.slot }}"><title>{{ s.reihe.name }}: {{ wert(s.wert, einheit) }} (100 %)</title></circle>{% endif %}
+      {% endfor %}
+    </svg>
+{% endmacro %}
+{% macro verteilungsdiagramm(v, feld, titel, einheit) %}
+<figure class="diagramm">
+  <figcaption><strong>{{ titel }}</strong> <small>gesamt {{ wert(v.summe(feld), einheit) }}</small></figcaption>
+  <div class="diagramm-koerper{{ ' mit-saeulen' if not v.torte }}">
+  <div class="diagramm-inhalt mit-torte">
+    {{ torte_svg(v, feld, titel, einheit) }}
+    <ul class="legende">
+      {% for r in v.reihen %}{% set w = v.reihensumme(loop.index0, feld) %}
+      <li><span class="farbfeld slot-{{ r.slot }}"></span>
+        {% if r.fahrer_id %}<a href="/auswertungen/fahrer/{{ r.fahrer_id }}?{{ parameter }}" title="{{ r.name }}">{{ r.name }}</a>
+        {%- elif r.msp_id %}<a href="/ladevorgaenge?msp_id={{ r.msp_id }}&amp;{{ parameter }}" title="{{ r.name }}">{{ r.name }}</a>
+        {%- elif r.betreiber %}<a href="/ladevorgaenge?betreiber={{ r.betreiber | urlencode }}&amp;{{ parameter }}" title="{{ r.name }}">{{ r.name }}</a>
+        {%- elif r.enthalten %}<span class="weitere" title="{{ r.enthalten_text(feld, einheit) }}">{{ r.name }} <small>({{ r.enthalten | length }})</small></span>
+        {%- else %}<span title="{{ r.name }}">{{ r.name }}</span>{% endif %}
+        <span class="legende-wert">{{ wert(w, einheit) }} · {{ (w / v.summe(feld)) | prozent if v.summe(feld) else "–" }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% if not v.torte %}
+  <div class="diagramm-saeulen">
+    <p class="diagramm-zwischentitel"><small>Je Monat</small></p>
+    {% set g = dia.saeulen(v, feld) %}
+    <svg viewBox="0 0 {{ g.breite }} {{ g.hoehe }}" class="saeulen" role="img" aria-label="{{ titel | striptags }} je Monat">
+      {% for y, w in g.teilstriche %}
+        <line x1="{{ g.links }}" x2="{{ g.breite }}" y1="{{ y }}" y2="{{ y }}" class="{{ 'achse' if loop.first else 'gitter' }}"/>
+        <text x="{{ g.links - 8 }}" y="{{ y + 4 }}" class="achsentext" text-anchor="end">{{ w | zahl(0) }}</text>
+      {% endfor %}
+      {% for kurz, monat, x, segmente, summe in g.spalten %}
+        <g><title>{{ monat }}: {{ wert(summe, einheit) }}{% for s in segmente | reverse %}&#10;{{ s.reihe.name }}: {{ wert(s.wert, einheit) }} ({{ s.anteil | prozent }}){% endfor %}</title>
+          <rect x="{{ x - 20 }}" y="0" width="40" height="{{ g.hoehe - g.unten }}" class="trefferflaeche"/>
+          {% for s in segmente %}<rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.breite }}" height="{{ s.hoehe }}" class="slot-{{ s.reihe.slot }}"/>{% endfor %}
+        </g>
+        <text x="{{ x }}" y="{{ g.hoehe - 8 }}" class="achsentext" text-anchor="middle">{{ kurz }}</text>
+      {% endfor %}
+    </svg>
+  </div>
+  {% endif %}
+  </div>
+</figure>
+{% endmacro %}
+
+{% macro vollstaendigkeit_anzeige(v) %}
+{% if v.monate %}
+{% set mehrere = v.monate | length > 1 %}
+<details class="vollstaendigkeit {{ v.status }}">
+  <summary>
+    {% if v.status == "fehlt" %}⚠ Daten unvollständig
+      {%- if mehrere %} in {{ v.unvollstaendig | length }} von {{ v.monate | length }} Monaten{% endif %}
+    {% elif v.status == "offen" %}◷ Noch offen (laufender Monat)
+    {% else %}✓ Daten vollständig{% endif %}
+    {% if v.hinweise %}<small>· {{ v.hinweise }} Hinweis{{ "e" if v.hinweise != 1 }}</small>{% endif %}
+  </summary>
+  {% if mehrere %}
+    {% for st in v.monate %}
+    <details class="monat {{ st.status }}">
+      <summary>{{ st.label }}: {{ {"fehlt": "⚠ unvollständig", "offen": "◷ noch offen", "ok": "✓ vollständig"}[st.status] }}
+        {% if st.hinweise %}<small>· {{ st.hinweise }} Hinweis{{ "e" if st.hinweise != 1 }}</small>{% endif %}</summary>
+      {{ monat_details(st) }}
+    </details>
+    {% endfor %}
+  {% else %}
+    {{ monat_details(v.monate[0]) }}
+  {% endif %}
+  <p><small>Erwartet wird je {{ MSP }} mit aktiven Ladekarten ab dem ersten Eintrag mindestens ein Eintrag pro Monat
+    (Ladevorgang, Gebühr oder Rechnung); bei {{ MSP }}, die je Ladekarte abrechnen, je Karte. Hinweise: Fahrzeuge bzw. Fahrer:innen mit Zuordnung im Monat,
+    aber ohne Ladung, und Ladevorgänge ohne Fahrzeug.</small></p>
+</details>
+{% endif %}
+{% endmacro %}
+
+<div class="dashboard-seite"></div>{# Markierung für den getönten Seitenhintergrund (app.css) #}
+<h1>Dashboard</h1>
+{{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
+{{ vollstaendigkeit_anzeige(vollstaendigkeit) }}
+
+{% if a.gesamt.leer %}
+  <p>Für {{ a.zeitraum.label }} liegen noch keine Daten vor.</p>
+{% else %}
+  {{ b.kennzahlen(a.gesamt, vergleich, a.zeitraum, a.schnitt_je_auto, dc=dc) }}
+  <h2>Verteilung auf Fahrer:innen, {{ MSP }} und {{ CPO }}</h2>
+  {% if verteilung.leer %}
+  <p>Im Zeitraum sind keine Ladungen einer Person zugerechnet.</p>
+  {% else %}
+  <div class="diagramme">
+    {{ verteilungsdiagramm(verteilung, 0, "kWh je Fahrer:in", "kWh") }}
+    {{ verteilungsdiagramm(verteilung, 1, "Ladekosten netto je Fahrer:in", "€") }}
+    {% if not msp_verteilung.leer %}{{ verteilungsdiagramm(msp_verteilung, 0, "kWh je " ~ MSP, "kWh") }}{% endif %}
+    {% if not cpo_verteilung.leer %}{{ verteilungsdiagramm(cpo_verteilung, 0, "kWh je " ~ CPO, "kWh") }}{% endif %}
+  </div>
+  <details class="diagramm-tabelle">
+    <summary>Als Tabelle</summary>
+    <div class="tabelle">
+    {% macro sk(text, art="zahl", rechts=true) %}<th{% if rechts %} class="rechts"{% endif %} data-sort="{{ art }}" title="Sortieren">{{ text }}<span class="sortpfeil" aria-hidden="true">↕</span></th>{% endmacro %}
+    <table class="striped" data-sortierbar>
+      <thead><tr>{{ sk("Fahrer:in", "text", false) }}{{ sk("kWh") }}{{ sk("Anteil") }}
+                 {{ sk("Ladekosten netto") }}{{ sk("Anteil") }}{{ sk("Ø €/kWh") }}</tr></thead>
+      <tbody>
+      {% set kwh_gesamt, kosten_gesamt = verteilung.summe(0), verteilung.summe(1) %}
+      {% for p in verteilung.personen %}
+        <tr><td data-wert="{{ p.name }}"><span class="farbfeld slot-{{ p.reihe.slot }}"></span>
+              <a href="/auswertungen/fahrer/{{ p.fahrer_id }}?{{ parameter }}">{{ p.name }}</a></td>
+          <td class="rechts" data-wert="{{ p.kwh }}">{{ p.kwh | zahl(0) }}</td>
+          <td class="rechts" data-wert="{{ p.kwh }}">{{ (p.kwh / kwh_gesamt) | prozent if kwh_gesamt else "–" }}</td>
+          <td class="rechts" data-wert="{{ p.kosten }}">{{ p.kosten | geld }}</td>
+          <td class="rechts" data-wert="{{ p.kosten }}">{{ (p.kosten / kosten_gesamt) | prozent if kosten_gesamt else "–" }}</td>
+          <td class="rechts" data-wert="{{ (p.kosten / p.kwh) if p.kwh else '' }}">{{ (p.kosten / p.kwh) | zahl(2) if p.kwh else "–" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  <p><small>Fahrer:innen: nur Ladungen, die einer Person zugerechnet sind {{ m.zurechnung() }}. {{ MSP }} und {{ CPO }}: alle
+    Ladungen, öffentlich und privat; „ohne Kennung“ = {{ CPO }} weder aus der EVSE-ID noch als Vorgabe des {{ MSP }} bekannt.
+    {%- if verteilung.reihen | selectattr("slot", "equalto", 0) | list %} Fahrer:innen außerhalb der {{ dia.ANZAHL_FARBEN }}
+    mit den meisten kWh: „Weitere“.{% endif %}</small></p>
+  {% endif %}
+  <h2>Heatmap</h2>
+  <div class="karte-bereich karte-dashboard">
+    <div id="karte" class="karte" data-modus="statisch" role="img"
+         aria-label="Heatmap der öffentlichen Ladevorgänge im Zeitraum"></div>
+    <script type="application/json" id="karte-daten">{{ karte.als_json() | tojson }}</script>
+    <div class="karte-fuss">
+      {{ m.nav_knopf("/ladevorgaenge?" ~ parameter ~ "&ladeart=oeffentlich", "Zur Detailkarte →", "Ladevorgänge im Zeitraum, öffentlich, auf der Karte") }}
+      <small>{{ karte.anzahl }} öffentliche Ladevorgänge an {{ karte.punkte | length }} Orten
+        {%- if karte.ohne_ort %} · <a href="/aufgaben#ladeorte">{{ karte.ohne_ort }} ohne genauen Ort</a> nicht enthalten{% endif %}</small>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

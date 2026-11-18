@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}{{ b.name if b else "Neue:r Benutzer:in" }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="/benutzer" role="button" class="outline secondary klein nav-knopf">← Alle Benutzer:innen</a>{{ m.blaettern(blaettern) }}</p>
+<h1>{{ b.name if b else "Neue:r Benutzer:in" }}</h1>
+<form method="post" class="formular" action="{{ '/benutzer/%d' % b.id if b else '/benutzer/neu' }}">
+  <div class="grid">
+    {% if b %}<label>Benutzername<input type="text" value="{{ b.benutzername }}" disabled></label>
+    {% else %}{{ m.feld("benutzername", "Benutzername", werte, fehler, pflicht=true, hilfe="Damit meldet man sich an; Groß-/Kleinschreibung egal. Lässt sich später nicht ändern.") }}{% endif %}
+    {{ m.feld("name", "Name", werte, fehler, pflicht=true) }}
+    {{ m.feld("email", "E-Mail", werte, fehler, typ="email", hilfe="Optional – für Mails der App (z. B. Reports, Testmail).") }}
+  </div>
+  <fieldset>
+    <legend>Rolle *</legend>
+    {% for rolle, text in rollen.items() %}
+    <label><input type="radio" name="rolle" value="{{ rolle }}" {% if werte.get("rolle") == rolle %}checked{% endif %}
+                  {% if fehler.get("rolle") %}aria-invalid="true"{% endif %}>
+      <strong>{{ text }}</strong> <small>– {{ rollen_text[rolle] }}</small></label>
+    {% endfor %}
+    {% if fehler.get("rolle") %}<small class="fehler-text">{{ fehler.rolle }}</small>{% endif %}
+  </fieldset>
+  {% if b %}
+    {{ m.haken("aktiv", "aktiv (kann sich anmelden)", werte, fehler) }}
+  {% else %}
+  <div class="grid">
+    {{ m.feld("passwort", "Startpasswort", {}, fehler, typ="password", pflicht=true) }}
+    {{ m.feld("wiederholung", "Startpasswort wiederholen", {}, fehler, typ="password", pflicht=true) }}
+  </div>
+  <small class="formular-hinweis">Mindestens {{ mindestlaenge }} Zeichen. Die Person kann es danach unter „Mein Konto“ ändern.</small>
+  {% endif %}
+  <button type="submit">{{ "Speichern" if b else "Anlegen" }}</button>
+</form>
+{% if b and b.id != request.state.benutzer.id %}
+  {% if b.aktiv %}<p><small>Löschen geht erst, wenn die Person deaktiviert ist (Haken „aktiv“ entfernen und speichern).</small></p>
+  {% else %}{{ m.loeschen_knopf("/benutzer/%d/loeschen" % b.id, "Benutzer:in „%s“ endgültig löschen?" % b.benutzername) }}{% endif %}
+{% endif %}
+
+{% if b %}
+<section class="einstellung-gruppe">
+  <header class="kopf"><h2 id="passwort">Passwort zurücksetzen</h2></header>
+  <form method="post" action="/benutzer/{{ b.id }}/passwort" class="formular">
+    <div class="grid">
+      {{ m.feld("passwort", "Neues Passwort", {}, fehler, typ="password", pflicht=true) }}
+      {{ m.feld("wiederholung", "Neues Passwort wiederholen", {}, fehler, typ="password", pflicht=true) }}
+    </div>
+    <small class="formular-hinweis">Mindestens {{ mindestlaenge }} Zeichen. Bitte sicher weitergeben; die Person kann es
+      unter „Mein Konto“ ändern.</small>
+    <button type="submit" class="outline" data-bestaetigen="Passwort für „{{ b.benutzername }}“ neu setzen?">Passwort setzen</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

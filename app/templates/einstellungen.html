@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Einstellungen{% endblock %}
+{% block inhalt %}
+{# Gruppen in Arbeitsreihenfolge. Jedes Feld zeigt Einheit und die Empfehlung; abweichende Werte sind markiert.
+   empfehlung=false (Fristen): keine Empfehlung – die Werte richten sich nach dem eigenen Bedarf.
+   Gespeichert wird über „Speichern“ unten; das Theme wählt jede:r unter „Mein Konto“. #}
+{% macro einstellung(name, label, einheit, hilfe=none, leer_text=none, empfehlung=true) %}
+{% set geaendert = empfehlung and (werte.get(name) or "") != (standard.get(name) or "") %}
+<div class="einstellung{{ ' geaendert' if geaendert }}">
+  <label for="e-{{ name }}">{{ label }}{% if hilfe %} {{ m.hilfe(hilfe) }}{% endif %}</label>
+  <div class="mit-einheit">
+    <input type="text" id="e-{{ name }}" name="{{ name }}" value="{{ werte.get(name) or '' }}" inputmode="decimal"
+           {% if empfehlung %}data-standard="{{ standard.get(name) or '' }}" {% endif %}{% if not leer_text %}required{% endif %}
+           {% if request.state.benutzer.rolle != "admin" %}disabled title="Unzureichende Berechtigungen"{% endif %}
+           {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
+    <span class="einheit">{{ einheit }}</span>
+  </div>
+  {% if fehler.get(name) %}<small id="{{ name }}-fehler" class="fehler">{{ fehler[name] }}</small>{% endif %}
+  {% if empfehlung %}<small class="standardwert">Empfehlung: {{ standard.get(name) or leer_text }}{% if standard.get(name) %} {{ einheit }}{% endif %}
+    <span class="geaendert-marker">· abweichend</span></small>{% endif %}
+</div>
+{% endmacro %}
+{% macro gruppe_kopf(anker, titel, text) %}
+<header class="kopf">
+  <h2 id="{{ anker }}">{{ titel }}</h2>
+</header>
+{% if text %}<p class="gruppe-text"><small>{{ text }}</small></p>{% endif %}
+{% endmacro %}
+
+{% set nur_lesen = request.state.benutzer.rolle != "admin" %}
+<h1>Einstellungen</h1>
+{% if nur_lesen %}<p class="meldung meldung-info">Nur lesen – Einstellungen ändern kann ein Admin.</p>{% endif %}
+<nav class="einstellungen-nav" aria-label="Gruppen">
+  <a href="#allgemein">Allgemein</a><a href="#datenqualitaet">Datenqualität</a>
+  <a href="#auswertungen">Auswertungen</a><a href="#fristen">Fristen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a>
+</nav>
+
+<form method="post" action="/einstellungen" id="einstellungen-form" data-verfolgen{{ '="start"' if fehler }} class="einstellungen{{ ' einstellungen-nur-lesen' if nur_lesen }}">
+<input type="hidden" name="gruppe" value="">
+<fieldset class="einstellungen-felder">
+  <section class="einstellung-gruppe">
+    {{ gruppe_kopf("allgemein", "Allgemein", none) }}
+    {% set geaendert = werte.get("stichtag") != standard.get("stichtag") %}
+    <div class="einstellung-felder">
+  <div class="einstellung stichtag{{ ' geaendert' if geaendert }}">
+    <label for="e-stichtag">Stichtag eines Ladevorgangs {{ m.hilfe("Gilt in der ganzen App: in welchen Monat bzw. Zeitraum ein Ladevorgang fällt, an welchem Tag Fahrzeug und Fahrer:in ermittelt werden, Datumsfilter und Sortierung. Beim Umstellen werden alle automatisch zugeordneten Ladevorgänge neu zugeordnet (manuelle bleiben).") }}</label>
+    <select id="e-stichtag" name="stichtag" form="einstellungen-form" data-standard="{{ standard.stichtag }}"
+            {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+      {% for wert, text in stichtage %}<option value="{{ wert }}" {% if werte.get("stichtag") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+    <small class="standardwert">Ladeende = wie die Rechnungen (Monatssummen stimmen überein), Ladebeginn = wann geladen
+      wurde. Empfehlung: Ladeende <span class="geaendert-marker">· abweichend</span></small>
+  </div>
+      {{ einstellung("strompreis_vorbelegung", "Strompreis private Ladungen", "€/kWh netto", "Vorbelegung beim Import von Dateien ohne Kostenangabe (z. B. Exporte eigener Wallboxen): kWh × Strompreis ergibt die Kosten; beim Import änderbar.") }}
+    </div>
+  </section>
+
+  <section class="einstellung-gruppe">
+    {{ gruppe_kopf("datenqualitaet", "Datenqualität", none) }}
+    <h3>Plausibilität AC/DC</h3>
+    <p class="gruppe-text"><small>Geprüft wird die Leistung über den Vorgang (kWh / angesteckte Dauer). Unplausible
+      Vorgänge werden markiert, erscheinen unter „Aufgaben“ und zählen nicht fürs Ladeprofil.</small></p>
+    <div class="einstellung-felder">
+      {{ einstellung("plausibel_ac_max_kw", "AC unplausibel ab", "kW") }}
+      {{ einstellung("plausibel_dc_min_kw", "DC unplausibel unter", "kW") }}
+      {{ einstellung("plausibel_dc_max_kw", "DC unplausibel ab", "kW") }}
+    </div>
+    <h3>kWh-Schätzung – Ersatzwerte</h3>
+    <p class="gruppe-text"><small>Ohne kWh in der Rechnung (z. B. Zeittarif) schätzt die App aus den gemessenen Ladungen
+      (erklärt auf jeder Fahrzeugseite unter „Ladeprofil und kWh-Schätzung“). <strong>Die Werte hier gelten nur</strong>,
+      solange es dafür zu wenige gemessene Ladungen gibt. Nach dem Speichern wird neu geschätzt.</small></p>
+    <div class="einstellung-felder">
+      {{ einstellung("schaetzung_ac_kw", "Leistung AC", "kW") }}
+      {{ einstellung("schaetzung_dc_kw", "Leistung DC", "kW") }}
+      {{ einstellung("schaetzung_obergrenze_kwh", "Obergrenze je Vorgang", "kWh") }}
+    </div>
+  </section>
+
+  <section class="einstellung-gruppe">
+    {{ gruppe_kopf("auswertungen", "Auswertungen", "Topliste: score = (Kosten + m × Ø-Preis der Flotte) / (kWh + m). Je größer m, desto stärker werden Personen mit wenig kWh zum Flottenschnitt gezogen.") }}
+    <div class="einstellung-felder">
+      {{ einstellung("topliste_m", "Gewichtung m", "kWh", "Leer lassen: Median der kWh je Fahrer:in im Zeitraum.", leer_text="leer (Median im Zeitraum)") }}
+      {{ einstellung("topliste_mindestmenge", "Mindestmenge für die Topliste", "kWh", "Wer im Zeitraum weniger geladen hat, erscheint nicht in der Topliste.") }}
+    </div>
+  </section>
+
+  <section class="einstellung-gruppe">
+    {{ gruppe_kopf("fristen", "Fristen", "Unter „Aufgaben“ erscheint oben eine Info, sobald eine Frist in die Hinweisfrist fällt (auch überfällige oder fehlende Angaben). Führerscheinkontrolle, Vignette und Streckenmaut FLEX lassen sich für diese Installation einschalten – ausgeschaltet gibt es dafür weder Felder noch Hinweise oder Aufgaben; eingetragene Daten bleiben erhalten.") }}
+    <fieldset class="versand-block">
+      <legend>Leasing</legend>
+      <div class="einstellung-felder">
+        {{ einstellung("leasing_dauer_monate", "Leasingdauer", "Monate", "Belegt beim Fahrzeug das Leasing-Ende aus dem Beginn vor.", empfehlung=false) }}
+        {{ einstellung("leasing_vorwarnung_tage", "Hinweis vor Leasing-Ende", "Tage", empfehlung=false) }}
+      </div>
+    </fieldset>
+    {# Schaltbare Fristen: Hauptschalter zuerst, Einstellungen erst, wenn er an ist (wie beim Versand unter „Reports“) #}
+    {% macro feature(name, titel, schalter, erklaerung) %}
+    <fieldset class="versand-block">
+      <legend>{{ titel }}</legend>
+      <label class="haken haupt"><input type="checkbox" name="{{ name }}" {% if werte.get(name) %}checked{% endif %}
+        {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> {{ schalter }}</label>
+      <div class="versand-details" data-zeigen-wenn="{{ name }}" {% if not werte.get(name) %}hidden{% endif %}>
+        <small class="versand-hinweis">{{ erklaerung }}</small>
+        <div class="einstellung-felder">{{ caller() }}</div>
+      </div>
+    </fieldset>
+    {% endmacro %}
+    {% call feature("feature_fuehrerschein", "Führerscheinkontrolle", "Führerscheinkontrolle überwachen", "Regelmäßige Kontrolle je Fahrer:in; ohne eingetragene Kontrolle gilt sie als fällig.") %}
+      {{ einstellung("fuehrerschein_intervall_monate", "Kontrolle alle", "Monate", empfehlung=false) }}
+      {{ einstellung("fuehrerschein_vorwarnung_tage", "Hinweis vor der Kontrolle", "Tage", empfehlung=false) }}
+    {% endcall %}
+    {% call feature("feature_vignette", "Autobahn-Vignette (Österreich)", "Vignette überwachen", "Gültigkeit je Fahrzeug; neue Fahrzeuge brauchen sie standardmäßig (beim Fahrzeug abwählbar).") %}
+      {{ einstellung("vignette_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
+    {% endcall %}
+    {% call feature("feature_streckenmaut", "Streckenmaut FLEX (Österreich)", "Streckenmaut FLEX überwachen", "Gültigkeit je Fahrzeug; standardmäßig bei keinem Fahrzeug nötig (beim Fahrzeug anwählbar).") %}
+      {{ einstellung("streckenmaut_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
+    {% endcall %}
+  </section>
+
+  {# Textfeld der Gruppe E-Mail: empfehlung = Wert für „Empfehlung: …“ (oder none) #}
+  {% macro textfeld(name, label, typ="text", empfehlung=none, platzhalter="", hilfe=none) %}
+  {% set geaendert = empfehlung is not none and (werte.get(name) or "") != empfehlung %}
+  <div class="einstellung{{ ' geaendert' if geaendert }}">
+    <label for="e-{{ name }}">{{ label }}{% if hilfe %} {{ m.hilfe(hilfe) }}{% endif %}</label>
+    <input type="{{ typ }}" id="e-{{ name }}" name="{{ name }}" value="{{ werte.get(name) or '' }}" placeholder="{{ platzhalter }}"
+           {% if empfehlung is not none %}data-standard="{{ empfehlung }}"{% endif %}
+           {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}
+           {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
+    {% if fehler.get(name) %}<small id="{{ name }}-fehler" class="fehler">{{ fehler[name] }}</small>{% endif %}
+    {% if empfehlung is not none %}<small class="standardwert">Empfehlung: {{ empfehlung }} <span class="geaendert-marker">· abweichend</span></small>{% endif %}
+  </div>
+  {% endmacro %}
+
+  <section class="einstellung-gruppe">
+    {{ gruppe_kopf("reports", "Reports", none) }}
+    {% set aus = nur_lesen %}
+    {% set gesperrt %}{% if aus %}disabled title="Unzureichende Berechtigungen"{% endif %}{% endset %}
+
+    <h3>Kennzeichnung</h3>
+    <div class="einstellung-felder">
+      <div class="einstellung">
+        <label for="e-report_tlp">TLP-Kennzeichnung {{ m.hilfe("Traffic Light Protocol (TLP 2.0): steht in der Fußzeile jeder Seite und sagt, wie weit der Report weitergegeben werden darf.") }}</label>
+        <select id="e-report_tlp" name="report_tlp" {{ gesperrt }}>
+          <option value="" {% if not werte.get("report_tlp") %}selected{% endif %}>keine</option>
+          {% for stufe, (bedeutung, farbe) in tlp.items() %}<option value="{{ stufe }}" {% if werte.get("report_tlp") == stufe %}selected{% endif %}>TLP:{{ stufe }} – {{ bedeutung }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <h3>Automatischer Versand per Mail</h3>
+    <p class="gruppe-text"><small>Braucht einen Mailserver (Einstellungen → E-Mail). Manuell versenden geht jederzeit unter „Reports“.</small></p>
+
+    {# Monatsreports: Hauptschalter zuerst, Details nur, wenn er an ist #}
+    <fieldset class="versand-block">
+      <legend>Monatsreports</legend>
+      <label class="haken haupt"><input type="checkbox" name="report_auto" {% if werte.get("report_auto") %}checked{% endif %} {{ gesperrt }}>
+        Monatsreports automatisch versenden</label>
+      <div class="versand-details" data-zeigen-wenn="report_auto" {% if not werte.get("report_auto") %}hidden{% endif %}>
+        <div class="versand-satz">
+          <span>am Tag</span>
+          <input type="number" min="1" max="28" id="e-report_auto_tag" name="report_auto_tag" value="{{ werte.get('report_auto_tag') }}"
+                 aria-label="Tag des Folgemonats" class="kurz" {{ gesperrt }}{% if fehler.get("report_auto_tag") %} aria-invalid="true"{% endif %}>
+          <span>des Folgemonats um</span>
+          <input type="time" id="e-report_auto_uhrzeit" name="report_auto_uhrzeit" value="{{ werte.get('report_auto_uhrzeit') }}"
+                 aria-label="Uhrzeit" class="zeit" {{ gesperrt }}{% if fehler.get("report_auto_uhrzeit") %} aria-invalid="true"{% endif %}>
+          <span>Uhr – für den Vormonat</span>
+        </div>
+        {% if fehler.get("report_auto_tag") %}<small class="fehler">{{ fehler.report_auto_tag }}</small>{% endif %}
+        {% if fehler.get("report_auto_uhrzeit") %}<small class="fehler">{{ fehler.report_auto_uhrzeit }}</small>{% endif %}
+        <small class="versand-hinweis">Bis dahin sollten die Rechnungen des Vormonats importiert sein. Jede:r bekommt einen
+          Report je Zeitraum nur einmal.</small>
+        <p class="versand-frage">Was wird verschickt?</p>
+        <label class="haken"><input type="checkbox" name="report_auto_fahrer" {% if werte.get("report_auto_fahrer") %}checked{% endif %} {{ gesperrt }}>
+          Fahrer:innen-Reports – an alle Fahrer:innen mit E-Mail-Adresse und Ladungen</label>
+        <label class="haken"><input type="checkbox" name="report_auto_zusammenfassung" {% if werte.get("report_auto_zusammenfassung") %}checked{% endif %} {{ gesperrt }}>
+          Zusammenfassung – an Benutzer:innen mit Abo („Mein Konto“)</label>
+        <label class="haken"><input type="checkbox" name="report_auto_karten_cpo" {% if werte.get("report_auto_karten_cpo") %}checked{% endif %} {{ gesperrt }}>
+          Karten und Preise je CPO – an Benutzer:innen mit Abo</label>
+        <label class="haken"><input type="checkbox" name="report_auto_flottenbilanz" {% if werte.get("report_auto_flottenbilanz") %}checked{% endif %} {{ gesperrt }}>
+          Flottenbilanz – an Benutzer:innen mit Abo</label>
+        <label class="haken"><input type="checkbox" name="report_auto_laengere" {% if werte.get("report_auto_laengere") %}checked{% endif %} {{ gesperrt }}>
+          zusätzlich Quartal, Halbjahr und Jahr, wenn der Vormonat einen davon abschließt</label>
+      </div>
+    </fieldset>
+
+    {# Versand nach Zeitplan (Offene Aufgaben, Zuordnungen am Stichtag): Hauptschalter zuerst; Intervall und
+       Wochentag bzw. Tag (1.–28. oder Monatsletzter) erst, wenn er an ist #}
+    {% macro zeitplan_block(name, legende, schalter, hinweis) %}
+    {% set za = werte.get(name ~ "_auto") or "woechentlich" %}
+    <fieldset class="versand-block">
+      <legend>{{ legende }}</legend>
+      <label class="haken haupt"><input type="checkbox" name="{{ name }}_auto_an" {% if werte.get(name ~ "_auto_an") %}checked{% endif %} {{ gesperrt }}>
+        {{ schalter }}</label>
+      <div class="versand-details" data-zeigen-wenn="{{ name }}_auto_an" {% if not werte.get(name ~ "_auto_an") %}hidden{% endif %}>
+        <div class="versand-satz">
+          <select id="e-{{ name }}_auto" name="{{ name }}_auto" aria-label="Intervall" class="kurz-select" {{ gesperrt }}>
+            {% for wert, text in aufgaben_intervalle.items() %}<option value="{{ wert }}" {% if za == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+          </select>
+          <span data-zeigen-bei="{{ name }}_auto:woechentlich" {% if za != "woechentlich" %}hidden{% endif %}>jeden
+            <select name="{{ name }}_auto_wochentag" aria-label="Wochentag" class="kurz-select" {{ gesperrt }}>
+              {% for text in backup.wochentage %}<option value="{{ loop.index0 }}" {% if werte.get(name ~ "_auto_wochentag") == loop.index0 | string %}selected{% endif %}>{{ text }}</option>{% endfor %}
+            </select></span>
+          <span data-zeigen-bei="{{ name }}_auto:monatlich" {% if za != "monatlich" %}hidden{% endif %}>am
+            <select name="{{ name }}_auto_tag" aria-label="Tag im Monat" class="kurz-select" {{ gesperrt }}
+                    {%- if fehler.get(name ~ "_auto_tag") %} aria-invalid="true"{% endif %}>
+              {% for wert, text in monatstage %}<option value="{{ wert }}" {% if werte.get(name ~ "_auto_tag") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+            </select></span>
+          <span data-zeigen-bei="{{ name }}_auto:taeglich" {% if za != "taeglich" %}hidden{% endif %}>jeden Tag</span>
+          <span>um</span>
+          <input type="time" name="{{ name }}_auto_uhrzeit" value="{{ werte.get(name ~ '_auto_uhrzeit') }}" aria-label="Uhrzeit" class="zeit"
+                 {{ gesperrt }}{% if fehler.get(name ~ "_auto_uhrzeit") %} aria-invalid="true"{% endif %}>
+          <span>Uhr</span>
+        </div>
+        {% if fehler.get(name ~ "_auto_tag") %}<small class="fehler">{{ fehler[name ~ "_auto_tag"] }}</small>{% endif %}
+        {% if fehler.get(name ~ "_auto_uhrzeit") %}<small class="fehler">{{ fehler[name ~ "_auto_uhrzeit"] }}</small>{% endif %}
+        <small class="versand-hinweis">{{ hinweis }}</small>
+        {{ caller() if caller is defined }}
+      </div>
+    </fieldset>
+    {% endmacro %}
+    {% call zeitplan_block("aufgaben", "Offene Aufgaben", "Offene Aufgaben automatisch versenden",
+                           "An alle Benutzer:innen mit Abo („Mein Konto“) und E-Mail-Adresse, Stand des Versandtags – je Tag höchstens einmal.") %}
+        <label class="haken"><input type="checkbox" name="aufgaben_auto_nur_offen" {% if werte.get("aufgaben_auto_nur_offen") %}checked{% endif %} {{ gesperrt }}>
+          nur senden, wenn etwas offen ist</label>
+    {% endcall %}
+    {{ zeitplan_block("zuordnungen", "Zuordnungen am Stichtag", "Zuordnungen am Stichtag automatisch versenden",
+                      "An alle Benutzer:innen mit Abo („Mein Konto“) und E-Mail-Adresse; Stichtag ist der Versandtag – je Tag höchstens einmal.") }}
+  </section>
+
+  {% set k = mail.konfig %}
+  <section class="einstellung-gruppe mail-gruppe">
+    {{ gruppe_kopf("email", "E-Mail", "Zugang zum Mailserver (SMTP) für Mails der App, z. B. Reports. Das Passwort wird verschlüsselt gespeichert und nie angezeigt.") }}
+    {% if k and k.passwort_unlesbar %}<p class="meldung meldung-warnung">⚠ Das gespeicherte Passwort lässt sich nicht lesen
+      (die Installation hat einen anderen SECRET_KEY, z. B. nach einem Umzug) – bitte neu eingeben.</p>{% endif %}
+    <div class="einstellung-felder">
+      {{ textfeld("mail_server", "SMTP-Server", platzhalter="smtp.example.com") }}
+      {{ textfeld("mail_port", "Port", empfehlung="587") }}
+      <div class="einstellung{{ ' geaendert' if werte.get('mail_verbindung') != 'starttls' }}">
+        <label for="e-mail_verbindung">Verbindung</label>
+        <select id="e-mail_verbindung" name="mail_verbindung" data-standard="starttls"
+                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for wert, text in mail.verbindungen.items() %}<option value="{{ wert }}" {% if werte.get("mail_verbindung") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+        <small class="standardwert">Empfehlung: STARTTLS <span class="geaendert-marker">· abweichend</span></small>
+      </div>
+    </div>
+    <div class="einstellung-felder">
+      {{ textfeld("mail_benutzer", "Benutzername", platzhalter="meist die Mailadresse", hilfe="Leer lassen, wenn der Server keine Anmeldung verlangt.") }}
+      <div class="einstellung">
+        <label for="e-mail_passwort">Passwort</label>
+        <input type="password" id="e-mail_passwort" name="mail_passwort" autocomplete="new-password"
+               placeholder="{{ '•••••• gespeichert' if k and k.passwort else 'Passwort' }}"
+               {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+        {% if k and k.passwort %}<small class="standardwert">Gespeichert – leer lassen, um es zu behalten.</small>{% endif %}
+        {% if k and (k.passwort or k.passwort_unlesbar) %}
+        <label class="haken klein"><input type="checkbox" name="mail_passwort_entfernen"
+          {% if nur_lesen %}disabled{% endif %}> gespeichertes Passwort entfernen</label>{% endif %}
+      </div>
+    </div>
+    <div class="einstellung-felder">
+      {{ textfeld("mail_absender", "Absenderadresse", "email", platzhalter="ladefalke@example.com") }}
+      {{ textfeld("mail_absender_name", "Absendername", empfehlung="Ladefalke") }}
+      {{ textfeld("mail_antwort_an", "Antworten an", "email", platzhalter="optional", hilfe="Optional: Adresse für Antworten, wenn sie nicht an den Absender gehen sollen.") }}
+    </div>
+    <p class="mail-status"><small>{% if k and k.fehlt %}⚠ {{ k.fehlt }}{% elif k %}✓ Bereit zum Senden über {{ k.server }}:{{ k.port }}.{% endif %}
+      Änderungen erst speichern, dann testen.</small></p>
+    <div class="mail-test" data-nur-admin>
+      <input type="email" name="an" form="mail-test" value="{{ mail.an }}" placeholder="Empfänger der Testmail"
+             aria-label="Empfänger der Testmail" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+      <button type="submit" form="mail-test" class="outline" title="Testmail mit den gespeicherten Einstellungen senden"
+              data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Testmail verwendet die gespeicherten Einstellungen.">Testmail senden</button>
+    </div>
+  </section>
+
+  {% set sl = syslog %}
+  <section class="einstellung-gruppe protokoll-gruppe">
+    {{ gruppe_kopf("protokoll", "Protokoll", "Das Änderungsprotokoll hält fest, wer was wann geändert hat (Stammdaten, Korrekturen, Importe, Einstellungen, Anmeldungen, Sicherungen). Einsehen können es Admins unter Benutzermenü → Protokoll.") }}
+    <div class="einstellung-felder">
+      {{ einstellung("protokoll_aufbewahrung_jahre", "Einträge aufbewahren", "Jahre", "Ältere Einträge löscht die App automatisch (Datenschutz: das Protokoll enthält Namen und geänderte Werte).") }}
+    </div>
+    <h3>Syslog (rsyslog)</h3>
+    <p class="gruppe-text"><small>Schickt die Einträge zusätzlich an einen Syslog-Server, z. B. für ein zentrales Log oder
+      SIEM. Leer lassen = aus; die App verbindet sich nur mit dem eingetragenen Server. Gesendet wird im Hintergrund – ist der
+      Server nicht erreichbar, fehlt der Eintrag nur dort, nicht im Protokoll der App. Auf dem Syslog-Server gilt dessen
+      eigene Aufbewahrung.</small></p>
+    <div class="einstellung-felder">
+      {{ textfeld("syslog_server", "Server", platzhalter="syslog.example.com") }}
+      {{ textfeld("syslog_port", "Port", empfehlung="6514" if werte.get("syslog_protokoll") == "tls" else "514", hilfe="Üblich: 514 für UDP und TCP, 6514 für TLS.") }}
+      <div class="einstellung{{ ' geaendert' if werte.get('syslog_protokoll') != 'tcp' }}">
+        <label for="e-syslog_protokoll">Verbindung {{ m.hilfe("UDP ist einfach, aber Meldungen können unbemerkt verloren gehen. TCP stellt zuverlässig zu, TLS zusätzlich verschlüsselt (rsyslog: imtcp mit StreamDriver gtls bzw. ossl).") }}</label>
+        <select id="e-syslog_protokoll" name="syslog_protokoll" data-standard="tcp"
+                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for wert, text in sl.protokolle.items() %}<option value="{{ wert }}" {% if werte.get("syslog_protokoll") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+        <small class="standardwert">Empfehlung: TCP, bei Übertragung über fremde Netze TLS <span class="geaendert-marker">· abweichend</span></small>
+      </div>
+    </div>
+    {% set sl_erweitert = werte.get("syslog_format") != "5424" or werte.get("syslog_facility") != "local0"
+                          or werte.get("syslog_hostname") or sl.ca or fehler.get("syslog_ca") %}
+    <details class="syslog-erweitert"{% if sl_erweitert %} open{% endif %}>
+    <summary>Erweitert: Format, Facility, Hostname, CA-Zertifikat</summary>
+    <div class="einstellung-felder">
+      <div class="einstellung{{ ' geaendert' if werte.get('syslog_format') != '5424' }}">
+        <label for="e-syslog_format">Format {{ m.hilfe("RFC 5424 mit strukturierten Daten (Benutzer:in, Aktion, Objekt, Felder) – von rsyslog direkt auswertbar. RFC 3164 nur für sehr alte Empfänger.") }}</label>
+        <select id="e-syslog_format" name="syslog_format" data-standard="5424"
+                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for wert, text in sl.formate.items() %}<option value="{{ wert }}" {% if werte.get("syslog_format") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+        <small class="standardwert">Empfehlung: RFC 5424 <span class="geaendert-marker">· abweichend</span></small>
+      </div>
+      <div class="einstellung{{ ' geaendert' if werte.get('syslog_facility') != 'local0' }}">
+        <label for="e-syslog_facility">Facility</label>
+        <select id="e-syslog_facility" name="syslog_facility" data-standard="local0"
+                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for wert in sl.facilities %}<option value="{{ wert }}" {% if werte.get("syslog_facility") == wert %}selected{% endif %}>{{ wert }}</option>{% endfor %}
+        </select>
+        <small class="standardwert">Empfehlung: local0 <span class="geaendert-marker">· abweichend</span></small>
+      </div>
+      {{ textfeld("syslog_hostname", "Absender-Hostname", platzhalter=sl.rechnername, hilfe="Steht als Hostname in jeder Meldung. Leer = Rechnername des Containers (" ~ sl.rechnername ~ ").") }}
+    </div>
+    <div class="einstellung syslog-ca">
+      <label for="e-syslog_ca">CA-Zertifikat für TLS {{ m.hilfe("Nur nötig, wenn das Zertifikat des Syslog-Servers von einer eigenen CA stammt (selbst signiert). Sonst gelten die üblichen öffentlichen CAs. Der Servername muss zum Zertifikat passen.") }}</label>
+      <textarea id="e-syslog_ca" name="syslog_ca" rows="3" spellcheck="false"
+                placeholder="{{ '•••••• eigene CA gespeichert – leer lassen, um sie zu behalten' if sl.ca else '-----BEGIN CERTIFICATE----- … (optional)' }}"
+                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}
+                {% if fehler.get("syslog_ca") %}aria-invalid="true"{% endif %}></textarea>
+      {% if fehler.get("syslog_ca") %}<small class="fehler">{{ fehler.syslog_ca }}</small>{% endif %}
+      {% if sl.ca %}<label class="haken klein"><input type="checkbox" name="syslog_ca_entfernen"
+        {% if nur_lesen %}disabled{% endif %}> gespeicherte CA entfernen</label>{% endif %}
+    </div>
+    </details>
+    <label class="haken"><input type="checkbox" name="syslog_aenderungen" {% if werte.get("syslog_aenderungen") %}checked{% endif %}
+      {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Änderungsprotokoll senden (inkl. Anmeldungen)</label>
+    <label class="haken"><input type="checkbox" name="syslog_werte" {% if werte.get("syslog_werte") %}checked{% endif %}
+      {% if nur_lesen %}disabled{% endif %}> mit alten und neuen Werten (sonst nur die Namen der geänderten Felder)</label>
+    <label class="haken"><input type="checkbox" name="syslog_app" {% if werte.get("syslog_app") %}checked{% endif %}
+      {% if nur_lesen %}disabled{% endif %}> Meldungen der App senden (Fehler, Sicherungen, Report-Versand)</label>
+    {% set st = sl.status %}
+    <p class="syslog-status"><small>
+      {%- if not werte.get("syslog_server") %}Syslog ist aus.
+      {%- elif st.fehler %}<strong class="fehler">⚠ Zuletzt nicht zugestellt ({{ st.zeit | datumzeit_lokal }}): {{ st.fehler }}</strong>
+      {%- else %}✓ Aktiv: {{ werte.get("syslog_server") }}:{{ werte.get("syslog_port") }}{% if st.gesendet %}, seit dem Start {{ st.gesendet }} Meldungen gesendet{% endif %}.{% endif %}
+      {%- if st.verworfen %} {{ st.verworfen }} Meldungen konnten nicht zugestellt werden.{% endif %}
+      Änderungen erst speichern, dann testen.</small></p>
+    <div class="backup-aktionen" data-nur-admin>
+      <button type="submit" form="syslog-test" class="outline" title="Testmeldung mit den gespeicherten Einstellungen senden"
+              data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Testmeldung verwendet die gespeicherten Einstellungen.">Testmeldung senden</button>
+      <a href="/protokoll" role="button" class="outline secondary">Protokoll ansehen</a>
+    </div>
+  </section>
+
+  {% set bk = backup %}
+  <section class="einstellung-gruppe backup-gruppe">
+    {{ gruppe_kopf("backup", "Backup", "Sichert Daten, Einstellungen, Benutzer:innen, Originaldateien und Parser in eine Datei – auch zum Umziehen auf einen anderen Server. Wiederherstellen per Kommando (README „Backup und Umzug“).") }}
+    {% if bk.passwort %}<p><small>🔒 Sicherungen werden verschlüsselt (BACKUP_PASSWORT aus <code>.env</code>).
+      Ohne dieses Passwort lassen sie sich nicht wiederherstellen – bitte sicher aufbewahren.</small></p>
+    {% else %}<p class="meldung meldung-warnung">⚠ Kein <code>BACKUP_PASSWORT</code> in <code>.env</code> gesetzt:
+      Sicherungen sind unverschlüsselt, enthalten aber Personendaten.</p>{% endif %}
+    <div class="einstellung-felder">
+      <div class="einstellung">
+        <label for="e-backup_zeitplan">Automatisch sichern</label>
+        <select id="e-backup_zeitplan" name="backup_zeitplan" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for wert, text in bk.zeitplaene.items() %}<option value="{{ wert }}" {% if werte.get("backup_zeitplan") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="einstellung" data-zeigen-bei="backup_zeitplan:woechentlich" {% if werte.get("backup_zeitplan") != "woechentlich" %}hidden{% endif %}>
+        <label for="e-backup_wochentag">Wochentag</label>
+        <select id="e-backup_wochentag" name="backup_wochentag" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for text in bk.wochentage %}<option value="{{ loop.index0 }}" {% if werte.get("backup_wochentag") == loop.index0 | string %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="einstellung">
+        <label for="e-backup_uhrzeit">Uhrzeit</label>
+        <input type="time" id="e-backup_uhrzeit" name="backup_uhrzeit" value="{{ werte.get('backup_uhrzeit') }}" required
+               {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}
+               {% if fehler.get("backup_uhrzeit") %}aria-invalid="true"{% endif %}>
+        {% if fehler.get("backup_uhrzeit") %}<small class="fehler">{{ fehler.backup_uhrzeit }}</small>{% endif %}
+      </div>
+      {{ einstellung("backup_behalten", "Automatische behalten", "Stück", "Ältere automatische Sicherungen werden gelöscht; manuelle bleiben, bis sie jemand löscht.") }}
+    </div>
+    {% set st = bk.status %}
+    <p class="backup-status"><small>
+      {% if st.letzter_lauf %}Letzte automatische Sicherung: {{ st.letzter_lauf | datumzeit_lokal }} –
+        {% if st.erfolg %}✓ {{ st.meldung }}{% else %}<strong class="fehler">⚠ fehlgeschlagen: {{ st.meldung }}</strong>{% endif %}
+      {% else %}Noch keine automatische Sicherung gelaufen.{% endif %}</small></p>
+    <div class="backup-aktionen" data-nur-admin>
+      <button type="submit" form="backup-erstellen" class="outline" title="Sicherung sofort erstellen"
+              data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Sicherung enthält sonst nicht die geänderten Einstellungen.">Jetzt sichern</button>
+    </div>
+    <div class="tabelle">
+    <table class="backup-liste">
+      <thead><tr><th>Datum</th><th>Art</th><th class="rechts">Größe</th><th>Inhalt</th><th></th></tr></thead>
+      <tbody>
+      {% for s in bk.liste %}
+        <tr><td>{{ s.datum.strftime("%d.%m.%Y %H:%M") }}</td>
+          <td>{{ s.art }}{% if s.verschluesselt %} <span title="verschlüsselt">🔒</span>{% endif %}</td>
+          <td class="rechts">{{ (s.groesse / 1048576) | zahl(1) }} MB</td>
+          <td><small>{% if s.anzahlen %}{{ s.anzahlen.get("ladevorgaenge", 0) | zahl(0) }} Ladevorgänge,
+            {{ s.anzahlen.get("originaldateien", 0) }} Originaldateien{% endif %}{% if s.app_version %} · Version {{ s.app_version }}{% endif %}</small></td>
+          <td class="rechts" data-nur-admin>
+            <a href="/einstellungen/backup/{{ s.name }}/datei" role="button" class="outline klein download-knopf" hx-boost="false"
+               title="Sicherung herunterladen (enthält Personendaten)">Herunterladen</a>
+            <button type="submit" form="backup-loeschen-{{ loop.index }}" class="outline secondary klein gefahr"
+                    data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern."
+                    data-bestaetigen="Sicherung vom {{ s.datum.strftime('%d.%m.%Y %H:%M') }} endgültig löschen?">Löschen</button></td></tr>
+      {% else %}
+        <tr><td colspan="5">Noch keine Sicherungen.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+</fieldset>
+
+  <div class="speichern-leiste">
+    {% if nur_lesen %}
+    <button type="submit" class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen">Speichern</button>
+    <small>🔒 Unzureichende Berechtigungen – nur lesen.</small>
+    {% else %}
+    <button type="submit" data-speichern {% if not fehler %}class="ausgegraut" aria-disabled="true"
+            title="Noch keine Änderungen – erst nach einer Änderung speicherbar"{% endif %}>Speichern</button>
+    <small data-speichern-status>{% if fehler %}Bitte die markierten Felder korrigieren.{% else %}Keine Änderungen.{% endif %}</small>
+    {% endif %}
+  </div>
+</form>
+{# Backup-Aktionen: eigene Formulare (Formulare lassen sich nicht schachteln), Knöpfe oben über das form-Attribut #}
+<form method="post" action="/einstellungen/backup/erstellen" id="backup-erstellen" hidden></form>
+<form method="post" action="/einstellungen/mail/test" id="mail-test" hidden></form>
+<form method="post" action="/einstellungen/syslog/test" id="syslog-test" hidden></form>
+{% for s in backup.liste %}<form method="post" action="/einstellungen/backup/{{ s.name }}/loeschen" id="backup-loeschen-{{ loop.index }}" hidden></form>{% endfor %}
+{% endblock %}

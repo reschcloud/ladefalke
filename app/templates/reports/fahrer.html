@@ -1,0 +1,87 @@
+{% extends "reports/_basis.html" %}
+{% import "reports/_basis.html" as r with context %}
+{# Fahrer:innen-Report: die eigenen Daten (Summen); von der Flotte nur Aggregate (Flottenschnitt, eigener Platz in der
+   Topliste der günstigsten Öffentlich-Lader:innen) – keine Namen oder Werte anderer Personen. #}
+{% block titel %}Ladefalke – Ladereport {{ person.name }} {{ z.label }}{% endblock %}
+{% block kopf %}Ladereport {{ person.name }}{% endblock %}
+{% block inhalt %}
+{% set s = zeile.summe %}
+<h1>Dein Ladereport {{ z.label }}</h1>
+<p class="untertitel">{{ person.name }} · {{ z.von | datum }} – {{ z.bis | datum }} · Ladungen nach
+  {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} · nur Ladekosten netto, ohne Grundgebühren
+  {%- if vergleich %} · Vergleich mit deinem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
+
+{% if s.leer %}
+<p>Im Zeitraum {{ z.label }} sind keine Ladungen von dir erfasst.</p>
+{% else %}
+{{ r.kennzahlen(s, vergleich, z, gegen_flotte=gegen_flotte, flottenschnitt=flottenschnitt, dc=dc, drei=true, schnitt=z.schnitt(s)) }}
+
+{# Platzierung in der Topliste der günstigsten Öffentlich-Lader:innen: Siegertreppchen mit Pokal bzw. Medaille #}
+{% if topliste %}
+{% set teil = topliste.teilnehmer %}
+<div class="platzierung{{ ' oben' if rang and rang <= 3 }}">
+  <svg viewBox="0 0 130 92" width="130" height="92" class="treppchen">
+    {% set blass = 1 if rang and rang <= 3 else 0.45 %}
+    <g opacity="{{ blass }}" font-family="Liberation Sans, DejaVu Sans, sans-serif" font-weight="700" text-anchor="middle">
+      <rect x="6" y="52" width="38" height="36" rx="2" fill="#cfd6de"/><text x="25" y="76" font-size="16" fill="#ffffff">2</text>
+      <rect x="46" y="38" width="38" height="50" rx="2" fill="#f5c518"/><text x="65" y="68" font-size="18" fill="#ffffff">1</text>
+      <rect x="86" y="62" width="38" height="26" rx="2" fill="#d99a6c"/><text x="105" y="81" font-size="14" fill="#ffffff">3</text>
+    </g>
+    <line x1="2" y1="88.5" x2="128" y2="88.5" stroke="#9aa5b1" stroke-width="1"/>
+    {% if rang == 1 %}{{ r.pokal(65, 12, 1.05) }}
+    {% elif rang == 2 %}{{ r.medaille(25, 34, "#e3e8ee", "#9aa5b1") }}
+    {% elif rang == 3 %}{{ r.medaille(105, 44, "#e8b48a", "#a8693c") }}{% endif %}
+  </svg>
+  <div class="platz-text">
+    <span class="platz-titel">Topliste der günstigsten Öffentlich-Lader:innen</span>
+    {% if rang %}
+    <span class="platz-gross">Platz {{ rang }} <small>von {{ teil }}</small></span>
+    <span class="platz-spruch">
+      {%- if rang == 1 %}Glückwunsch – niemand hat im Zeitraum öffentlich günstiger geladen!
+      {%- elif rang <= 3 %}Stark – du stehst auf dem Treppchen!
+      {%- elif rang <= (teil / 3) | round(0, "ceil") %}Im vorderen Drittel – weiter so!
+      {%- elif rang <= (teil * 2 / 3) | round(0, "ceil") %}Im Mittelfeld – mit der passenden Ladekarte geht noch mehr.
+      {%- else %}Da ist noch Luft nach oben: Ein Blick auf günstigere Karten und Anbieter lohnt sich.{% endif %}</span>
+    {% else %}
+    <span class="platz-gross klein-gross">Diesmal nicht dabei</span>
+    <span class="platz-spruch">Für die Topliste sind mindestens {{ topliste.mindestmenge | zahl(0) }} kWh öffentlich geladen nötig.</span>
+    {% endif %}
+    <span class="klein">Gereiht nach dem gewichteten Preis je kWh – wer wenig lädt, wird Richtung Schnitt gezogen.</span>
+  </div>
+</div>
+{% endif %}
+
+<h2>Öffentlich und privat</h2>
+<table>
+  <thead><tr><th></th><th class="r">kWh</th><th class="r">Anteil kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <tbody>
+    <tr><td>öffentlich</td><td class="r">{{ s.kwh_oeffentlich | zahl(0) }}</td><td class="r">{{ s.anteil_oeffentlich_kwh | prozent(1) }}</td>
+      <td class="r">{{ s.kosten_oeffentlich | geld }}</td><td class="r">{{ s.preis_oeffentlich | zahl(2) if s.preis_oeffentlich is not none else "–" }}</td></tr>
+    <tr><td>privat</td><td class="r">{{ s.kwh_privat | zahl(0) }}</td>
+      <td class="r">{{ (1 - s.anteil_oeffentlich_kwh) | prozent(1) if s.anteil_oeffentlich_kwh is not none else "–" }}</td>
+      <td class="r">{{ s.kosten_privat | geld }}</td><td class="r">{{ s.preis_privat | zahl(2) if s.preis_privat is not none else "–" }}</td></tr>
+  </tbody>
+</table>
+
+<h2>Wo du geladen hast</h2>
+<div class="spalten">
+  <div>{% if not msp_verteilung.leer %}{{ r.torte(msp_verteilung, 0, "kWh nach Anbieter (MSP)", "kWh", dia) }}{% endif %}</div>
+  <div>{% if not cpo_verteilung.leer %}{{ r.torte(cpo_verteilung, 0, "kWh nach Betreiber (CPO, öffentlich)", "kWh", dia) }}{% endif %}</div>
+</div>
+{{ r.heatmap_abschnitt(heatmap, "Deine öffentlichen Ladungen", neue_seite=true) }}
+{{ r.dc_histogramme(dc_oeffentlich, "Dein öffentliches DC-Laden") }}
+
+<div class="spalten neue-seite">
+  <div>{{ r.summen_tabelle("Nach Fahrzeug", "Fahrzeug", sortiert(zeile.fahrzeuge)) }}</div>
+  <div>{{ r.summen_tabelle("Nach Ladekarte", "Ladekarte", sortiert(zeile.karten)) }}</div>
+</div>
+<div class="spalten">
+  <div>{{ r.summen_tabelle("Nach Anbieter (MSP)", "MSP", sortiert(zeile.msp)) }}</div>
+  <div>{{ r.summen_tabelle("Nach Ladestationsbetreiber (CPO, Top 10)", "CPO", sortiert(zeile.cpo, 10), "Keine öffentlichen Ladungen.") }}</div>
+</div>
+{{ r.summen_tabelle("Häufigste Ladeorte (Top 10)", "Ort", sortiert(zeile.standorte, 10)) }}
+<p class="klein">Gezählt werden die Ladungen, bei denen du zum Ladezeitpunkt gefahren bist (persönliche Ladekarte
+  oder dir zugeordnetes Fahrzeug). Ø €/kWh = Kosten / kWh{% if s.kwh_geschaetzt %}; ≈ {{ s.anteil_geschaetzt | prozent }}
+  der kWh sind geschätzt (Rechnungen ohne kWh-Angabe){% endif %}.</p>
+{% endif %}
+{% endblock %}

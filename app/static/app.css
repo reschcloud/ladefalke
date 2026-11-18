@@ -1,0 +1,1143 @@
+/* Ergänzungen zu Pico.css */
+:root { --pico-font-size: 95%; }
+
+nav .marke { text-decoration: none; }
+.kopf { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
+.kopf h1 { margin: 0; }
+.kopf + * { margin-top: 1.5rem; }
+
+form.inline { display: inline; margin: 0; }
+button.klein, a[role=button].klein { padding: .2rem .7rem; font-size: .85em; width: auto; margin: 0; line-height: 1.4; }
+/* Befehle als kleine Knöpfe (Links mit role="button"); mehrere nebeneinander mit etwas Abstand */
+a[role=button].klein + a[role=button].klein { margin-left: .35rem; }
+small a[role=button].klein { font-size: .9em; }
+
+.tabelle { overflow-x: auto; }
+td.rechts, th.rechts { text-align: right; white-space: nowrap; }
+
+.filter { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 1rem; margin-bottom: 1rem; }
+.filter a[aria-current] { font-weight: bold; text-decoration: underline; }
+.filterleiste { display: flex; flex-wrap: wrap; gap: .5rem 2rem; align-items: center; margin-bottom: 1rem; }
+.filterleiste > .filter, .filterleiste > .filterzeile { margin-bottom: 0; }
+.filterleiste select { width: auto; }
+.filterzeile { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; margin-bottom: 1rem; }
+.filterzeile > * { width: auto; margin-bottom: 0; }
+.filterzeile label { margin-bottom: 0; }
+.filterzeile label > select, .filterzeile label > input:not([type=checkbox]) { margin-bottom: 0; }
+/* mehrere kleine Formulare nebeneinander, unten bündig */
+.aktionszeile { display: flex; flex-wrap: wrap; gap: .75rem 2rem; align-items: end; margin-bottom: 1rem; }
+.aktionszeile > form { margin-bottom: 0; }
+.filterzeile > button[type=submit] { width: auto; }
+
+.marker { display: inline-block; padding: 0 .4rem; border-radius: .25rem; font-size: .8em;
+  background: var(--pico-ins-color); color: var(--pico-background-color); }
+.marker.inaktiv { background: var(--pico-muted-color); }
+.marker.gast { background: var(--pico-primary-background); color: var(--pico-primary-inverse); }
+
+.meldung { padding: .6rem 1rem; border-radius: var(--pico-border-radius); border-left: .3rem solid; }
+.meldung-info { border-color: var(--pico-ins-color); background: color-mix(in srgb, var(--pico-ins-color) 12%, transparent); }
+.meldung-warnung { border-color: #c98a00; background: color-mix(in srgb, #c98a00 14%, transparent); }
+.meldung-fehler { border-color: var(--pico-del-color); background: color-mix(in srgb, var(--pico-del-color) 12%, transparent); }
+
+.kacheln { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.kachel { display: flex; flex-direction: column; padding: 1rem; border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius); text-decoration: none; }
+.kachel-zahl { font-size: 2rem; font-weight: bold; }
+
+article.login { max-width: 24rem; margin: 4rem auto; }
+
+tr.gedimmt td { opacity: .5; }
+fieldset.neue-karte { margin: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; align-items: center; }
+fieldset.neue-karte label { margin: 0; }
+fieldset.neue-karte .zusatz-hinweis { font-size: .8rem; color: var(--pico-muted-color); }
+fieldset.neue-karte input[type=text] { margin: 0; max-width: 18rem; }
+details > summary { font-weight: bold; }
+
+/* Pico verteilt <nav>-Inhalte mit space-between – hier Pfeile direkt am Zeitraum, Auswahl rechts */
+.zeitraumwahl { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .5rem 1rem; align-items: center;
+  margin-bottom: 1rem; }
+.zeitraumwahl .zeitraum-label { font-size: 1.25rem; min-width: 6rem; text-align: center; }
+.zeitraumwahl .arten { margin-left: auto; }
+.zeitraumwahl form.zeitraum-auswahl { display: flex; flex-wrap: nowrap; gap: .5rem; align-items: center; margin: 0; }
+.zeitraumwahl form.zeitraum-auswahl select { width: auto; margin: 0; padding: .25rem 2.2rem .25rem .7rem; height: auto;
+  font-weight: bold; }
+.zeitraumwahl .arten ~ .arten { margin-left: 0; }  /* weitere Gruppen direkt daneben */
+.zeitraumwahl a[role=button] { padding: .2rem .7rem; margin: 0; }
+abbr.geschaetzt { text-decoration: none; cursor: help; color: #c98a00; font-weight: bold; }
+abbr.hilfe { display: inline-block; width: 1.1em; height: 1.1em; line-height: 1.1em; border-radius: 50%;
+  border: 1px solid var(--pico-muted-color); color: var(--pico-muted-color); font-size: .75em; font-weight: bold;
+  text-align: center; text-decoration: none; cursor: help; vertical-align: .1em; }
+section { margin-bottom: 2.5rem; }
+
+
+/* Checkbox mit Hinweis darunter, eingerückt auf Höhe des Beschriftungstexts */
+label.haken:has(+ small.haken-hinweis) { margin-bottom: .2rem; }
+small.haken-hinweis { display: block; margin: -.4rem 0 .9rem 1.9rem; color: var(--pico-muted-color); }
+small.haken-hinweis.fehler { color: var(--pico-del-color); }
+
+/* Roter Punkt in der Menüleiste für offene Punkte */
+nav a .punkt { display: inline-block; width: .5rem; height: .5rem; margin-left: .25rem; vertical-align: super;
+  border-radius: 50%; background: #e53935; }
+.unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.vorschau-navigation { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
+  margin-bottom: 1rem; }
+.vorschau-navigation a { text-decoration: none; }
+article.offene-vorschauen { border-left: .3rem solid #c98a00; }
+article.offene-vorschauen header.kopf a[role=button] { padding: .3rem .9rem; }
+article.offene-vorschauen ul { margin-bottom: .5rem; }
+
+/* Upload-Feld als gut erkennbare Ablagefläche (Dateien lassen sich auch hineinziehen) */
+form.upload input[type=file] { width: 100%; height: auto; padding: 1.75rem 1rem; margin-bottom: .5rem; cursor: pointer;
+  border: 2px dashed var(--pico-primary); border-radius: var(--pico-border-radius);
+  background: color-mix(in srgb, var(--pico-primary) 4%, transparent); }
+form.upload input[type=file]:hover, form.upload input[type=file]:focus-visible {
+  background: color-mix(in srgb, var(--pico-primary) 10%, transparent); }
+form.upload .datei-liste { margin: 0 0 .75rem; padding-left: 1.25rem; font-size: .9rem; }
+form.upload .datei-liste li { margin: 0; }
+/* Menüpunkt „Import“ als Ablage beim Ziehen von Dateien */
+a.import-ablage.ziehen { outline: 2px dashed var(--pico-primary); outline-offset: 4px; border-radius: var(--pico-border-radius);
+  background: color-mix(in srgb, var(--pico-primary) 12%, transparent); }
+
+/* Abweichung vom Durchschnitt der Vorperioden in den Kennzahl-Kacheln */
+.kachel small.abweichung { margin-top: .35rem; color: var(--pico-muted-color); cursor: help; }
+.kachel small.abweichung.mehr { color: var(--pico-del-color); }
+.kachel small.abweichung.weniger { color: var(--pico-ins-color); }
+
+/* „≈“ (geschätzte kWh) steht vor der Zahl; in den großen Kachelzahlen etwas kleiner */
+.kachel-zahl abbr.geschaetzt { font-size: .6em; vertical-align: middle; }
+
+/* AC/DC-Kennzeichen in der Ladevorgangsliste */
+/* AC dunkelviolett, DC pink – kein Grün/Rot, das wirkt wie günstig/teuer; Kontrast ≥ 4,5:1 (hell weiße, dunkel dunkle Schrift) */
+.marker.stromart-ac { background: #5b2a86; }
+.marker.stromart-dc { background: #d6336c; }
+.marker.stromart-ohne { background: #6b7079; }  /* keine Angabe: grau mit „?“ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .marker.stromart-ac { background: #b197fc; }
+  :root:not([data-theme="light"]) .marker.stromart-dc { background: #f783ac; }
+  :root:not([data-theme="light"]) .marker.stromart-ohne { background: #a6acb5; }
+}
+:root[data-theme="dark"] .marker.stromart-ac { background: #b197fc; }
+:root[data-theme="dark"] .marker.stromart-dc { background: #f783ac; }
+:root[data-theme="dark"] .marker.stromart-ohne { background: #a6acb5; }
+.marker.warnung { background: #c98a00; }
+td.stromart { white-space: nowrap; }
+a.unplausibel { color: #c98a00; font-weight: bold; text-decoration: none; }
+
+/* Zeitleiste (Gantt): Farben als Rollen, Dunkelmodus mit eigenen Stufen */
+.zeitleiste-rahmen, .zeitleiste-legende { --zl-balken: #2a78d6; --zl-balken-text: #ffffff; --zl-luecke: #fab219;
+  --zl-gitter: #e6e5e1; --zl-heute: #52514e; --zl-flaeche: var(--pico-background-color); }
+.zeitleiste-rahmen { overflow-x: auto; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.zeitleiste-rahmen, .zeitleiste-legende) { --zl-balken: #3987e5; --zl-gitter: #383835;
+    --zl-heute: #c3c2b7; }
+}
+:root[data-theme="dark"] :is(.zeitleiste-rahmen, .zeitleiste-legende) { --zl-balken: #3987e5; --zl-gitter: #383835; --zl-heute: #c3c2b7; }
+
+.zeitleiste { min-width: 56rem; --spur-hoehe: 1.6rem; }
+.zl-zeile { display: grid; grid-template-columns: 11rem 1fr; border-bottom: 1px solid var(--zl-gitter); }
+.zl-fahrzeug { padding: .3rem .5rem .3rem 0; display: flex; flex-direction: column; justify-content: center;
+  line-height: 1.2; overflow: hidden; }
+.zl-fahrzeug small { color: var(--pico-muted-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zl-achse { position: relative; height: calc(var(--spuren, 1) * var(--spur-hoehe) + .5rem); }
+.zl-kopf .zl-achse { height: 1.8rem; }
+.zl-kopf { font-size: .8rem; color: var(--pico-muted-color); }
+.zl-monat { position: absolute; top: .4rem; padding-left: .25rem; border-left: 1px solid var(--zl-gitter);
+  white-space: nowrap; overflow: hidden; }
+.zl-gitter { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--zl-gitter); }
+.zl-heute { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--zl-heute); z-index: 3; }
+.zl-balken, .zl-luecke { position: absolute; height: calc(var(--spur-hoehe) - .3rem); border-radius: 4px;
+  font-size: .78rem; line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
+  text-decoration: none; box-sizing: border-box; }
+.zl-balken { top: calc(.25rem + var(--spur, 0) * var(--spur-hoehe)); background: var(--zl-balken);
+  color: var(--zl-balken-text); border-left: 2px solid var(--zl-flaeche); z-index: 2; }
+.zl-balken span, .zl-luecke span { padding: 0 .35rem; display: block; overflow: hidden; text-overflow: ellipsis; }
+.zl-balken:hover, .zl-balken:focus-visible { outline: 2px solid var(--zl-heute); outline-offset: 1px; }
+.zl-luecke { top: .25rem; height: calc(var(--hoehe, 1) * var(--spur-hoehe) - .3rem); color: var(--pico-color);
+  background-color: color-mix(in srgb, var(--zl-luecke) 18%, transparent);
+  background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 8px);
+  border: 1px solid var(--zl-luecke); z-index: 1; }
+.zeitleiste-legende { font-size: .85rem; display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: center; }
+.zeitleiste-legende span { display: inline-block; width: 1.6rem; height: .8rem; vertical-align: middle;
+  margin-right: .3rem; border-radius: 3px; }
+.legende-balken { background: var(--zl-balken); }
+.legende-luecke { border: 1px solid var(--zl-luecke); background-color: color-mix(in srgb, var(--zl-luecke) 18%, transparent);
+  background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 8px); }
+.legende-heute { width: 0 !important; height: 1rem !important; border-left: 2px dashed var(--zl-heute); border-radius: 0 !important; }
+.zl-luecke span { display: inline-block; background: color-mix(in srgb, var(--zl-flaeche) 85%, transparent);
+  border-radius: 3px; margin-left: .15rem; line-height: 1.3; }
+
+/* Zeitleiste: Hover-Hervorhebung – Akzent (orange, dunkle Schrift) und übrige grau */
+.zeitleiste-rahmen { --zl-hervor: #eb6834; --zl-hervor-text: #0b0b0b; --zl-grau: #e1e0db; --zl-grau-text: #52514e; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .zeitleiste-rahmen { --zl-hervor: #d95926; --zl-grau: #3a3a37; --zl-grau-text: #c3c2b7; }
+}
+:root[data-theme="dark"] .zeitleiste-rahmen { --zl-hervor: #d95926; --zl-grau: #3a3a37; --zl-grau-text: #c3c2b7; }
+
+/* Schätzwerte, die nicht aus den eigenen Daten des Fahrzeugs stammen */
+
+/* Luft zwischen Seiteninhalt und unterem Bildschirmrand */
+body > main.container { padding-bottom: 4rem; }
+
+/* Vollständigkeit im Dashboard: Status mit Symbol und Text, Farbe nur als Zusatz */
+details.vollstaendigkeit { border: 1px solid var(--pico-muted-border-color); border-left-width: 4px;
+  border-radius: var(--pico-border-radius); padding: .5rem 1rem; margin-bottom: 1.5rem; }
+details.vollstaendigkeit.fehlt { border-left-color: #c98a00; }
+details.vollstaendigkeit.ok { border-left-color: var(--pico-ins-color); }
+details.vollstaendigkeit > summary { margin-bottom: 0; }
+details.vollstaendigkeit[open] > summary { margin-bottom: .75rem; }
+details.vollstaendigkeit details.monat { margin: 0 0 .5rem; }
+details.vollstaendigkeit details.monat > summary { font-weight: normal; }
+details.vollstaendigkeit details.monat.fehlt > summary { font-weight: bold; }
+details.vollstaendigkeit ul { margin-bottom: .5rem; }
+details.vollstaendigkeit p { margin-bottom: .5rem; }
+
+/* ---------------------------------------------------------------- Dashboard: getönter Hintergrund, Diagramme */
+/* body bleibt bei hx-boost erhalten – die Seite markiert sich über ein Element im Inhalt */
+/* Alle Seiten: leicht getönter Hintergrund, Abschnitte als Karten darauf (früher nur das Dashboard) */
+:root { --dash-grund: #eef3f8; --dash-flaeche: var(--pico-background-color); }  /* Links setzen die Pico-Variable lokal auf transparent */
+:root, body { background: var(--dash-grund); }
+.dashboard-seite ~ h2 { margin-top: 2rem; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --dash-grund: #1c2633; }
+}
+:root[data-theme="dark"] { --dash-grund: #1c2633; }
+/* Karten: Tabellen, Formulare, Kacheln, Diagramme, Filter, Zeitleisten, Datenblöcke, Aufklapper */
+main :where(.tabelle, form.formular, form.filter-formular, .kachel, .diagramm, details.vollstaendigkeit, details.diagramm-tabelle,
+        .zeitleiste-rahmen, .abschnitt-karte, .detail-daten, details:not(.dropdown):not(.mehrfach)) {
+  /* :where – Spezifität 0, damit Ausnahmen (Tabelle in einer Karte) greifen */
+  background: var(--dash-flaeche); border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);
+  box-shadow: var(--pico-card-box-shadow); }  /* Schatten wie die Pico-Karten (article), überall gleich */
+main :where(.tabelle, .zeitleiste-rahmen) { padding: .25rem .75rem; margin-bottom: 1.25rem; }
+main :where(form.formular, form.filter-formular, .abschnitt-karte, .detail-daten) { padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+main form.filter-formular { padding: .75rem 1rem .5rem; }
+main :where(details:not(.dropdown):not(.mehrfach)) { padding: .6rem 1rem; }
+main .abschnitt-karte .tabelle { border: 0; padding: 0; margin-bottom: 0; background: transparent; box-shadow: none; }
+main article { border: 1px solid var(--pico-muted-border-color); }
+
+/* Kategorische Farben (dataviz-Referenzpalette, Reihenfolge fest; geprüft hell und dunkel), „Weitere“ grau */
+.diagramme, .diagramm-tabelle { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+  --s0: #c3c2b7; --gitter: #e1e0d9; --achse: #c3c2b7; --achsentext: #898781; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.diagramme, .diagramm-tabelle) { --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --s4: #c98500; --s5: #d55181; --s0: #5a5955; --gitter: #2c2c2a; --achse: #383835; }
+}
+:root[data-theme="dark"] :is(.diagramme, .diagramm-tabelle) { --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --s4: #c98500; --s5: #d55181; --s0: #5a5955; --gitter: #2c2c2a; --achse: #383835; }
+.slot-1 { fill: var(--s1); background: var(--s1); } .slot-2 { fill: var(--s2); background: var(--s2); }
+.slot-3 { fill: var(--s3); background: var(--s3); } .slot-4 { fill: var(--s4); background: var(--s4); }
+.slot-5 { fill: var(--s5); background: var(--s5); } .slot-0 { fill: var(--s0); background: var(--s0); }
+
+/* Zwei Diagramme je Zeile (schmal: eines); mit Säulen: links Torte und Legende, rechts die Monate */
+.diagramme { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
+@media (min-width: 64rem) { .diagramme { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.diagramm-koerper.mit-saeulen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem 2rem; }
+.diagramm-koerper.mit-saeulen svg.saeulen { max-height: 16rem; }  /* untereinander: nicht zu hoch */
+@media (min-width: 90rem) {
+  .diagramm-koerper.mit-saeulen { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); align-items: start; }
+  .diagramm-koerper.mit-saeulen .diagramm-inhalt.mit-torte { flex-direction: column; align-items: stretch; gap: 1rem; }
+  .diagramm-koerper.mit-saeulen svg.torte { align-self: center; }
+  .diagramm-koerper.mit-saeulen .diagramm-zwischentitel { margin-top: 0; }
+  .diagramm-koerper.mit-saeulen svg.saeulen { max-height: none; }
+}
+.diagramm { margin: 0; padding: 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); }
+.diagramm figcaption { margin-bottom: .75rem; }
+.diagramm-inhalt.mit-torte { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; }
+.diagramm svg { display: block; overflow: visible; }
+.diagramm svg.torte { width: 11rem; height: 11rem; flex: none; }
+.diagramm svg.saeulen { width: 100%; height: auto; margin-bottom: .75rem; }
+/* 2px Abstand zwischen Segmenten in Grundfarbe */
+.diagramm svg path, .diagramm svg circle, .diagramm svg rect:not(.trefferflaeche) {
+  stroke: var(--pico-background-color); stroke-width: 2px; }
+.diagramm svg path:hover, .diagramm svg g:hover rect:not(.trefferflaeche) { opacity: .85; }
+.diagramm svg .trefferflaeche { fill: transparent; }
+.diagramm svg .gitter { stroke: var(--gitter); stroke-width: 1px; }
+.diagramm svg .achse { stroke: var(--achse); stroke-width: 1px; }
+.diagramm svg .achsentext { fill: var(--achsentext); font-size: 11px; }
+.legende { list-style: none; padding: 0; margin: 0; flex: 1; min-width: 12rem; font-size: .9rem; }
+.diagramm-inhalt:not(.mit-torte) .legende { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
+.legende li { list-style: none; margin: 0 0 .25rem; display: flex; align-items: baseline; gap: .4rem; }
+.legende li > :is(a, span):not(.farbfeld):not(.legende-wert) { min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }  /* lange Namen kürzen statt umbrechen; voller Name im Tooltip der Säulen */
+.legende .legende-wert { margin-left: auto; padding-left: .75rem; color: var(--pico-muted-color); white-space: nowrap; }
+.diagramm-inhalt:not(.mit-torte) .legende .legende-wert { margin-left: 0; padding-left: .25rem; }
+.legende code { background: none; padding: 0; font-size: .85rem; }
+.farbfeld { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; flex: none; vertical-align: -.05rem; }
+details.diagramm-tabelle { border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);
+  padding: .5rem 1rem; margin-bottom: .5rem; }
+
+td.nowrap { white-space: nowrap; }
+
+/* ---------------------------------------------------------------- Karten: Heatmap im Dashboard, Karte bei Ladevorgängen */
+/* Heatmap: Abstufung Rosa → Pink → Dunkelviolett (Farben wie AC/DC), Helligkeit gleichmäßig fallend:
+   hell = wenige, dunkel = viele; im Dunkelmodus umgekehrt */
+.karte-bereich { --karte-see: #d3e3f3; --karte-fluss: #9cc0e4; --karte-autobahn: #c4b9a7; --karte-hauptstrasse: #d3cbbd;
+  --karte-strasse: #dfd9cf; --karte-relief-deckkraft: .55;
+  --karte-land: #f7f7f5; --karte-grenze: #b3b2a7; --karte-region: #dcdbd4; --karte-wasser: #e6eef6;
+  --karte-heat: #f7c4dc, #ec7fae, #d6336c, #93307f, #5b2a86; --karte-text: #373c44; margin-bottom: 1rem; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .karte-bereich { --karte-land: #24272b; --karte-grenze: #67645c; --karte-region: #34363a;
+    --karte-wasser: #15191e; --karte-heat: #3f1d63, #6a2b8c, #b4317c, #e0558a, #f9b8d3; --karte-text: #c2c7d0;
+    --karte-see: #1a2531; --karte-fluss: #2d4c6e; --karte-autobahn: #5a564f; --karte-hauptstrasse: #4a4844;
+    --karte-strasse: #3d3c39; --karte-relief-deckkraft: .8; }
+}
+:root[data-theme="dark"] .karte-bereich { --karte-land: #24272b; --karte-grenze: #67645c; --karte-region: #34363a;
+  --karte-wasser: #15191e; --karte-heat: #3f1d63, #6a2b8c, #b4317c, #e0558a, #f9b8d3; --karte-text: #c2c7d0;
+    --karte-see: #1a2531; --karte-fluss: #2d4c6e; --karte-autobahn: #5a564f; --karte-hauptstrasse: #4a4844;
+    --karte-strasse: #3d3c39; --karte-relief-deckkraft: .8; }
+/* isolation: Leaflets Ebenen (z-index 400–1000) bleiben in der Karte und liegen nicht über Ausklapplisten */
+.karte { isolation: isolate; height: 40rem; max-height: 75vh; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);
+  background: var(--karte-wasser); }
+.karte .leaflet-container, .karte.leaflet-container { background: var(--karte-wasser); font: inherit; }
+.karte-dashboard .karte { height: 40rem; }
+.karte-liste .karte { height: 48rem; max-height: 80vh; }
+.karte-legende { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .5rem 0 0;
+  font-size: .85rem; color: var(--pico-muted-color); }
+.karte-legende small { margin-left: 1rem; }
+.karte-verlauf { width: 8rem; height: .6rem; border-radius: 3px;
+  background: linear-gradient(90deg, #f7c4dc, #ec7fae, #d6336c, #93307f, #5b2a86); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .karte-verlauf { background: linear-gradient(90deg, #3f1d63, #6a2b8c, #b4317c, #e0558a, #f9b8d3); }
+}
+:root[data-theme="dark"] .karte-verlauf { background: linear-gradient(90deg, #3f1d63, #6a2b8c, #b4317c, #e0558a, #f9b8d3); }
+/* Leaflet-Zoomknöpfe haben role="button" – Picos Knopfstil zurücksetzen */
+.karte .leaflet-bar a { padding: 0; margin: 0; border-radius: 0; font-size: 1.1rem; line-height: 30px;
+  width: 30px; height: 30px; box-shadow: none; background: var(--karte-land); color: var(--karte-text);
+  border: none; border-bottom: 1px solid var(--pico-muted-border-color); }
+.karte .leaflet-bar a:last-child { border-bottom: none; }
+.karte .leaflet-bar a.leaflet-disabled { background: var(--karte-land); color: var(--karte-text); opacity: .4; }
+.karte .leaflet-bar { border: 1px solid var(--pico-muted-border-color); }
+.karte-bereich .karte .leaflet-control-attribution { background: color-mix(in srgb, var(--karte-land) 85%, transparent);
+  color: var(--karte-text); }
+.karte-bereich .karte .leaflet-control-attribution a { color: inherit; }
+/* Beschriftungen: Text in Textfarben mit Halo in Landfarbe, damit er über Grenzen und Heatmap lesbar bleibt */
+.karte .karte-landname, .karte .karte-stadt { pointer-events: none; white-space: nowrap; }
+.karte .karte-landname span, .karte .karte-stadt span { display: block; transform: translate(-50%, -50%);
+  color: var(--karte-text); text-shadow: 0 0 2px var(--karte-land), 0 0 3px var(--karte-land), 0 0 4px var(--karte-land); }
+.karte .karte-landname span { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; opacity: .65; }
+.karte .karte-stadt span { font-size: .72rem; transform: translate(5px, -50%); }
+.karte .karte-stadt.links span { transform: translate(calc(-100% - 5px), -50%); }
+.karte .karte-stadt.links span::before { left: auto; right: -7px; }
+.karte .karte-stadt span::before { content: ""; position: absolute; left: -7px; top: 50%; width: 5px; height: 5px;
+  margin-top: -2.5px; border-radius: 50%; background: var(--karte-text); box-shadow: 0 0 0 1px var(--karte-land); }
+
+/* ---------------------------------------------------------------- Mehrfachauswahl in Filtern (_makros.mehrfach) */
+.mehrfach-feld { display: flex; flex-direction: column; }
+.mehrfach-feld > span { margin-bottom: calc(var(--pico-spacing) * .375); }
+.filterzeile details.mehrfach { margin-bottom: 0; }
+details.mehrfach > summary { font-weight: normal; min-width: 9rem; white-space: nowrap; }
+details.mehrfach .mehrfach-text { display: inline-block; max-width: 13rem; overflow: hidden; text-overflow: ellipsis;
+  vertical-align: bottom; }
+details.mehrfach > summary + ul { min-width: 100%; width: max-content; max-width: 22rem; max-height: 60vh; overflow-y: auto; z-index: 20; }
+details.mehrfach > summary + ul li label { white-space: nowrap; }
+/* gesetzter Filter: Feld blau umrandet und hinterlegt, Auswahl fett, Beschriftung blau mit „×“ zum Aufheben */
+.mehrfach-feld.gesetzt > span { color: var(--pico-primary); font-weight: 600; }
+.mehrfach-feld.gesetzt details.mehrfach > summary { border-color: var(--pico-primary);
+  box-shadow: inset 0 0 0 1px var(--pico-primary);
+  background-color: color-mix(in srgb, var(--pico-primary) 12%, var(--pico-form-element-background-color));
+  color: var(--pico-primary); font-weight: 600; }
+.filter-weg { display: inline-flex; align-items: center; justify-content: center; width: 1.05rem; height: 1.05rem;
+  margin: 0 0 0 .35rem; padding: 0; border: 1px solid color-mix(in srgb, var(--pico-primary) 45%, transparent);
+  border-radius: 50%; vertical-align: -.1rem; cursor: pointer; color: var(--pico-primary);
+  background: color-mix(in srgb, var(--pico-primary) 12%, var(--pico-form-element-background-color)); box-shadow: none;
+  transition: background-color .15s, color .15s, border-color .15s; }
+.filter-weg svg { width: .55rem; height: .55rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.filter-weg:hover, .filter-weg:focus-visible { background: var(--pico-primary); border-color: var(--pico-primary);
+  color: var(--pico-primary-inverse); }
+small.person { white-space: nowrap; }
+/* Karte groß: fast bildschirmfüllend über der Seite, Rest abgedunkelt; Esc oder Knopf schließt */
+.karte.karte-gross { position: fixed !important;  /* Leaflet setzt inline position: relative */
+  inset: 2.5vh 2.5vw; height: auto; max-height: none; z-index: 1000;
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / .55); }
+.karte .karte-gross-knopf { display: flex; align-items: center; justify-content: center; }
+.karte .karte-gross-knopf svg { width: 16px; height: 16px; }
+/* Dashboard: reine Heatmap ohne Bedienung */
+.karte[data-modus="statisch"].leaflet-container { cursor: default; }
+/* ---------------------------------------------------------------- Preisschilder (Karte bei den Ladevorgängen) */
+/* Stromart: AC dunkelviolett, DC pink; Preis: grün unter, rot über dem Ø – weiße Schrift, Kontrast ≥ 4,5:1 */
+.karte-bereich { --schild-ac: #5b2a86; --schild-dc: #d6336c; --schild-ohne: #6b7079; --schild-guenstig: #1a7f5a;
+  --schild-teuer: #c92a2a; }
+.karte-bereich[data-farbe="preis"] .nach-art, .karte-bereich:not([data-farbe="preis"]) .nach-preis,
+.karte-bereich[data-farbe="heat"] .nach-art, .karte-bereich:not([data-farbe="heat"]) .nach-heat { display: none; }
+.karte-farben.nach-heat { align-items: center; gap: .35rem; }
+.karte-farben.nach-heat .karte-verlauf { width: 5rem; }
+.karte-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.5rem; margin-bottom: .5rem; }
+.karte-farben { display: inline-flex; gap: .4rem; font-size: .8rem; }
+.schild-muster { padding: .05rem .45rem; border-radius: 4px; color: #fff; font-weight: 600; }
+.schild-muster.ac { background: var(--schild-ac); } .schild-muster.dc { background: var(--schild-dc); }
+.schild-muster.ohne { background: var(--schild-ohne); }
+.schild-muster.guenstig { background: var(--schild-guenstig); } .schild-muster.teuer { background: var(--schild-teuer); }
+.karte .karte-symbol { width: 0; height: 0; }
+.karte .schild { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; min-width: 46px; height: 32px; padding: 0 6px; box-sizing: border-box;
+  border: 1.5px solid #fff; border-radius: 6px; background: var(--f); color: #fff; white-space: nowrap; cursor: pointer;
+  box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
+.karte .schild.ac { --f: var(--schild-ac); } .karte .schild.dc { --f: var(--schild-dc); } .karte .schild.ohne { --f: var(--schild-ohne); }
+.karte .schild.guenstig { --f: var(--schild-guenstig); } .karte .schild.teuer { --f: var(--schild-teuer); }
+.karte .schild-wert { font-size: .8rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.karte .schild-einheit { font-size: .56rem; font-weight: 600; line-height: 1; opacity: .9; }
+/* Spitze zeigt auf den Ort: allein mittig nach unten, zu zweit von links bzw. rechts schräg zum gemeinsamen Punkt */
+.karte .schild::after { content: ""; position: absolute; bottom: -9px; border-top: 9px solid var(--f); }
+.karte .schild.mitte { transform: translate(-50%, calc(-100% - 8px)); }
+.karte .schild.mitte::after { left: 50%; margin-left: -6px; border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top-width: 8px; bottom: -8px; }
+.karte .schild.links { transform: translate(calc(-100% - 1px), calc(-100% - 8px)); border-bottom-right-radius: 0; }
+.karte .schild.links::after { right: -1.5px; border-left: 9px solid transparent; }
+.karte .schild.rechts { transform: translate(1px, calc(-100% - 8px)); border-bottom-left-radius: 0; }
+.karte .schild.rechts::after { left: -1.5px; border-right: 9px solid transparent; }
+.karte .schild.oben { transform: translate(-50%, calc(-200% - 14px)); }
+.karte .schild.oben::after { display: none; }
+/* Anzahl als Plakette; beim linken Schild links, damit sie nicht unter dem rechten liegt */
+.karte .schild-anzahl { position: absolute; top: -8px; right: -9px; min-width: 18px; height: 18px; padding: 0 4px;
+  box-sizing: border-box; border-radius: 9px; background: #fff; color: #2b3038; border: 1.5px solid #2b3038;
+  font-size: .65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.karte .schild.links .schild-anzahl { right: auto; left: -9px; }
+/* Gruppe dicht liegender Orte: weißer Kreis mit Anzahl, Ring = Anteil der Stromarten; auf Höhe der Schilder */
+.karte .karte-gruppe { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  transform: translate(-50%, calc(-50% - 26px)); box-shadow: 0 1px 5px rgb(0 0 0 / .3); cursor: zoom-in; }
+.karte .karte-gruppe span { display: flex; align-items: center; justify-content: center; width: calc(100% - 10px);
+  height: calc(100% - 10px); border-radius: 50%; background: #fff; color: #2b3038; font-weight: 700; font-size: .85rem; }
+/* Tooltip/Popup mit den Ladungen */
+.karte .karte-tip table { margin: .2rem 0 0; font-size: .78rem; }
+.karte .karte-tip td { padding: .05rem .6rem .05rem 0; border: 0; background: transparent; color: inherit; white-space: nowrap; }
+.karte .karte-tip td.rechts { text-align: right; }
+/* Tooltip eines Schilds: anklickbar (Zeile → Detailseite), bei vielen Ladungen scrollbar */
+.karte .karte-tooltip-liste { pointer-events: auto; }
+.karte .karte-tooltip-liste .karte-tip { max-height: 40vh; overflow-y: auto; }
+.karte .karte-tooltip-liste tr { cursor: pointer; }
+.karte .karte-tooltip-liste tr:hover td { background: color-mix(in srgb, var(--karte-text) 10%, transparent); }
+.karte .karte-tooltip-liste a { color: inherit; }
+/* Tooltip-Text (Karte bei den Ladevorgängen) */
+.karte .leaflet-tooltip { background: var(--karte-land); color: var(--karte-text); border-color: var(--karte-grenze); }
+.karte .leaflet-tooltip-top::before { border-top-color: var(--karte-grenze); }
+.karte .leaflet-tooltip-bottom::before { border-bottom-color: var(--karte-grenze); }
+.karte .karte-tip, .karte .karte-tip li { font-size: .8rem; line-height: 1.35; color: inherit; }
+.karte .karte-tip ul { margin: .2rem 0 0; padding-left: 1rem; }
+.karte .karte-tip li { list-style: disc; margin: 0; }
+/* Relief (Graustufen, Ebenen weiß) wird mit der Landfarbe multipliziert: nur die Hangschatten werden sichtbar.
+   Das Mischen muss an der Ebene (Pane) sitzen – Leaflets Panes sind eigene Stapelkontexte; die Deckkraft je Zoomstufe
+   setzt karte.js an der Pane, die Grunddeckkraft (hell/dunkel) sitzt am Bild */
+.karte .leaflet-relief-pane { mix-blend-mode: multiply; }
+.karte .karte-relief { opacity: var(--karte-relief-deckkraft); }
+.karte .leaflet-tooltip.verschoben::before { display: none; }  /* in die Karte geschoben (karte.js einpassen) */
+/* Ladevorgänge: Filter in Zeilen (Zeitraum · Auswahlen · Suche), Umschalter mit Abstand, Legende in der Karte */
+.filter-formular { margin-bottom: 1rem; }
+.filter-formular .filterzeile { margin-bottom: .75rem; }
+.filter-formular label.suche { flex: 1 1 24rem; max-width: 40rem; }
+.filter-formular .filterzeile:has(label.suche) { margin-top: 1.25rem; align-items: center; }
+.filter-formular label.suche input { width: 100%; }
+.karte-liste .karte-kopf { margin-top: 1.75rem; }
+.karte .karte-farblegende { display: flex; gap: .4rem; padding: .3rem .5rem; border-radius: 6px; font-size: .8rem;
+  background: color-mix(in srgb, var(--karte-land) 88%, transparent); box-shadow: 0 1px 3px rgb(0 0 0 / .2); }
+/* Umschalter (Segmente): AC/DC | Preis über der Karte, Monat | Quartal | Halbjahr | Jahr in der Zeitraumwahl.
+   Gut sichtbarer Rahmen in Primärfarbe, Trennlinien, Auswahl gefüllt (aria-pressed bzw. aria-current) */
+.umschalter { display: inline-flex; vertical-align: middle; border: 1.5px solid var(--pico-primary-border);
+  border-radius: var(--pico-border-radius); overflow: hidden; }
+.umschalter > a, .umschalter > button { margin: 0; padding: .3rem .85rem; border: 0; border-radius: 0; font-size: .85rem;
+  line-height: 1.4; background: transparent; color: var(--pico-primary); text-decoration: none; box-shadow: none; }
+.umschalter > * + * { border-left: 1.5px solid var(--pico-primary-border); }
+.umschalter > :hover { background: color-mix(in srgb, var(--pico-primary) 12%, transparent); }
+.umschalter > [aria-pressed="true"], .umschalter > [aria-current] { background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse); font-weight: 600; }
+nav.umschalter { margin-bottom: 1rem; }
+.filterleiste > nav.umschalter { margin-bottom: .1rem; align-self: flex-end; }  /* mittig zur Auswahl mit Beschriftung darüber */
+/* Aufgaben: Übersicht als Kacheln – offen mit Warnfarbe am linken Rand, erledigt zurückgenommen */
+.aufgaben-uebersicht { margin-bottom: 2rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.kachel.aufgabe { gap: .15rem; color: var(--pico-color); border-left-width: 4px; }
+.kachel.aufgabe:hover { border-color: var(--pico-primary-border); }
+.kachel.aufgabe.offen { border-left-color: var(--pico-del-color); }
+.kachel.aufgabe.offen .kachel-zahl { color: var(--pico-del-color); }
+.kachel.aufgabe.erledigt { border-left-color: var(--pico-ins-color); opacity: .75; }
+.kachel.aufgabe.erledigt .kachel-zahl { color: var(--pico-ins-color); }
+.kachel.aufgabe.nicht-verfuegbar { border-left-color: var(--pico-muted-border-color); opacity: .75; }
+.kachel.aufgabe.nicht-verfuegbar .kachel-zahl { color: var(--pico-muted-color); }
+.kachel.aufgabe small { color: var(--pico-muted-color); }
+/* Hover wie im Umschalter: umrandete Knöpfe bekommen einen hellblauen Hintergrund (gefüllte behalten Picos
+   dunkleres Blau – auf Hellblau wäre die weiße Schrift nicht lesbar). !important: Picos Knopfregeln sind spezifischer */
+:is(button, a[role=button], input[type=submit], input[type=button]).outline:is(:hover, :focus-visible) {
+  background-color: color-mix(in srgb, var(--pico-primary) 12%, transparent) !important; }
+.stromart-setzen { margin: 1rem 0; align-items: center; }
+.stromart-setzen select { width: auto; margin: 0; padding: .25rem 2.2rem .25rem .7rem; }
+label.stromart-vorgabe select { max-width: 16rem; }
+/* Breite: Inhalt nutzt die Fensterbreite (seitlicher Rand bleibt), höchstens 1800 px – Picos feste Stufen
+   (bis 1200 bzw. 1450 px) engten breite Tabellen unnötig ein. Eingabeformulare bleiben handlich schmal. */
+@media (min-width: 576px) {
+  body > header.container, body > main.container { max-width: calc(100% - 3rem); }
+}
+@media (min-width: 1280px) {
+  body > header.container, body > main.container { max-width: min(calc(100% - 5rem), 1800px); }
+}
+form.formular { max-width: 52rem; }
+.karte-tip .schild-muster { padding: 0 .35rem; font-size: .72rem; }  /* Anteile im Gruppen-Tooltip */
+/* Knöpfe in Aktionszeilen nicht über die ganze Breite (Pico setzt Submit-Knöpfe in Formularen auf 100 %) */
+.aktionszeile > button { width: auto; margin: 0; }
+/* AC/DC-Marker behalten ihre Schriftfarbe auch in Knöpfen (Pico überschreibt dort --pico-background-color) */
+.marker[class*="stromart-"] { color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .marker[class*="stromart-"] { color: #13171f; } }
+:root[data-theme="dark"] .marker[class*="stromart-"] { color: #13171f; }
+a[role=button].klein + form.inline, form.inline + a[role=button].klein { margin-left: .35rem; }  /* Knopfreihen */
+article > small + form { margin-top: 1rem; }  /* mehrere Formulare in einem Kasten (z. B. Land, PLZ) */
+/* Aufgaben, Ladeorte: PLZ und Ort nebeneinander, kompakt */
+.ladeort-eingabe { flex-wrap: nowrap; gap: .4rem; margin: 0; align-items: center; }
+.ladeort-eingabe input { margin: 0; padding: .25rem .5rem; height: auto; }
+.ladeort-eingabe input[name=plz] { width: 6rem; }
+.ladeort-eingabe input[name=ort] { width: 14rem; }
+td > form.inline button { white-space: nowrap; }
+a.maps-link { margin-left: .5rem; white-space: nowrap; }  /* neben der Adresse (Aufgaben, Ladeorte) */
+.diagramm-zwischentitel { margin: 1rem 0 .5rem; color: var(--pico-muted-color); }  /* Torte unter den Säulen */
+/* MSP: Hinweis und „Vorgabe anwenden“ direkt unter dem jeweiligen Vorgabefeld */
+.formular .aktionszeile.vorgabe { margin: -.5rem 0 var(--pico-spacing); align-items: center; gap: .5rem 1rem; }
+.formular .aktionszeile.vorgabe > button { width: auto; margin: 0; }
+/* Löschen/Deaktivieren: rot hinterlegt beim Überfahren */
+/* !important: die hellblaue Hover-Regel der umrandeten Knöpfe setzt den Hintergrund ebenfalls mit !important */
+button.outline.gefahr:is(:hover, :focus-visible), button.gefahr:is(:hover, :focus-visible) { background: #c92a2a !important; border-color: #c92a2a !important;
+  color: #fff !important; }
+.theme-wahl { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0; }
+.theme-wahl .umschalter { width: auto; margin: 0; }  /* Pico gibt role=group volle Breite */
+.theme-wahl small { color: var(--pico-muted-color); }
+.hinweis-knopf { margin-left: .5rem; color: var(--pico-muted-color); }
+/* Aufgaben: Fristen (Leasing, Führerscheinkontrolle) oben als Info */
+.fristen { margin-bottom: 1.5rem; }
+.fristen ul { margin: .4rem 0 .4rem 1.2rem; padding: 0; }
+.fristen li { margin: .15rem 0; list-style: disc; }
+.formular-hinweis { display: block; margin: -.5rem 0 var(--pico-spacing); color: var(--pico-muted-color); }
+/* Absendeknöpfe nicht seitenbreit (Pico: button[type=submit] width 100%) – ein Hauptknopf je Formular,
+   weitere Aktionen umrandet; die Anmeldung behält den breiten Knopf */
+button[type=submit] { width: auto; }
+:where(button[type=submit]:not(.klein, .outline)) { min-width: 12rem; }  /* Spezifität 0: Ausnahmen gewinnen */
+.umschalter > button[type=submit] { min-width: 0; }
+.login button[type=submit] { width: 100%; }
+/* ---------------------------------------------------------------- Einstellungen */
+nav.einstellungen-nav { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .25rem 1.25rem;
+  margin-bottom: 1.25rem; font-size: .95rem; }
+.einstellung-gruppe { max-width: 56rem; margin-bottom: 1.25rem; padding: 1rem 1.25rem .25rem;
+  border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);
+  background: var(--pico-card-background-color); box-shadow: var(--pico-card-box-shadow); scroll-margin-top: 1rem; }
+.einstellung-gruppe > .kopf { margin-bottom: .5rem; align-items: center; }
+.einstellung-gruppe h2 { margin: 0; font-size: 1.25rem; scroll-margin-top: 1rem; }
+.einstellung-gruppe h3 { margin: 1rem 0 .25rem; font-size: 1rem; }
+.einstellung-gruppe .gruppe-text { margin-bottom: .75rem; color: var(--pico-muted-color); }
+.einstellung-felder { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0 1.25rem; }
+.einstellung { margin-bottom: var(--pico-spacing); }
+.einstellung label { margin-bottom: .3rem; }
+.einstellung .mit-einheit { display: flex; align-items: center; gap: .5rem; }
+.einstellung .mit-einheit input { margin: 0; max-width: 9rem; text-align: right; }
+.einstellung .einheit { color: var(--pico-muted-color); white-space: nowrap; }
+.einstellung.stichtag select { max-width: 16rem; margin-bottom: .3rem; }
+.einstellung small { display: block; margin-top: .25rem; }
+.einstellung small.standardwert { color: var(--pico-muted-color); }
+.einstellung small.fehler { color: var(--pico-del-color); }
+.einstellung .geaendert-marker { display: none; color: var(--pico-primary); font-weight: 600; }
+.einstellung.geaendert .geaendert-marker { display: inline; }
+.einstellung.geaendert :is(input, select) { border-color: var(--pico-primary); box-shadow: inset 0 0 0 1px var(--pico-primary); }
+.einstellung-gruppe .theme-wahl { margin-bottom: 1rem; }
+.speichern-leiste { position: sticky; bottom: var(--fuss-hoehe); z-index: 5; max-width: 56rem; display: flex; align-items: center;
+  gap: 1rem; padding: .75rem 1.25rem; margin-bottom: 1rem; border-top: 1px solid var(--pico-muted-border-color);
+  background: var(--pico-background-color); }
+.speichern-leiste button { margin: 0; }
+.speichern-leiste small { color: var(--pico-muted-color); }
+/* ---------------------------------------------------------------- Rollen */
+/* Viewer: Aktionen zum Ändern bleiben sichtbar, sind aber ausgegraut (Skript in base.html setzt .gesperrt,
+   sperrt Felder und fängt Klicks ab); reine Eingabebereiche tragen ein Schloss im Titel */
+body.nur-lesen .gesperrt { opacity: .4; cursor: not-allowed; filter: grayscale(1); }
+body.nur-lesen .gesperrt:hover { background-color: transparent !important; }
+body.nur-lesen form[method="post"]:not([data-immer]) :is(input, select, textarea):disabled { cursor: not-allowed; }
+body.nur-lesen article[data-schreiben] > header::after { content: "🔒 nur Operator/Admin"; float: right;
+  font-size: .75rem; font-weight: normal; color: var(--pico-muted-color); }
+body.nur-lesen article[data-schreiben] { border-style: dashed; }
+.gesperrt-eintrag { display: block; padding: var(--pico-nav-link-spacing-vertical) var(--pico-nav-link-spacing-horizontal);
+  color: var(--pico-muted-color); cursor: not-allowed; }
+.marker.rolle-admin { background: #5b2a86; }
+.marker.rolle-operator { background: #1a7f5a; }
+.marker.rolle-viewer { background: #6b7079; }
+fieldset small.fehler-text { color: var(--pico-del-color); }
+/* Als Admin angemeldet: dünne rote Leiste am oberen Fensterrand (unter der Statusleiste von Mobilgeräten) */
+body.als-admin::before { content: ""; position: fixed; z-index: 1000; left: 0; right: 0;
+  top: env(safe-area-inset-top, 0px); height: 3px; background: #c92a2a; pointer-events: none; }
+/* Einstellungen für Nicht-Admins: nur lesen */
+
+fieldset.einstellungen-felder { margin: 0; padding: 0; border: 0; }
+form.upload > button[type=submit] { display: block; margin-top: .75rem; }
+/* Löschen mit Folgen (z. B. Zuordnung): eigener, rot abgesetzter Bereich */
+article.gefahrenzone { max-width: 52rem; margin-top: 2rem; border: 1px solid color-mix(in srgb, #c92a2a 45%, transparent);
+  box-shadow: none; }
+article.gefahrenzone > header { color: #c92a2a; }
+.leasing-uebernehmen { margin: -.5rem 0 var(--pico-spacing); }
+.luecken { margin-bottom: 1.5rem; }
+.luecken ul { margin: .4rem 0 .4rem 1.2rem; padding: 0; }
+.luecken li { margin: .15rem 0; list-style: disc; }
+/* ---------------------------------------------------------------- Menüleiste: klebt oben, Inhalt dahinter unscharf */
+/* Die Leiste ist so breit wie der Inhalt; ::before legt eine fensterbreite, halbtransparente, weichzeichnende Fläche
+   dahinter. z-index unter der Vollbild-Karte (1000) und der Admin-Leiste. Etwas schmaler als Picos Standard. */
+body > header.container { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 900; }
+body > header.container::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%;
+  width: 100vw; transform: translateX(-50%);
+  background: color-mix(in srgb, var(--dash-grund, var(--pico-background-color)) 72%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid color-mix(in srgb, var(--pico-muted-border-color) 70%, transparent); }
+body > header.container > nav { --pico-nav-element-spacing-vertical: .35rem; --pico-nav-link-spacing-vertical: .3rem; }
+body > header.container > nav details.dropdown > summary:not([role]) { height: auto;
+  padding-block: .3rem; padding-inline: .7rem 2.2rem; }
+body > header.container + main { padding-top: 1rem; }
+/* Sprungziele (Anker) nicht unter der Leiste verstecken */
+:root { scroll-padding-top: 4.5rem; }
+body { overflow-x: clip; }  /* fensterbreite Fläche hinter der Leiste ohne waagrechten Scrollbalken (clip: sticky bleibt) */
+/* Zeitleiste: Leasing (Fahrzeug-Zeilen) – Beginn/Ende als grüne Linie mit Fähnchen, Zeit außerhalb grau */
+.zeitleiste-rahmen { --zl-leasing: #1a7f5a; --zl-ausserhalb: color-mix(in srgb, var(--pico-muted-color) 16%, transparent); }
+.zl-ausserhalb { position: absolute; top: 0; bottom: 0; background: var(--zl-ausserhalb); z-index: 0; }
+.zl-leasing { position: absolute; top: 0; bottom: 0; border-left: 3px solid var(--zl-leasing); z-index: 3; }
+.zl-leasing::before { position: absolute; top: 0; font-size: .6rem; line-height: 1; padding: .1rem .2rem;
+  color: #fff; background: var(--zl-leasing); white-space: nowrap; }
+.zl-leasing.beginn::before { content: "L▸"; left: 0; border-radius: 0 3px 3px 0; }
+.zl-leasing.ende { transform: translateX(-3px); }
+.zl-leasing.ende::before { content: "◂L"; right: 0; border-radius: 3px 0 0 3px; }
+.legende-leasing { width: 0 !important; height: 1rem !important; border-left: 3px solid #1a7f5a; border-radius: 0 !important; }
+.legende-ausserhalb { background: color-mix(in srgb, #6b7079 16%, transparent); }
+/* Fahrzeugliste: Hinweise je Fahrzeug als kleine Marken; grüner Haken, wenn alles passt */
+td.hinweise { line-height: 1.9; }
+.hinweis { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .45rem; border-radius: 999px; font-size: .78rem;
+  line-height: 1.6; white-space: nowrap; text-decoration: none; border: 1px solid currentColor; }
+.hinweis.rot { color: var(--pico-del-color); background: color-mix(in srgb, var(--pico-del-color) 10%, transparent); }
+.hinweis.gelb { color: #9a6a00; background: color-mix(in srgb, #c98a00 14%, transparent); }
+.hinweis.grau { color: var(--pico-muted-color); background: color-mix(in srgb, var(--pico-muted-color) 8%, transparent); }
+a.hinweis:hover { filter: brightness(.85); }
+/* Offene Punkte oben auf einer Detailseite (Makro offene_punkte) */
+.offene-punkte { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 0; line-height: 1.9; }
+.offene-punkte-titel { font-weight: 600; margin-right: .5rem; }
+.alles-ok { color: #1a7f5a; font-weight: 700; font-size: 1.25rem; line-height: 1; }
+/* Fahrer:innen-Liste: MSP der Ladekarten (gefüllt = persönlich, umrandet = über das Fahrzeug) */
+.msp-marke { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .45rem; border-radius: 4px; font-size: .78rem;
+  line-height: 1.6; white-space: nowrap; color: var(--pico-primary-inverse); background: var(--pico-primary-background);
+  border: 1px solid var(--pico-primary-background); }
+.msp-marke.fahrzeug { color: var(--pico-primary); background: transparent; }
+/* Datumsfeld mit Knopf daneben (z. B. „Heute“ bei der Führerscheinkontrolle) */
+.datum-mit-knopf { display: flex; align-items: flex-end; gap: .75rem; }
+.datum-mit-knopf > label { flex: 1; }
+.datum-mit-knopf > button { width: auto; margin-bottom: var(--pico-spacing); }
+/* ---------------------------------------------------------------- Mini-Zeitleiste der Zuordnungs-Abschnitte */
+.mini-zl { --zl-balken: #2a78d6; --zl-luecke: #fab219; --zl-leasing: #1a7f5a; --spur-h: 1.35rem; margin: .5rem 0 1rem; }
+.mini-zl-achse { position: relative; height: 1.1rem; font-size: .7rem; color: var(--pico-muted-color); }
+.mini-zl-achse span { position: absolute; top: 0; padding-left: .2rem; border-left: 1px solid var(--pico-muted-border-color);
+  white-space: nowrap; }
+.mini-zl-band { position: relative; height: calc(var(--spuren) * var(--spur-h) + .3rem); border-radius: 4px;
+  background: color-mix(in srgb, var(--pico-muted-border-color) 35%, transparent); overflow: hidden; }
+.mini-zl-balken { position: absolute; top: calc(var(--spur) * var(--spur-h) + .15rem); height: calc(var(--spur-h) - .2rem);
+  border-radius: 3px; background: var(--zl-balken); color: #fff; font-size: .72rem; line-height: calc(var(--spur-h) - .2rem);
+  text-decoration: none; overflow: hidden; z-index: 2; border-left: 1px solid var(--pico-background-color); }
+.mini-zl-balken span { display: block; padding: 0 .3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-zl-balken:hover { filter: brightness(1.12); }
+.mini-zl-balken.offen { border-radius: 3px 0 0 3px; }
+.mini-zl-luecke { position: absolute; top: 0; bottom: 0; z-index: 1; }
+.mini-zl-luecke.warnung { background-color: color-mix(in srgb, var(--zl-luecke) 22%, transparent);
+  background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 7px); }
+.mini-zl-luecke.neutral { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--pico-muted-color) 35%, transparent) 0 1px, transparent 1px 7px); }
+.mini-zl-ausserhalb { position: absolute; top: 0; bottom: 0; z-index: 0;
+  background: color-mix(in srgb, var(--pico-muted-color) 22%, transparent); }
+.mini-zl-heute { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--pico-color); z-index: 3; }
+.mini-zl-leasing { position: absolute; top: 0; bottom: 0; border-left: 3px solid var(--zl-leasing); z-index: 3; }
+.mini-zl-leasing.ende { transform: translateX(-3px); }
+/* Tabelle: Lücken-Zeilen hervorgehoben */
+.zuordnungs-tabelle tr.luecken-zeile.warnung > td { background: color-mix(in srgb, #fab219 14%, transparent); color: #8a5a00; }
+.zuordnungs-tabelle tr.luecken-zeile.neutral > td { color: var(--pico-muted-color); font-style: italic; }
+article.hervorgehoben { outline: 3px solid var(--pico-primary); outline-offset: 2px; transition: outline-color .3s; }
+/* Symbole (_makros.symbol): in Textgröße, auf der Grundlinie */
+svg.symbol { width: 1.05em; height: 1.05em; vertical-align: -.17em; flex: none; }
+nav details.dropdown li a svg.symbol { margin-right: .35rem; color: var(--pico-muted-color); }
+/* ---------------------------------------------------------------- Kompakte Filter (Ladevorgänge, Listen) */
+/* Niedrigere Felder und Auswahllisten, kleine graue Beschriftungen – spart Höhe über Karte und Tabelle */
+:is(.filter-formular, .filterleiste) { --pico-form-element-spacing-vertical: .32rem;
+  --pico-form-element-spacing-horizontal: .6rem; }
+:is(.filter-formular, .filterleiste) :is(input:not([type=checkbox]):not([type=radio]), select, details.mehrfach > summary) {
+  font-size: .9rem; }
+:is(.filter-formular, .filterleiste) .filterzeile > label, :is(.filter-formular, .filterleiste) .mehrfach-feld > span {
+  font-size: .78rem; color: var(--pico-muted-color); }
+:is(.filter-formular, .filterleiste) .mehrfach-feld > span { margin-bottom: .2rem; }
+:is(.filter-formular, .filterleiste) .filterzeile > label > input { margin-top: .2rem; }
+:is(.filter-formular, .filterleiste) details.mehrfach > summary { height: auto; min-width: 7.5rem; }
+.filter-formular .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
+.filter-formular .filterzeile:has(label.suche) { margin-top: .5rem; }
+.filter-formular input[type=date] { display: block; width: 9.5rem; }
+.filter-formular label.suche input { height: auto; }
+/* gesetzte Filter: Beschriftung bleibt blau */
+:is(.filter-formular, .filterleiste) .mehrfach-feld.gesetzt > span { color: var(--pico-primary); }
+/* Mini-Zeitleiste: Beschriftung der Enden und der Leasing-Markierungen unter dem Band */
+.mini-zl-enden { position: relative; height: 1.1rem; margin-top: .15rem; font-size: .7rem; color: var(--pico-muted-color);
+  white-space: nowrap; }
+.mini-zl-enden .links { position: absolute; left: 0; }
+.mini-zl-enden .rechts { position: absolute; right: 0; }
+.mini-zl-enden .leasing { position: absolute; transform: translateX(-.35rem); color: var(--zl-leasing); font-weight: 600; }
+.mini-zl-enden .leasing.ende { transform: translateX(calc(-100% + .35rem)); }
+.mini-zl-enden .links:has(+ .leasing), .mini-zl-enden .links { z-index: 1; }
+/* Mittelgroße Knöpfe für Nebenaktionen in Formularen (z. B. „Zuordnen“) */
+button.knopf-mittel { padding: .35rem 1rem; font-size: .9rem; }
+/* Absendeknopf gesperrt, bis die Pflichtfelder ausgefüllt sind */
+.ausgegraut { opacity: .45; cursor: not-allowed; }
+.ausgegraut:hover { background-color: transparent !important; filter: none; }
+button.ausgegraut:not(.outline):hover { background-color: var(--pico-primary-background) !important; }
+main article .tabelle { border: 0; padding: 0; background: transparent; box-shadow: none; }  /* keine Karte in der Karte */
+/* Karte in einer Karte (z. B. Kachel, Aufklapper oder Formular in einem article/Abschnitt): kein zweiter Schatten */
+main :is(article, .abschnitt-karte, .diagramm, .einstellung-gruppe, form.formular) :is(.kachel, .diagramm, details, form.formular, .zeitleiste-rahmen, .detail-daten) {
+  box-shadow: none; }
+/* Dashboard: Knopf zur Detailkarte unter der Heatmap */
+.karte-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .75rem; }
+.karte-fuss small { color: var(--pico-muted-color); }
+/* Kopfzeile über einer Tabelle: links Summen, rechts Export */
+.tabellen-kopf { align-items: flex-end; margin-bottom: .5rem; }
+.tabellen-kopf > p { margin-bottom: 0; }
+.export { display: inline-flex; gap: .35rem; white-space: nowrap; }
+/* Zuordnungsformulare: Hinweis als eigene Zeile, „Zuordnen“ darunter links (wie „Speichern“) */
+.zuordnung-hinweis { margin: .25rem 0 .75rem; color: var(--pico-muted-color); }
+.formular-fuss { display: flex; gap: .75rem; align-items: center; }
+.formular-fuss > button { margin: 0; }
+
+/* Kurzer Hinweis mit ausführlichem Text im Tooltip */
+.mit-tooltip { cursor: help; color: var(--pico-muted-color); }
+.theme-wahl .umschalter button { min-width: 2.8rem; padding-block: .15rem; font-size: 1.2rem; line-height: 1.3; }
+
+/* ---------------------------------------------------------------- Lade-Animation (base.html) */
+/* E-Auto an der Ladesäule mit wachendem Falken (Zeichnung: _makros.lade_auto): Strom fließt durchs Kabel, der Blitz pulsiert.
+   Sichtbar, solange html.laedt gesetzt ist (htmx-Anfrage länger als 300 ms); der Inhalt wird blasser. */
+.lade-anzeige { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+html.laedt .lade-anzeige { opacity: 1; visibility: visible; transition: opacity .2s; }
+html.laedt main { opacity: .5; transition: opacity .3s; }
+.lade-karte { display: flex; flex-direction: column; align-items: center; gap: .6rem; padding: 1.6rem 2.6rem;
+  border-radius: var(--pico-border-radius); background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color); box-shadow: 0 .4rem 1.6rem rgb(0 0 0 / .18); color: var(--pico-primary); }
+.lade-karte span { font-size: .95rem; color: var(--pico-muted-color); }
+.lade-auto { width: 15rem; height: auto; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round; --strom: #1a9e6a; }
+.lade-auto .rad { fill: var(--pico-card-background-color); }
+.lade-auto .falke-wacht { color: var(--pico-primary); transform-box: fill-box; transform-origin: center;
+  animation: falke-schweben 3.2s ease-in-out infinite; }
+/* Falke schwebt sanft auf und ab und wacht über das Auto */
+@keyframes falke-schweben { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.lade-auto .kabel { stroke: var(--pico-muted-color); stroke-width: 2.5; }
+.lade-auto .strom { stroke: var(--strom); stroke-width: 2.5; stroke-dasharray: 2 6; animation: lade-strom .6s linear infinite; }
+.lade-auto .blitz { fill: var(--strom); stroke: none; transform-box: fill-box; transform-origin: center;
+  animation: lade-blitz 1.2s ease-in-out infinite; }
+@keyframes lade-strom { to { stroke-dashoffset: -8; } }  /* fließt von der Säule zum Auto */
+@keyframes lade-blitz { 50% { opacity: .35; transform: scale(.85); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lade-auto { --strom: #3ccf8e; } }
+[data-theme="dark"] .lade-auto { --strom: #3ccf8e; }
+@media (prefers-reduced-motion: reduce) {
+  .lade-auto .strom, .lade-auto .blitz, .lade-auto .falke-wacht { animation: none; }
+}
+
+/* ---------------------------------------------------------------- Pro CPO: Vorschau und Detailseite */
+.titel-zusatz { font-size: 1rem; font-weight: 400; color: var(--pico-muted-color); margin-left: .5rem; }
+.cpo-tabelle tbody + tbody, .cpo-personen tbody + tbody { border-top: 1px solid var(--pico-muted-border-color); }
+.cpo-tabelle td, .cpo-personen td { border-bottom: 0; }
+.aufklappen { display: inline-flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem;
+  margin: 0; padding: 0; font-size: .8rem; line-height: 1; border-radius: 50%; box-shadow: none; cursor: pointer;
+  color: var(--pico-primary); border: 1px solid color-mix(in srgb, var(--pico-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--pico-primary) 8%, var(--pico-form-element-background-color)); }
+.aufklappen:hover, .aufklappen:focus-visible, .aufklappen[aria-expanded="true"] { background: var(--pico-primary);
+  border-color: var(--pico-primary); color: var(--pico-primary-inverse); }
+.cpo-tabelle a code, .cpo-tabelle a:hover code { color: var(--pico-primary); text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--pico-primary) 40%, transparent); }
+.cpo-vorschau > td { padding-top: 0; background: color-mix(in srgb, var(--pico-primary) 4%, transparent); }
+.cpo-vorschau ol { margin: .3rem 0 .6rem; padding-left: 1.4rem; }
+.cpo-vorschau li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .8rem; margin: .15rem 0; }
+.cpo-vorschau li .name { min-width: 12rem; }
+.cpo-vorschau .preis { min-width: 6.5rem; text-align: right; }
+.cpo-vorschau .betrag { min-width: 6rem; text-align: right; color: var(--pico-muted-color); }
+.cpo-vorschau .karten { display: inline-flex; flex-wrap: wrap; gap: .3rem; }
+.karten-chip { padding: 0 .45rem; border: 1px solid var(--pico-muted-border-color); border-radius: 1rem; font-size: .8rem;
+  white-space: nowrap; }
+.karten-chip small { color: var(--pico-muted-color); }
+.cpo-personen tr.person td { padding-top: .6rem; font-weight: 500; }
+.cpo-personen tr.karte-zeile td { padding-block: .15rem; font-size: .88rem; color: var(--pico-muted-color); }
+.cpo-personen tr.karte-zeile td:first-child { padding-left: 2rem; }
+.cpo-personen tr.karte-zeile a { color: inherit; }
+.cpo-personen tr.karte-zeile:last-child td { padding-bottom: .6rem; }
+.cpo-personen tbody.sammel tr.person td { font-weight: 400; font-style: italic; }
+.vorgaenge-link { text-decoration: none; }
+.kacheln + section { margin-top: 2rem; }
+
+/* Sortierbare Spaltenköpfe (Ladevorgänge serverseitig, kleine Tabellen im Browser: data-sortierbar) */
+th.sortierbar a, th[data-sort] { color: inherit; text-decoration: none; cursor: pointer; white-space: nowrap; user-select: none; }
+th.sortierbar a:hover, th[data-sort]:hover { color: var(--pico-primary); }
+.sortpfeil { margin-left: .25rem; font-size: .75em; color: var(--pico-muted-color); }
+th[aria-sort] .sortpfeil { color: var(--pico-primary); }
+
+/* ---------------------------------------------------------------- Bereichsregler Ø €/kWh (Ladevorgänge) */
+/* Histogramm der Preise, darunter eine Linie mit zwei Schiebern; Bereich und Säulen dazwischen in der Akzentfarbe */
+.preisregler { display: flex; flex-direction: column; width: 14rem; --von: 0; --bis: 1; --knopf: 1rem; }
+.preisregler output { font-variant-numeric: tabular-nums; }
+.preisregler.gesetzt > span { color: var(--pico-primary); font-weight: 600; }
+.preisregler-feld { position: relative; height: calc(var(--pico-form-element-spacing-vertical) * 2 + 1.5rem); }
+.preisregler .histogramm { position: absolute; left: calc(var(--knopf) / 2); right: calc(var(--knopf) / 2); top: .15rem;
+  bottom: calc(var(--knopf) / 2 + .1rem); display: flex; align-items: flex-end; gap: 1px; }
+.preisregler .histogramm i { flex: 1; min-width: 0; background: var(--pico-muted-border-color); border-radius: 1px 1px 0 0; }
+.preisregler .histogramm i.drin { background: color-mix(in srgb, var(--pico-primary) 40%, transparent); }
+.preisregler-feld::before, .preisregler-feld::after { content: ""; position: absolute; height: 3px; border-radius: 2px;
+  bottom: calc(var(--knopf) / 2 - 1.5px); }
+.preisregler-feld::before { left: calc(var(--knopf) / 2); right: calc(var(--knopf) / 2); background: var(--pico-muted-color); opacity: .5; }
+.preisregler-feld::after { left: calc(var(--knopf) / 2 + (100% - var(--knopf)) * var(--von));
+  right: calc(var(--knopf) / 2 + (100% - var(--knopf)) * (1 - var(--bis))); background: var(--pico-primary); }
+.preisregler input[type=range] { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: var(--knopf);
+  margin: 0; padding: 0; background: none; border: 0; appearance: none; -webkit-appearance: none; pointer-events: none; z-index: 1; }
+.preisregler input[type=range]::-webkit-slider-runnable-track { height: var(--knopf); background: none; border: 0; box-shadow: none; }
+.preisregler input[type=range]::-moz-range-track { background: none; border: 0; box-shadow: none; }
+.preisregler input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; cursor: grab;
+  width: var(--knopf); height: var(--knopf); margin-top: 0; border-radius: 50%; background: var(--pico-primary);
+  border: 2px solid var(--pico-card-background-color); box-shadow: 0 1px 3px rgb(0 0 0 / .3); }
+.preisregler input[type=range]::-moz-range-thumb { pointer-events: auto; cursor: grab; width: var(--knopf); height: var(--knopf);
+  border-radius: 50%; background: var(--pico-primary); border: 2px solid var(--pico-card-background-color);
+  box-shadow: 0 1px 3px rgb(0 0 0 / .3); }
+.preisregler input[type=range]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--pico-primary-focus); }
+td.land { text-align: center; }
+td.land .flagge { font-size: 1.25em; line-height: 1; cursor: default; }
+
+/* Logo „Ladefalke“ (Falke mit Ladekarte): Menüleiste und Anmeldung, Farbe = Akzentfarbe */
+nav .marke { display: inline-flex; align-items: center; gap: .5rem; }
+nav .marke svg.falke { height: 2rem; width: auto; aspect-ratio: 1399 / 905; color: var(--pico-primary); }
+.login-logo { display: flex; justify-content: center; margin-bottom: 1rem; color: var(--pico-primary); }
+.login-logo svg.falke { width: 13rem; height: auto; aspect-ratio: 1399 / 905; }
+.login-titel { text-align: center; }
+.login-titel p { color: var(--pico-muted-color); }
+
+/* ---------------------------------------------------------------- Import: Schrittanzeige, Blockstatus, Abschluss */
+.import-schritte { display: flex; flex-wrap: wrap; gap: .5rem 0; list-style: none; padding: 0; margin: 0 0 1.25rem; counter-reset: none; }
+.import-schritte li { flex: 1 1 12rem; display: flex; align-items: center; gap: .6rem; position: relative; margin: 0;
+  padding: .55rem .9rem; list-style: none; color: var(--pico-muted-color); }
+.import-schritte .schritt-nr { flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 1.9rem; height: 1.9rem; border-radius: 50%; font-weight: 700; border: 2px solid var(--pico-muted-border-color);
+  background: var(--pico-card-background-color); }
+.import-schritte .schritt-text { display: flex; flex-direction: column; line-height: 1.25; }
+.import-schritte .schritt-text small { color: var(--pico-muted-color); }
+.import-schritte .schritt-text small a { text-decoration: none; }
+.import-schritte li.erledigt .schritt-nr { background: #1a7f5a; border-color: #1a7f5a; color: #fff; }
+.import-schritte li.aktiv { color: var(--pico-color); background: color-mix(in srgb, var(--pico-primary) 8%, var(--pico-card-background-color));
+  border-radius: var(--pico-border-radius); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pico-primary) 35%, transparent); }
+.import-schritte li.aktiv .schritt-nr { border-color: var(--pico-primary); color: var(--pico-primary); }
+.import-schritte li.aktiv.erledigt .schritt-nr { color: #fff; border-color: #1a7f5a; }
+.block-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+.block-status { font-size: .88rem; color: var(--pico-muted-color); }
+.block-status.ok { color: #1a7f5a; font-weight: 600; }
+.block-status.offen { color: #b06d00; font-weight: 600; }
+.marker.spaeter { background: color-mix(in srgb, var(--pico-primary) 14%, transparent); color: var(--pico-primary); cursor: help; }
+.hinweis-spaeter { margin-bottom: 1rem; }
+.import-abschluss { border-left: 4px solid #1a7f5a; }
+/* Liste der Importe: aufklappbar, standardmäßig zu */
+details.importe-liste > summary { display: flex; align-items: baseline; gap: .75rem; }
+details.importe-liste > summary h2 { display: inline; margin: 0; font-size: 1.3rem; }
+details.importe-liste > summary small { color: var(--pico-muted-color); }
+details.importe-liste[open] > summary { margin-bottom: .75rem; }
+.import-abschluss > header strong { color: #1a7f5a; font-size: 1.1rem; }
+.import-abschluss .abschluss-dateien { margin: 0 0 .75rem; padding-left: 1.2rem; }
+.import-abschluss .abschluss-spaeter { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0;
+  padding: .6rem .8rem; border-radius: var(--pico-border-radius); background: color-mix(in srgb, #c98a00 12%, transparent); }
+.import-abschluss .abschluss-spaeter a[role=button] { margin: 0; }
+tr.neu-importiert > td { background: color-mix(in srgb, #1a7f5a 10%, transparent) !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.block-status.ok, .import-abschluss > header strong) { color: #3ccf8e; }
+  :root:not([data-theme="light"]) .block-status.offen { color: #f0b429; } }
+[data-theme="dark"] :is(.block-status.ok, .import-abschluss > header strong) { color: #3ccf8e; }
+[data-theme="dark"] .block-status.offen { color: #f0b429; }
+.kachel .pro-tag { color: var(--pico-muted-color); }
+
+/* Footer: Marke, Link, Version */
+/* Klebend wie die Menüleiste: beim Scrollen unten sichtbar; auf kurzen Seiten am unteren Fensterrand (body als Spalte) */
+:root { --fuss-hoehe: 2.6rem; }
+body { display: flex; flex-direction: column; min-height: 100vh; }
+body > .container { width: 100%; }
+body > main { flex: 1 0 auto; }
+/* Hintergrund, Linie und Inhalt über die ganze Fensterbreite (mit Rand); halbtransparent und weichzeichnend wie die
+   Menüleiste */
+footer.fuss { position: sticky; bottom: 0; z-index: 800; width: 100%; margin-top: 2.5rem; min-height: var(--fuss-hoehe);
+  padding-block: .45rem calc(.45rem + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--dash-grund, var(--pico-background-color)) 72%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+  border-top: 1px solid color-mix(in srgb, var(--pico-muted-border-color) 70%, transparent);
+  font-size: .8rem; color: var(--pico-muted-color); }
+footer.fuss .fuss-inhalt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .25rem 1.5rem; padding-inline: max(1.25rem, env(safe-area-inset-left, 0px)) max(1.25rem, env(safe-area-inset-right, 0px)); }
+footer.fuss .fuss-marke { display: inline-flex; align-items: center; gap: .5rem; }
+footer.fuss svg.falke { height: 1.1rem; width: auto; aspect-ratio: 1399 / 905; color: var(--pico-primary); }
+footer.fuss a { text-decoration: none; }
+footer.fuss .fuss-rechts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.25rem; }
+main .einstellung-gruppe .tabelle { border: 0; box-shadow: none; padding: 0; background: transparent; }  /* keine Karte in der Karte */
+.backup-aktionen { margin-block: .25rem 1rem; }
+.mail-test { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; max-width: 36rem; margin-bottom: .75rem; }
+.mail-test input { flex: 1 1 14rem; margin: 0; }
+.mail-test button { margin: 0; width: auto; }
+.hat-email { color: var(--pico-muted-color); cursor: help; }
+label.haken.klein { font-size: .85rem; margin-top: .35rem; }
+/* Marke: „Ladefalke“ mit „resch.cloud“ klein darunter */
+nav .marke .marke-text { display: inline-flex; flex-direction: column; line-height: 1.05; }
+nav .marke .marke-text small { font-size: .62rem; font-weight: 400; color: var(--pico-muted-color); letter-spacing: .03em; }
+hgroup.login-titel > p.login-herkunft { font-size: .68rem; letter-spacing: .05em; margin-top: .35rem; opacity: .85; }
+/* Reports-Seite */
+.report-karte { margin-bottom: 1.5rem; }
+.report-karte .kopf a[role=button] { margin: 0; }
+tr.hervorgehoben > td { background: color-mix(in srgb, var(--pico-primary) 12%, transparent) !important; }
+/* TLP-Kennzeichnung (Traffic Light Protocol 2.0): farbige Schrift auf Schwarz */
+.tlp { display: inline-block; padding: 0 .4rem; background: #000; font-family: ui-monospace, monospace; font-weight: 700;
+  font-size: .8rem; border-radius: .2rem; color: #fff; }
+.tlp-green { color: #33ff00; } .tlp-amber, .tlp-amber-strict { color: #ffc000; } .tlp-red { color: #ff2b2b; }
+.report-karte .knopfgruppe { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
+.report-karte .knopfgruppe > * { margin: 0; }
+.ok-text { color: #1a7f5a; } .fehler-text { color: var(--pico-del-color); }
+/* Versanddialog (Reports): Empfänger:innen als Liste mit Kästchen, freie Adressen, Fuß mit Anzahl und Knöpfen */
+dialog.versand-dialog > article { width: min(40rem, 94vw); max-width: none; }
+dialog.versand-dialog > article > form { margin: 0; }
+.versand-dialog header p { margin: 0; }
+.versand-dialog header strong { font-size: 1.05rem; }
+.versand-dialog .versand-titel { display: block; margin: 0 0 .4rem; font-weight: 600; font-size: .95rem; }
+.versand-dialog .empfaenger { list-style: none; padding: 0; margin: 0 0 1.1rem; max-height: 16rem; overflow-y: auto;
+  display: flex; flex-direction: column; gap: .45rem; }
+.versand-dialog .empfaenger li { list-style: none; margin: 0; }
+.versand-dialog .empfaenger-zeile { display: grid; grid-template-columns: auto 1fr; gap: 0 .6rem; align-items: start;
+  margin: 0; cursor: pointer; }
+.versand-dialog .empfaenger-zeile input[type=checkbox] { margin: .2rem 0 0; }
+.versand-dialog .empfaenger-zeile .name { display: block; line-height: 1.3; }
+.versand-dialog .empfaenger-zeile small { display: block; line-height: 1.3; color: var(--pico-muted-color); }
+.versand-dialog .empfaenger-zeile:has(input:disabled) { cursor: not-allowed; opacity: .7; }
+.versand-dialog textarea { margin: 0 0 .35rem; font-size: .95rem; }
+.versand-dialog .versand-hilfe { display: block; color: var(--pico-muted-color); font-size: .8rem; line-height: 1.3;
+  margin: .45rem 0 .9rem; }
+.versand-dialog .vorschlaege { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .4rem; margin: 0 0 .9rem; }
+.versand-dialog .vorschlaege button { margin: 0; width: auto; padding: .15rem .55rem; font-size: .8rem; }
+.versand-dialog .versand-hinweis { color: var(--pico-muted-color); margin: .8rem 0 0; line-height: 1.35; }
+.versand-dialog .versand-hinweis small { font-size: .8rem; }
+.versand-dialog .tlp-hinweis { margin: .8rem 0 0; padding: .45rem .8rem; font-size: .85rem; line-height: 1.35; }
+.versand-dialog footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
+.versand-dialog footer button { margin: 0; width: auto; }
+.versand-dialog footer .versand-anzahl { margin-right: auto; color: var(--pico-muted-color); }
+/* Änderungsprotokoll (Seite „Protokoll“, Verlauf auf Detailseiten) */
+.protokoll-liste td { vertical-align: top; font-size: .88rem; }
+.protokoll-liste td.zeit { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.protokoll-liste .objekt-typ { display: block; color: var(--pico-muted-color); font-size: .75rem; }
+.protokoll-liste .system { color: var(--pico-muted-color); font-style: italic; }
+.protokoll-liste .kontext { display: block; color: var(--pico-muted-color); }
+.protokoll-liste details { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.protokoll-liste details > summary { font-size: .8rem; color: var(--pico-muted-color); padding: 0; line-height: 1.4; }
+.protokoll-liste details > summary::after { display: none; }
+.protokoll-liste details > summary::before { content: "▸ "; }
+.protokoll-liste details[open] > summary::before { content: "▾ "; }
+.protokoll-liste dl { display: grid; grid-template-columns: max-content 1fr; gap: .1rem .75rem; margin: .25rem 0 0; }
+.protokoll-liste dt { font-weight: 600; margin: 0; }
+.protokoll-liste dd { margin: 0; overflow-wrap: anywhere; }
+.protokoll-liste del { color: var(--pico-muted-color); }
+.protokoll-liste tr.protokoll-warnung > td { background: color-mix(in srgb, #c98a00 10%, transparent); }
+.protokoll-filter label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; }
+.protokoll-filter input, .protokoll-filter select, .protokoll-filter button, .protokoll-filter a[role=button] { margin: 0; width: auto; }
+.blaettern { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
+.verlauf-abschnitt { margin-top: 2rem; }
+.syslog-ca textarea { font-family: var(--pico-font-family-monospace); font-size: .78rem; max-width: 40rem; }
+/* Ladekarte: Name (Person / Kennzeichen) mit MSP-Etikett, Kennung im Tooltip (Makro „karte“) */
+.karte-anzeige { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .35rem; cursor: help; }
+.karte-anzeige a { cursor: pointer; }
+.karte-anzeige.ohne { color: var(--pico-muted-color); cursor: default; }
+.karte-msp { display: inline-block; padding: 0 .4rem; border-radius: 4px; font-size: .72rem; line-height: 1.55;
+  white-space: nowrap; color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 12%, transparent); }
+.karte-zusatz, .karte-weitere { color: var(--pico-muted-color); font-size: .75rem; white-space: nowrap; }
+.maps-links { display: inline-flex; flex-wrap: wrap; gap: .3rem; vertical-align: middle; }
+/* Tabellen: Zeile unter der Maus hervorheben – man sieht leicht, wo man ist (Kopf- und Leerzeilen ausgenommen) */
+table tbody tr:hover > td, table tbody tr:hover > th {
+  background-color: color-mix(in srgb, var(--pico-primary) 9%, var(--pico-card-background-color, transparent)) !important; }
+td.dauer { white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.dauer small { color: var(--pico-muted-color); }
+/* Karte erst nach Klick bedienbar (karte.js): Hinweis beim Mausrad über der gesperrten Karte */
+.karte-sperre-hinweis { position: absolute; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+  pointer-events: none; background: rgba(20, 30, 45, .35); color: #fff; font-weight: 600; font-size: 1rem;
+  opacity: 0; transition: opacity .25s; }
+.karte-sperre-hinweis.sichtbar { opacity: 1; }
+.karte.karte-gesperrt { cursor: pointer; }
+/* Kleine Kacheln (Ladevorgangs-Detailseite) */
+.kacheln.kacheln-klein { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .6rem; margin-bottom: 1.5rem; }
+.kacheln-klein .kachel { padding: .55rem .8rem; }
+.kacheln-klein .kachel-zahl { font-size: 1.35rem; line-height: 1.2; }
+.kacheln-klein .kachel > span:last-child { font-size: .8rem; color: var(--pico-muted-color); }
+/* Sparpotenzial je CPO */
+.ersparnis { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ersparnis.hat { color: #b06d00; }
+[title].ersparnis { cursor: help; }
+.msp-vergleich tbody + tbody tr:first-child td { border-top: 2px solid var(--pico-muted-border-color); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ersparnis.hat { color: #f0b429; } }
+[data-theme="dark"] .ersparnis.hat { color: #f0b429; }
+/* Menüleiste links (Mein Konto → Darstellung): feste Seitenleiste ab 1024 px Breite, darunter wie oben.
+   Stammdaten und Benutzermenü klappen als Gruppe auf; Benutzermenü unten. */
+:root { --seitenleiste: 14.5rem; }
+@media (min-width: 1024px) {
+  body.menue-links { padding-left: var(--seitenleiste); }
+  body.menue-links > header.container { position: fixed; top: 0; bottom: 0; left: 0; width: var(--seitenleiste);
+    max-width: none; margin: 0; padding: calc(.9rem + env(safe-area-inset-top, 0px)) .6rem .9rem max(.6rem, env(safe-area-inset-left, 0px));
+    overflow-y: auto; overscroll-behavior: contain; }
+  body.menue-links > header.container::before { left: 0; width: 100%; transform: none; border-bottom: 0;
+    border-right: 1px solid color-mix(in srgb, var(--pico-muted-border-color) 70%, transparent); }
+  body.menue-links > header.container > nav { flex-direction: column; align-items: stretch; justify-content: flex-start;
+    min-height: 100%; gap: 1rem; }
+  body.menue-links > header.container > nav > ul { flex-direction: column; align-items: stretch; margin: 0; }
+  body.menue-links > header.container > nav > ul:nth-of-type(2) { flex: 1; }
+  body.menue-links > header.container > nav li { padding: 0; }
+  body.menue-links > header.container > nav li > a, body.menue-links nav details.dropdown > summary {
+    display: block; margin: 0; padding: .45rem .7rem; border-radius: var(--pico-border-radius); }
+  body.menue-links > header.container > nav li > a:hover, body.menue-links nav details.dropdown > summary:hover {
+    background: color-mix(in srgb, var(--pico-primary) 8%, transparent); }
+  body.menue-links > header.container > nav li > a[aria-current], body.menue-links nav details.dropdown > summary[aria-current] {
+    background: color-mix(in srgb, var(--pico-primary) 13%, transparent); color: var(--pico-primary); font-weight: 600; }
+  body.menue-links nav .marke { padding: .2rem .7rem .4rem; }
+  /* Dropdowns (Stammdaten, Benutzermenü) als aufklappbare Gruppen */
+  body.menue-links nav details.dropdown { display: block; margin: 0; }
+  body.menue-links nav details.dropdown > summary:not([role]) { height: auto; border: 0; background: none; box-shadow: none;
+    color: var(--pico-primary); cursor: pointer; }
+  body.menue-links nav details.dropdown > summary::after { transform: rotate(-90deg); }
+  body.menue-links nav details.dropdown[open] > summary::after { transform: rotate(0); }
+  body.menue-links nav details.dropdown[open] > summary::before { display: none; }  /* kein Klick-weg-Schleier */
+  body.menue-links nav details.dropdown > summary + ul { display: none; position: static; width: auto; min-width: 0;
+    margin: .1rem 0 .4rem .7rem; padding: 0; border: 0; border-left: 1px solid var(--pico-muted-border-color);
+    border-radius: 0; background: none; box-shadow: none; transform: none; opacity: 1; }
+  body.menue-links nav details.dropdown[open] > summary + ul { display: flex; flex-direction: column; align-items: stretch; }
+  body.menue-links nav details.dropdown > summary + ul li { width: auto; margin: 0; padding: 0; }
+  body.menue-links nav details.dropdown > summary + ul li a { display: block; margin: 0; padding: .32rem .7rem; font-size: .92rem;
+    text-align: left; border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0; }
+  body.menue-links nav details.dropdown .gesperrt-eintrag { padding: .32rem .7rem; font-size: .92rem; }
+  /* Abmelden: eigener Block mit Luft rundum (form.inline wäre inline – dort wirken keine Abstände nach oben/unten) */
+  body.menue-links nav details.dropdown form.inline { display: block; margin: 1rem .7rem .9rem; }
+  body.menue-links nav details.dropdown form button { padding: .4rem 1rem; }
+  body.menue-links nav li.benutzer-eintrag { margin-top: auto; padding-top: .6rem;
+    border-top: 1px solid var(--pico-muted-border-color); }
+  body.menue-links > header.container + main { padding-top: 1.5rem; }
+  /* Footer-Inhalt wandert unten in die Seitenleiste */
+  body.menue-links { --fuss-hoehe: 0px; }
+  body.menue-links > footer.fuss { display: none; }
+  body.menue-links .seiten-fuss { display: flex; flex-direction: column; gap: .2rem;
+    padding: .7rem .7rem calc(1.4rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--pico-muted-border-color); font-size: .75rem; line-height: 1.35; color: var(--pico-muted-color); }
+  body.menue-links .seiten-fuss a { text-decoration: none; }
+  body.menue-links > main { padding-bottom: 1.5rem; }
+}
+.seiten-fuss { display: none; }
+/* Hinweise, die sich selbst ausblenden (data-ausblenden, base.html) */
+[data-ausblenden] { transition: opacity .5s, max-height .5s .1s, margin .5s .1s, padding .5s .1s; max-height: 40rem; overflow: hidden; }
+[data-ausblenden].blendet-aus { opacity: 0; max-height: 0; margin-block: 0; padding-block: 0; }
+/* Schmale Fenster (html.menue-kompakt, base.html): Menüpunkte hinter „☰ Menü“, aufgeklappt als Liste unter der Leiste */
+.menue-knopf-eintrag { display: none; }
+html.menue-kompakt body > header.container { position: sticky; top: env(safe-area-inset-top, 0px); bottom: auto; width: 100%;
+  max-width: none; margin: 0; padding: .4rem max(1rem, env(safe-area-inset-left, 0px)); overflow: visible; }
+html.menue-kompakt body.menue-links { padding-left: 0; }
+html.menue-kompakt body > header.container::before { left: 50%; width: 100vw; transform: translateX(-50%); border-right: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--pico-muted-border-color) 70%, transparent); }
+html.menue-kompakt body > header.container > nav { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; min-height: 0; gap: 0; }
+html.menue-kompakt body > header.container > nav > ul:first-child { flex: 1 1 100%; margin: 0; display: flex; justify-content: space-between;
+  align-items: center; flex-direction: row; }
+html.menue-kompakt .menue-knopf-eintrag { display: list-item; list-style: none; }
+html.menue-kompakt .menue-knopf { margin: 0; padding: .3rem .8rem; font-size: .95rem; }
+html.menue-kompakt #hauptmenue { display: none; }
+html.menue-kompakt header.menue-offen #hauptmenue { display: flex; flex-direction: column; align-items: stretch; flex-basis: 100%;
+  margin: .3rem 0 .5rem; max-height: calc(100vh - 5rem); overflow-y: auto; }
+html.menue-kompakt #hauptmenue li { padding: 0; }
+html.menue-kompakt #hauptmenue li > a, html.menue-kompakt #hauptmenue details.dropdown > summary { display: block; margin: 0;
+  padding: .5rem .7rem; border-radius: var(--pico-border-radius); }
+html.menue-kompakt #hauptmenue li > a[aria-current], html.menue-kompakt #hauptmenue details.dropdown > summary[aria-current] {
+  background: color-mix(in srgb, var(--pico-primary) 13%, transparent); font-weight: 600; }
+html.menue-kompakt #hauptmenue details.dropdown { display: block; margin: 0; }
+html.menue-kompakt #hauptmenue details.dropdown > summary:not([role]) { height: auto; border: 0; background: none; box-shadow: none;
+  color: var(--pico-primary); }
+html.menue-kompakt #hauptmenue details.dropdown[open] > summary::before { display: none; }
+html.menue-kompakt #hauptmenue details.dropdown > summary + ul { display: none; position: static; width: auto; min-width: 0;
+  margin: 0 0 .3rem .8rem; padding: 0; border: 0; border-left: 1px solid var(--pico-muted-border-color); border-radius: 0;
+  background: none; box-shadow: none; transform: none; opacity: 1; }
+html.menue-kompakt #hauptmenue details.dropdown[open] > summary + ul { display: flex; flex-direction: column; }
+html.menue-kompakt #hauptmenue details.dropdown > summary + ul li { width: auto; margin: 0; padding: 0; }
+html.menue-kompakt #hauptmenue details.dropdown > summary + ul li a { margin: 0; padding: .4rem .7rem; }
+html.menue-kompakt #hauptmenue details.dropdown form.inline { display: block; margin: .8rem .7rem .6rem; }
+html.menue-kompakt #hauptmenue li.benutzer-eintrag { margin-top: .3rem; padding-top: .3rem; border-top: 1px solid var(--pico-muted-border-color); }
+html.menue-kompakt body.menue-links .seiten-fuss { display: none; }
+html.menue-kompakt body.menue-links > footer.fuss { display: block; }
+html.menue-kompakt body.menue-links { --fuss-hoehe: 2.6rem; }
+/* Löschen/Deaktivieren unter dem Formular: Abstand zum Formular und zum nächsten Abschnitt */
+.entfernen-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; margin-block: 1.25rem 2rem; }
+.entfernen-zeile form, .entfernen-zeile button { margin: 0; }
+/* Einstellungen: Feature-Schalter (Fristen); Fahrzeug: abhängige Felder ausgegraut, solange der Haken aus ist */
+[data-aktiv-wenn].inaktiv { opacity: .45; }
+[data-aktiv-wenn].inaktiv input { pointer-events: none; }
+fieldset.maut .knoepfe { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+fieldset.maut .knoepfe button { margin: 0; width: auto; }
+/* Reine Navigation als kleine Knöpfe (← Alle …, Vormonat/Jahr/Reports); Links in Text und Tabellen bleiben Links */
+.nav-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; margin-bottom: 1rem; }
+a.nav-knopf[role=button] { margin: 0; padding: .25rem .75rem; font-size: .85rem; width: auto; }
+.nav-leiste .nav-titel { font-size: .85rem; color: var(--pico-muted-color); margin-right: .2rem; }
+/* Blättern zwischen Detailseiten (Makro blaettern): rechts in der Navigationsleiste */
+.detail-blaettern { margin-left: auto; display: inline-flex; align-items: center; gap: .4rem; }
+.detail-blaettern a.nav-knopf[role=button] { padding: .25rem .65rem; }
+.detail-blaettern a[aria-disabled=true] { opacity: .35; pointer-events: none; }
+/* Nach dem Blättern (base.html): Inhalt blendet ein, Überschrift leuchtet kurz auf */
+/* Ohne Bewegung: nur kurze Überblendung (Start nicht ganz unsichtbar, kein Aufblitzen einer leeren Seite) */
+@keyframes blaettern-blende { from { opacity: .7; } }
+@keyframes titel-blitz { from { color: color-mix(in srgb, var(--pico-primary) 75%, var(--pico-h1-color)); } }
+main.blaettern-vor, main.blaettern-zurueck { animation: blaettern-blende .8s ease-out; }
+main h1.titel-blitz { animation: titel-blitz 2s ease-out; }
+.detail-blaettern-position { font-size: .85rem; color: var(--pico-muted-color); font-variant-numeric: tabular-nums; }
+/* Einstellungen → Reports: Versand-Kästen mit Hauptschalter, Zeitangaben als Satz */
+fieldset.versand-block label.haken.haupt { font-weight: 600; }
+.versand-details { margin: .3rem 0 .3rem 1.9rem; }
+.versand-satz { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin-bottom: .4rem; }
+.versand-satz > span { display: inline-flex; align-items: center; gap: .4rem; }
+.versand-satz label { margin: 0; }
+.versand-satz input, .versand-satz select { margin: 0; width: auto; }
+.versand-satz input.kurz { width: 5rem; }
+.versand-satz input.zeit { width: 8rem; }
+.versand-satz select.kurz-select { width: auto; min-width: 9rem; }
+.versand-hinweis { display: block; color: var(--pico-muted-color); margin-bottom: .6rem; }
+.versand-frage { margin: .4rem 0 .3rem; font-weight: 600; font-size: .95rem; }
+/* Kästen innerhalb einer Karte (Versand und Fristen in den Einstellungen, Vignette/Maut beim Fahrzeug): deutlich
+   abgesetzt (Farben --rahmen-innen/--flaeche-innen, siehe unten) */
+fieldset.versand-block, fieldset.maut { margin: 1rem 0 0; padding: .9rem 1.1rem .5rem; border: 1px solid var(--rahmen-innen);
+  border-radius: var(--pico-border-radius); background: var(--flaeche-innen); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+fieldset.maut { margin-top: .75rem; }
+fieldset.versand-block legend, fieldset.maut legend {
+  padding: .1rem .65rem; border-radius: 999px; font-size: .9rem; font-weight: 600; color: var(--pico-primary);
+  background: var(--pico-card-background-color); border: 1px solid var(--rahmen-innen); }
+/* Kästen innerhalb einer Karte (z. B. „Per Mail senden an …“ auf „Reports“, Aufklapper in Abschnitten und Formularen):
+   deutlich abgesetzt wie die Kästen der Einstellungen – sonst verschwindet der Rahmen in der Karte.
+   Aufklapper in Tabellenzellen (Protokoll) bleiben schlicht. */
+:root { --rahmen-innen: color-mix(in srgb, var(--pico-primary) 35%, var(--pico-muted-border-color));
+        --flaeche-innen: color-mix(in srgb, var(--pico-primary) 4%, var(--pico-card-background-color)); }
+main :is(.abschnitt-karte, article, .einstellung-gruppe, form.formular, .detail-daten)
+  details:not(.dropdown):not(.mehrfach):not(td details) {
+  border: 1px solid var(--rahmen-innen); background: var(--flaeche-innen); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+main :is(.abschnitt-karte, article, .einstellung-gruppe, form.formular, .detail-daten)
+  details:not(.dropdown):not(.mehrfach):not(td details) > summary { color: var(--pico-primary); }
+/* Meldung mit Aktionsknopf (z. B. Pool-Hinweis → „Bisherige austragen“) */
+.meldung form.meldung-aktion { display: inline; margin-left: .5rem; }
+.meldung form.meldung-aktion button { margin: 0; width: auto; }
+/* Abschluss eines Imports: Ladekarten ohne Zuordnung direkt zuordnen */
+.import-abschluss .abschluss-karten { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; margin: .5rem 0 0; }
+.import-abschluss .abschluss-karten a[role=button] { margin: 0; }
+/* Einstellungen → Syslog: Expertenoptionen aufklappbar */
+details.syslog-erweitert { margin: .5rem 0 1rem; padding: .4rem .9rem; border-radius: var(--pico-border-radius); }
+details.syslog-erweitert > summary { font-size: .95rem; }
+/* Menü → Stammdaten: Anzahl aktiver Einträge rechts neben dem Namen */
+nav .menue-anzahl { margin-left: auto; padding-left: .75rem; font-size: .8rem; color: var(--pico-muted-color);
+  font-variant-numeric: tabular-nums; }
+nav li:has(> a > .menue-anzahl) > a { display: flex; align-items: center; gap: .35rem; width: 100%; box-sizing: border-box; }
+body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { display: flex; align-items: center; gap: .35rem; }
+/* Letzter Kasten einer Einstellungsgruppe (z. B. Reports → Offene Aufgaben): Luft zum Rand der Gruppe */
+.einstellung-gruppe > fieldset.versand-block:last-child { margin-bottom: 1rem; }
+/* Seitenleiste hebt sich ab: Kartenfläche statt Seitengrund, kräftigere Kante mit Schatten; Logo größer mit Abstand */
+@media (min-width: 1024px) {
+  body.menue-links > header.container::before {
+    background: var(--pico-card-background-color); -webkit-backdrop-filter: none; backdrop-filter: none;
+    border-right: 1px solid var(--pico-muted-border-color); box-shadow: 2px 0 14px rgba(0, 0, 0, .07); }
+  body.menue-links > header.container > nav li > a.marke { display: flex; align-items: center; gap: .75rem; }
+  body.menue-links > header.container > nav li > a.marke svg.falke { height: 2.6rem; }
+  body.menue-links nav .marke .marke-text strong { font-size: 1.15rem; }
+}
+/* Seitenleiste: Benutzermenü als fester Block (Name als Überschrift, ohne Pfeil und Einrückung, nicht einklappbar) */
+@media (min-width: 1024px) {
+  html:not(.menue-kompakt) body.menue-links nav details.benutzermenue > summary { cursor: default; pointer-events: none;
+    font-weight: 600; padding-bottom: .2rem; }
+  html:not(.menue-kompakt) body.menue-links nav details.benutzermenue > summary::after { display: none; }
+  html:not(.menue-kompakt) body.menue-links nav details.benutzermenue > summary + ul { margin: 0; border-left: 0; }
+  html:not(.menue-kompakt) body.menue-links nav details.benutzermenue > summary + ul li a,
+  html:not(.menue-kompakt) body.menue-links nav details.benutzermenue .gesperrt-eintrag { padding-left: .7rem;
+    border-radius: var(--pico-border-radius); }
+}
+/* Reports → Zuordnungen am Stichtag: Datumswahl unter dem Titel, Stichtag im Versanddialog */
+.report-karte .stichtag-wahl { margin: 0 0 .6rem; }
+.report-karte .stichtag-wahl input[type=date] { width: auto; margin: 0 0 0 .4rem; }
+.versand-dialog .versand-stichtag { display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem; }
+.versand-dialog .versand-stichtag input { width: auto; margin: 0; font-weight: 400; }

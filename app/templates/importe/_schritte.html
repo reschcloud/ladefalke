@@ -1,0 +1,29 @@
+{# Schrittanzeige des Imports: ① Dateien hochladen → ② Prüfen und bestätigen → ③ Abgeschlossen.
+   aktiv: 1–3 (3 = alles erledigt); navigation: auf der Vorschauseite „Datei x von y“ mit ◀ ▶ zwischen offenen Vorschauen. #}
+{% macro schritte(aktiv, navigation=none, offen=0) %}
+{% set texte = [
+  ("Dateien hochladen", "PDF oder CSV, auch mehrere auf einmal"),
+  ("Prüfen und bestätigen", "jede Datei einzeln"),
+  ("Abgeschlossen", "Zuordnungen bei Bedarf später unter Aufgaben")] %}
+<ol class="import-schritte" aria-label="Ablauf des Imports">
+  {% for titel, hinweis in texte %}
+  {% set nr = loop.index %}
+  {% set erledigt = nr < aktiv or aktiv == 3 %}
+  <li class="{{ 'erledigt' if erledigt }}{{ ' aktiv' if nr == aktiv }}"{% if nr == aktiv %} aria-current="step"{% endif %}>
+    <span class="schritt-nr" aria-hidden="true">{{ "✓" if erledigt else nr }}</span>
+    <span class="schritt-text"><strong>{{ titel }}</strong>
+      <small>
+      {%- if nr == 2 and navigation and navigation.anzahl > 1 -%}
+        {% if navigation.zurueck %}<a href="/import/{{ navigation.zurueck }}" aria-label="vorherige Datei">◀</a> {% endif -%}
+        Datei {{ navigation.nr }} von {{ navigation.anzahl }}
+        {%- if navigation.vor %} <a href="/import/{{ navigation.vor }}" aria-label="nächste Datei">▶</a>{% endif %}
+      {%- elif nr == 2 and offen -%}
+        {{ offen }} Datei{{ "en" if offen != 1 }} offen
+      {%- else -%}
+        {{ hinweis }}
+      {%- endif -%}
+      </small></span>
+  </li>
+  {% endfor %}
+</ol>
+{% endmacro %}

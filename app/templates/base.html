@@ -1,0 +1,693 @@
+<!doctype html>
+{% import "_makros.html" as m %}
+{%- set theme = request.state.theme | default("auto") if request else "auto" %}
+<html lang="de"{% if theme == "hell" %} data-theme="light"{% elif theme == "dunkel" %} data-theme="dark"{% endif %}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titel %}Der elektrische Fuhrpark im Blick{% endblock %} · Ladefalke</title>
+  <link rel="stylesheet" href="/static/pico.min.css?v={{ static_version }}">
+  <link rel="stylesheet" href="/static/app.css?v={{ static_version }}">
+  <link rel="icon" href="/static/favicon.svg?v={{ static_version }}" type="image/svg+xml">
+  {# 422 (Validierungsfehler) soll wie 200 eingetauscht werden #}
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"[45]..","swap":false,"error":true}]}'>
+  <script src="/static/htmx.min.js?v={{ static_version }}" defer></script>
+  {# Karte im Dashboard: Leaflet und Leaflet.heat lokal (BSD-2 / MIT), keine externen Dienste #}
+  <link rel="stylesheet" href="/static/leaflet/leaflet.css?v={{ static_version }}">
+  <script src="/static/leaflet/leaflet.js?v={{ static_version }}" defer></script>
+  <script src="/static/leaflet/leaflet-heat.js?v={{ static_version }}" defer></script>
+  <script src="/static/geo/basiskarte.js?v={{ static_version }}" defer></script>
+  <script src="/static/karte.js?v={{ static_version }}" defer></script>
+  <meta name="static-version" content="{{ static_version }}">
+  <script>
+    // Ausgegraute Knöpfe: nicht „disabled“ (dann zeigen viele Browser keinen Tooltip), sondern markiert und mit dem
+    // Grund im Tooltip; Klicks werden abgefangen. Bei fehlenden Pflichtfeldern zeigt ein Klick, welches Feld fehlt.
+    // Formulare mit data-verfolgen, die ungespeicherte Änderungen haben (siehe „Ungespeicherte Änderungen“ unten)
+    const ungespeichert = new Set();
+    const istUngespeichert = (id) => [...ungespeichert].some((f) => f.isConnected && f.id === id);
+    const ausgrauen = (b, grund, pflicht = false) => {
+      if (!("titelVorher" in b.dataset)) b.dataset.titelVorher = b.title;
+      b.classList.add("ausgegraut");
+      b.setAttribute("aria-disabled", "true");
+      b.title = grund;
+      if (pflicht) b.dataset.pflicht = "1"; else delete b.dataset.pflicht;
+    };
+    const freigeben = (b) => {
+      if (b.dataset.ohneRecht) return;  // wegen fehlender Berechtigung gesperrt (data-nur-admin): bleibt gesperrt
+      if (b.dataset.erstSpeichern && istUngespeichert(b.dataset.erstSpeichern)) return;  // erst speichern
+      b.classList.remove("ausgegraut");
+      b.removeAttribute("aria-disabled");
+      delete b.dataset.pflicht;
+      if ("titelVorher" in b.dataset) b.title = b.dataset.titelVorher;
+    };
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest?.(".ausgegraut");
+      if (!b) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (b.dataset.pflicht && b.form) b.form.reportValidity();
+    }, true);
+    document.addEventListener("submit", (e) => {  // auch Enter im Feld: nicht absenden, solange Pflichtfelder fehlen
+      const form = e.target;
+      if (form.querySelector("[type=submit].ausgegraut[data-pflicht]") && !form.checkValidity()) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        form.reportValidity();
+      }
+    }, true);
+    // Viewer (body.nur-lesen): alles, was ändert, bleibt sichtbar, ist aber ausgegraut und gekennzeichnet –
+    // Felder gesperrt, Knöpfe und Links (data-schreiben) mit Tooltip, Klicks und Absenden abgefangen;
+    // ausgenommen data-immer (Abmelden, eigenes Konto). Der Server weist Änderungen von Viewern ohnehin ab.
+    const NUR_LESEN = "Nur für Operator und Admin – du bist als Viewer angemeldet.";
+    const istViewer = () => document.body?.classList.contains("nur-lesen");
+    const sperren = (el) => {
+      el.classList.add("gesperrt");
+      el.setAttribute("aria-disabled", "true");
+      el.title = NUR_LESEN;
+    };
+    const nurLesen = () => {
+      if (!istViewer()) return;
+      document.querySelectorAll('form[method="post"]:not([data-immer])').forEach((f) => {
+        f.querySelectorAll("input:not([type=hidden]), select, textarea").forEach((x) => { x.disabled = true; x.title = NUR_LESEN; });
+        f.querySelectorAll("button, [type=submit]").forEach(sperren);  // nicht disabled: Tooltip bleibt sichtbar
+      });
+      document.querySelectorAll("a[data-schreiben], button[data-schreiben]").forEach(sperren);
+      document.querySelectorAll("a.import-ablage").forEach((a) => { a.title = "Import ansehen (Hochladen nur für Operator und Admin)"; });
+    };
+    document.addEventListener("DOMContentLoaded", nurLesen);
+    document.addEventListener("htmx:afterSettle", nurLesen);
+    // Nur für Admins (data-nur-admin, z. B. MSP-Verwaltung): für alle anderen Felder gesperrt, Knöpfe und Links
+    // ausgegraut mit Tooltip. Der Server weist Änderungen ohnehin ab (auth.admin_fuer_aenderungen).
+    const OHNE_RECHT = "Unzureichende Berechtigungen";
+    const nurAdmin = () => {
+      if (document.body?.classList.contains("als-admin")) return;
+      document.querySelectorAll("[data-nur-admin]").forEach((bereich) => {
+        bereich.querySelectorAll("input:not([type=hidden]), select, textarea").forEach((x) => { x.disabled = true; x.title = OHNE_RECHT; });
+        [bereich, ...bereich.querySelectorAll("button, a[role=button], [type=submit]")]
+          .filter((el) => el.matches("button, a[role=button], [type=submit]"))
+          .forEach((el) => { ausgrauen(el, OHNE_RECHT); el.dataset.ohneRecht = "1"; el.classList.remove("gesperrt"); });
+      });
+    };
+    document.addEventListener("DOMContentLoaded", nurAdmin);
+    document.addEventListener("htmx:afterSettle", nurAdmin);
+    document.addEventListener("click", (e) => {  // vor allen anderen Klick-Handlern (Capture, zuerst registriert)
+      if (istViewer() && e.target.closest?.(".gesperrt")) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+    document.addEventListener("submit", (e) => {
+      if (istViewer() && e.target.matches('form[method="post"]:not([data-immer])')) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+    // Einstellungen: von der Empfehlung abweichende Felder markieren, „Speichern“ erst bei Änderungen aktiv
+    const zahlwert = (t) => { const s = String(t).trim().replace(/\./g, "").replace(",", ".");
+                              return s !== "" && !isNaN(s) ? Number(s) : String(t).trim(); };
+    const einstellungPruefen = (feld) => {
+      const box = feld.closest(".einstellung");
+      if (box && "standard" in feld.dataset) box.classList.toggle("geaendert", zahlwert(feld.value) !== zahlwert(feld.dataset.standard));
+      const form = document.getElementById("einstellungen-form");
+      const knopf = form?.querySelector("[data-speichern]");
+      if (knopf) { freigeben(knopf);
+                   form.querySelector("[data-speichern-status]").textContent = "Ungespeicherte Änderungen."; }
+    };
+    document.addEventListener("input", (e) => { if (e.target.form?.id === "einstellungen-form") einstellungPruefen(e.target); });
+    // Einstellungen: nach dem Speichern zur zuletzt bearbeiteten Gruppe zurück (Feld „gruppe“, Anker der Überschrift)
+    document.addEventListener("change", (e) => {
+      const form = e.target.form;
+      if (form?.id !== "einstellungen-form") return;
+      const anker = e.target.closest(".einstellung-gruppe")?.querySelector("h2[id]")?.id;
+      if (anker && form.elements.gruppe) form.elements.gruppe.value = anker;
+    });
+    document.addEventListener("change", (e) => { if (e.target.form?.id === "einstellungen-form") einstellungPruefen(e.target); });
+    // Ungespeicherte Änderungen (form[data-verfolgen], data-verfolgen="start": schon beim Laden, z. B. nach einem
+    // Fehler): Knöpfe mit data-erst-speichern="<form-id>" ausgegraut (sie arbeiten mit dem gespeicherten Stand),
+    // Hinweise mit data-erst-speichern-hinweis="<form-id>" sichtbar; Rückfrage beim Verlassen der Seite.
+    const erstSpeichern = (form, an) => {
+      document.querySelectorAll(`[data-erst-speichern="${form.id}"]`).forEach((k) => (an
+        ? ausgrauen(k, k.dataset.erstSpeichernText || "Zuerst die Änderungen speichern – sonst gilt der gespeicherte Stand.")
+        : freigeben(k)));
+      document.querySelectorAll(`[data-erst-speichern-hinweis="${form.id}"]`).forEach((h) => { h.hidden = !an; });
+    };
+    const aenderungMerken = (form) => {
+      if (!form?.matches?.("form[data-verfolgen]") || istUngespeichert(form.id)) return;
+      ungespeichert.add(form);
+      erstSpeichern(form, true);
+    };
+    document.addEventListener("input", (e) => aenderungMerken(e.target.form));
+    document.addEventListener("change", (e) => aenderungMerken(e.target.form));
+    const verfolgteAnfang = () => {
+      for (const f of [...ungespeichert]) if (!f.isConnected) ungespeichert.delete(f);
+      document.querySelectorAll('form[data-verfolgen="start"]').forEach(aenderungMerken);
+    };
+    document.addEventListener("DOMContentLoaded", verfolgteAnfang);
+    document.addEventListener("htmx:afterSettle", verfolgteAnfang);
+    document.addEventListener("submit", (e) => { ungespeichert.delete(e.target); }, true);
+    const VERWERFEN = "Es gibt ungespeicherte Änderungen. Seite trotzdem verlassen und die Änderungen verwerfen?";
+    document.addEventListener("click", (e) => {  // Seitenwechsel über Links (hx-boost lädt ohne beforeunload)
+      const a = e.target.closest?.("a[href]");
+      if (!a || e.defaultPrevented || a.target === "_blank" || a.getAttribute("href").startsWith("#")
+          || a.hasAttribute("download") || a.getAttribute("hx-boost") === "false" || !istUngespeichertIrgendwo()) return;
+      if (confirm(VERWERFEN)) ungespeichert.clear();
+      else { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+    const istUngespeichertIrgendwo = () => [...ungespeichert].some((f) => f.isConnected);
+    window.addEventListener("beforeunload", (e) => { if (istUngespeichertIrgendwo()) { e.preventDefault(); e.returnValue = ""; } });
+    // Zuordnungsformulare: „Gültig ab/bis“ = Leasingbeginn/-ende (_makros.leasing_knoepfe). Die Daten hängen am
+    // Absatz; je nach Formular fest („*“) oder je gewähltem Fahrzeug. Ohne Leasingdaten sind die Knöpfe ausgegraut.
+    const isoDeutsch = (iso) => iso.split("-").reverse().join(".");
+    const leasingFuer = (absatz) => {
+      const daten = JSON.parse(absatz.dataset.leasing || "{}");
+      const feld = absatz.dataset.leasingFeld;
+      return daten[feld ? absatz.closest("form")?.querySelector(`[name="${feld}"]`)?.value : "*"] || [null, null];
+    };
+    const leasingKnoepfe = () => document.querySelectorAll("p.leasing-uebernehmen").forEach((absatz) => {
+      const [beginn, ende] = leasingFuer(absatz);
+      for (const [knopf, tag, text] of [[absatz.querySelector('[data-leasing-uebernehmen="beginn"]'), beginn, "„Gültig ab“ = Leasingbeginn"],
+                                        [absatz.querySelector('[data-leasing-uebernehmen="ende"]'), ende, "„Gültig bis“ = Leasing-Ende"]]) {
+        if (!knopf || knopf.classList.contains("gesperrt")) continue;
+        knopf.textContent = tag ? `${text} (${isoDeutsch(tag)})` : text;
+        const feld = absatz.dataset.leasingFeld && absatz.closest("form")?.querySelector(`[name="${absatz.dataset.leasingFeld}"]`);
+        if (tag) freigeben(knopf);
+        else ausgrauen(knopf, feld && !feld.value ? "Zuerst ein Fahrzeug wählen"
+          : feld?.value?.startsWith("fahrer:") ? "Leasingdaten gibt es nur bei Fahrzeugen"
+          : "Für dieses Fahrzeug sind keine Leasingdaten hinterlegt");
+      }
+    });
+    document.addEventListener("DOMContentLoaded", leasingKnoepfe);
+    document.addEventListener("htmx:afterSettle", leasingKnoepfe);
+    document.addEventListener("change", (e) => { if (e.target.closest?.("form")?.querySelector("p.leasing-uebernehmen")) leasingKnoepfe(); });
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-leasing-uebernehmen]");
+      if (!knopf) return;
+      const [beginn, ende] = leasingFuer(knopf.closest("p.leasing-uebernehmen"));
+      const feld = knopf.form.querySelector(knopf.dataset.leasingUebernehmen === "beginn" ? '[name="ab"]' : '[name="bis"]');
+      feld.value = knopf.dataset.leasingUebernehmen === "beginn" ? beginn : ende;
+      feld.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    // Formulare mit Pflichtfeldern (required): Absendeknöpfe ausgegraut, bis alles ausgefüllt ist. Ausgenommen die
+    // Anmeldung (der Browser füllt gespeicherte Passwörter oft ohne Ereignis ein) und die Einstellungen (eigene Logik).
+    const feldName = (f) => (f.dataset.feldname || f.closest("label")?.firstChild?.textContent
+      || f.labels?.[0]?.textContent || f.getAttribute("aria-label") || f.name).replace("*", "").trim();
+    const pflichtPruefen = (form) => {
+      if (!form || form.method !== "post" || form.matches("#einstellungen-form, [data-ohne-pflichtsperre]")
+          || !form.querySelector("[required]")) return;
+      const fehlend = [...form.elements].filter((f) => f.willValidate && !f.checkValidity());
+      const grund = `Bitte noch ausfüllen: ${[...new Set(fehlend.map(feldName))].join(", ")}`;
+      [...form.elements].filter((b) => b.type === "submit" && !b.classList.contains("gesperrt"))
+        .forEach((b) => (fehlend.length ? ausgrauen(b, grund, true) : freigeben(b)));
+    };
+    const allePflichtPruefen = () => document.querySelectorAll('form[method="post"]').forEach(pflichtPruefen);
+    document.addEventListener("input", (e) => pflichtPruefen(e.target.form));
+    document.addEventListener("change", (e) => pflichtPruefen(e.target.form));
+    document.addEventListener("DOMContentLoaded", allePflichtPruefen);
+    document.addEventListener("htmx:afterSettle", allePflichtPruefen);
+    // Zuordnungs-Abschnitte: „Lücke schließen“ füllt das Formular „Neue Zuordnung“ mit dem Zeitraum der Lücke,
+    // springt hin und setzt den Fokus auf die Auswahl (Person, Fahrzeug bzw. Ziel)
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-luecke-fuellen]");
+      if (!knopf || knopf.classList.contains("gesperrt")) return;
+      const form = document.getElementById(knopf.dataset.lueckeFuellen);
+      if (!form) return;
+      form.querySelector('[name="ab"]').value = knopf.dataset.von;
+      form.querySelector('[name="bis"]').value = knopf.dataset.bis;
+      form.querySelector('[name="bis"]').dispatchEvent(new Event("change", { bubbles: true }));  // Pflichtfeld-Prüfung
+      form.closest("article")?.classList.add("hervorgehoben");
+      setTimeout(() => form.closest("article")?.classList.remove("hervorgehoben"), 1600);
+      form.scrollIntoView({ behavior: "smooth", block: "center" });
+      form.querySelector("select")?.focus({ preventScroll: true });
+    });
+    // Datumsfeld(er) per Knopf setzen, z. B. „Heute“ oder „Jahresvignette“ (data-datum-setzen = Feldname(n),
+    // data-wert = ISO-Datum(e) vom Server, jeweils durch Komma getrennt)
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-datum-setzen]");
+      if (!knopf || knopf.classList.contains("gesperrt") || knopf.disabled) return;
+      const werte = knopf.dataset.wert.split(",");
+      knopf.dataset.datumSetzen.split(",").forEach((name, i) => {
+        const feld = knopf.form.querySelector(`[name="${name}"]`);
+        feld.value = werte[i];
+        feld.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+    // Auswahl schaltet abhängige Teile: data-zeigen-bei="<name>:<wert>,<wert>" – sichtbar bei einem dieser Werte
+    document.addEventListener("change", (e) => {
+      if (e.target.tagName !== "SELECT" || !e.target.name) return;
+      document.querySelectorAll(`[data-zeigen-bei^="${e.target.name}:"]`).forEach((el) => {
+        el.hidden = !el.dataset.zeigenBei.split(":")[1].split(",").includes(e.target.value);
+      });
+    });
+    // Haken schaltet abhängige Teile: data-zeigen-wenn="<name>" ein-/ausblenden (Einstellungen: Features),
+    // data-aktiv-wenn="<name>" ausgrauen (Felder bleiben im Formular, z. B. Vignette beim Fahrzeug)
+    document.addEventListener("change", (e) => {
+      const name = e.target.type === "checkbox" && e.target.name;
+      if (!name) return;
+      document.querySelectorAll(`[data-zeigen-wenn="${name}"]`).forEach((el) => { el.hidden = !e.target.checked; });
+      document.querySelectorAll(`[data-aktiv-wenn="${name}"]`).forEach((el) => {
+        el.classList.toggle("inaktiv", !e.target.checked);
+        el.querySelectorAll("input").forEach((i) => { i.readOnly = !e.target.checked; });
+        el.querySelectorAll("button").forEach((b) => { b.disabled = !e.target.checked; });
+      });
+    });
+    // Fahrzeug: Leasing-Ende aus Beginn + Leasingdauer vorbelegen (leer oder noch der letzte Vorschlag)
+    document.addEventListener("change", (e) => {
+      const gruppe = e.target.closest?.(".leasing[data-leasing-monate]");
+      if (!gruppe || e.target.name !== "leasing_beginn" || !e.target.value) return;
+      const ende = gruppe.querySelector('input[name="leasing_ende"]');
+      if (ende.value && ende.value !== ende.dataset.vorschlag) return;
+      const [j, m, t] = e.target.value.split("-").map(Number);
+      const monate = Number(gruppe.dataset.leasingMonate);
+      const ziel = new Date(Date.UTC(j, m - 1 + monate, 1));
+      const letzter = new Date(Date.UTC(ziel.getUTCFullYear(), ziel.getUTCMonth() + 1, 0)).getUTCDate();
+      ziel.setUTCDate(Math.min(t, letzter));
+      ziel.setUTCDate(ziel.getUTCDate() - 1);  // letzter Tag vor dem Jahrestag
+      ende.value = ende.dataset.vorschlag = ziel.toISOString().slice(0, 10);
+    });
+  </script>
+  <script>
+    // Filter („sofort“): Dropdowns und Haken wenden den Filter gleich an; Datum und Suchtext nach kurzer Pause,
+    // damit z. B. beim Tippen der Jahreszahl nicht schon mittendrin neu geladen wird
+    let filterWarten;
+    // Mehrfachauswahl (_makros.mehrfach): „alle“ hebt die Auswahl auf; nach dem Neuladen bleibt die Liste offen
+    let mehrfachOffen = null;
+    document.addEventListener("change", (e) => {
+      const form = e.target.closest("form.sofort");
+      if (!form) return;
+      clearTimeout(filterWarten);
+      const liste = e.target.closest("details.mehrfach");
+      if (liste) {
+        const alle = liste.querySelector("[data-alle]");
+        if (e.target === alle) liste.querySelectorAll("input[name]").forEach((x) => { x.checked = false; });
+        alle.checked = !liste.querySelector("input[name]:checked");
+        mehrfachOffen = { name: liste.dataset.name, wert: e.target.value, alle: e.target === alle };
+      }
+      if (e.target.matches("select, input[type=checkbox]")) form.requestSubmit();
+      else if (e.target.matches("input[type=date], input[type=search]")) filterWarten = setTimeout(() => form.requestSubmit(), 800);
+    });
+    document.addEventListener("htmx:afterSettle", () => {
+      if (!mehrfachOffen) return;
+      const liste = document.querySelector(`details.mehrfach[data-name="${mehrfachOffen.name}"]`);
+      if (liste) {
+        liste.open = true;
+        const ziel = mehrfachOffen.alle ? liste.querySelector("[data-alle]")
+          : [...liste.querySelectorAll("input[name]")].find((x) => x.value === mehrfachOffen.wert);
+        ziel?.focus();
+      }
+      mehrfachOffen = null;
+    });
+    // „×“ an einem gesetzten Filter: wie „alle“ anklicken, die Liste danach aber nicht wieder öffnen
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-filter-weg]");
+      if (!knopf) return;
+      const alle = knopf.closest(".mehrfach-feld").querySelector("[data-alle]");
+      alle.checked = true;
+      alle.dispatchEvent(new Event("change", { bubbles: true }));
+      mehrfachOffen = null;
+    });
+    // offene Mehrfachauswahl schließen: Klick daneben, Esc, oder Öffnen einer anderen
+    document.addEventListener("click", (e) => {
+      document.querySelectorAll("details.mehrfach[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; });
+    });
+    document.addEventListener("keydown", (e) => {
+      const d = e.key === "Escape" && e.target.closest?.("details.mehrfach[open]");
+      if (d) { d.open = false; d.querySelector("summary").focus(); }
+    });
+    // Rückfrage vor folgenreichen Knöpfen: data-bestaetigen="Text"; {n} = Anzahl markierter Vorgänge im Formular
+    // (bei 0: Hinweis statt Absenden), {wert} = Stromart aus Knopf oder Auswahl (leer = keine Angabe).
+    // In der Capture-Phase, damit ein Abbruch auch das Absenden über htmx (hx-boost) verhindert.
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("button[data-bestaetigen]");
+      if (!knopf) return;
+      const form = knopf.form;
+      let text = knopf.dataset.bestaetigen;
+      if (text.includes("{n}")) {
+        const n = form.querySelectorAll("input[name=vorgang_ids]:checked").length;
+        if (!n) { e.preventDefault(); e.stopPropagation(); alert("Bitte zuerst Ladevorgänge markieren."); return; }
+        text = text.replace("{n}", n);
+      }
+      if (text.includes("{wert}")) {
+        const wert = knopf.value || form.querySelector("select[name^=stromart]")?.value || "";
+        text = text.replace("{wert}", wert || "keine Angabe");
+      }
+      if (!confirm(text)) { e.preventDefault(); e.stopPropagation(); }
+    }, true);
+    // Dateien auf den Menüpunkt „Import“ ziehen: zur Import-Seite wechseln und die Dateien ins Upload-Feld legen.
+    // hx-boost lädt die Seite nicht neu, daher bleiben die Dateien bis nach dem Seitenwechsel erhalten.
+    let wartendeDateien = null;
+    function dateienUebernehmen() {
+      const feld = document.getElementById("datei-upload");
+      if (!feld || !wartendeDateien) return false;
+      const dt = new DataTransfer();
+      for (const d of wartendeDateien) dt.items.add(d);
+      feld.files = dt.files;
+      wartendeDateien = null;
+      feld.dispatchEvent(new Event("change", { bubbles: true }));
+      feld.focus();
+      return true;
+    }
+    for (const art of ["dragenter", "dragover"]) {
+      document.addEventListener(art, (e) => {
+        const ziel = e.target.closest?.("a.import-ablage");
+        if (!ziel || !e.dataTransfer?.types.includes("Files")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = istViewer() ? "none" : "copy";  // Viewer: Mauszeiger „nicht erlaubt“
+        if (istViewer()) return;
+        ziel.classList.add("ziehen");
+      });
+    }
+    document.addEventListener("dragleave", (e) => e.target.closest?.("a.import-ablage")?.classList.remove("ziehen"));
+    document.addEventListener("drop", (e) => {
+      const ziel = e.target.closest?.("a.import-ablage");
+      if (!ziel || !e.dataTransfer?.files.length) return;
+      e.preventDefault();
+      ziel.classList.remove("ziehen");
+      if (istViewer()) return;
+      wartendeDateien = Array.from(e.dataTransfer.files);
+      if (!dateienUebernehmen()) ziel.click();  // Seitenwechsel per hx-boost; Übernahme danach (htmx:afterSettle)
+    });
+    document.addEventListener("htmx:afterSettle", dateienUebernehmen);
+    // Upload-Feld: gewählte Dateien namentlich auflisten
+    document.addEventListener("change", (e) => {
+      if (e.target.id !== "datei-upload") return;
+      const liste = document.getElementById("datei-liste");
+      if (!liste) return;
+      liste.replaceChildren(...Array.from(e.target.files, (d) => Object.assign(document.createElement("li"), { textContent: d.name })));
+      liste.hidden = !e.target.files.length;
+    });
+    // hx-boost tauscht nur den <body>: nach einem Update (neue CSS/JS-Version) die Seite vollständig laden
+    document.addEventListener("htmx:beforeSwap", (e) => {
+      const neu = /<meta name="static-version" content="([^"]*)"/.exec(e.detail.xhr.responseText || "");
+      const alt = document.querySelector('meta[name="static-version"]').content;
+      if ((e.detail.boosted || e.detail.requestConfig?.boosted) && neu && neu[1] !== alt) {
+        e.detail.shouldSwap = false;
+        window.location.href = e.detail.xhr.responseURL;
+      }
+    });
+    // Bereichsregler Ø €/kWh (Ladevorgänge): Schieber halten min ≤ max, Anzeige und Säulen folgen beim Ziehen;
+    // beim Loslassen wird gefiltert (Randstellung = keine Grenze). „×“ hebt den Filter auf.
+    const preisZahl = (x) => Number(x).toLocaleString("de-AT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const preisAnzeigen = (r) => {
+      const [min, max] = [r.querySelector('[data-grenze="min"]'), r.querySelector('[data-grenze="max"]')];
+      if (!min || !max) return;
+      const grenze = Number(r.dataset.max) || 1, a = Number(min.value), b = Number(max.value);
+      r.style.setProperty("--von", a / grenze);
+      r.style.setProperty("--bis", b / grenze);
+      const offen = b >= grenze && "gekappt" in r.dataset;  // rechter Rand ohne Obergrenze, Ausreißer gekappt
+      r.querySelector("output").textContent = `${preisZahl(a)} – ${preisZahl(b)}${offen ? "+" : ""}`;
+      const stufe = Number(r.dataset.stufe);
+      r.querySelectorAll(".histogramm i").forEach((s) => {
+        const ab = Number(s.dataset.ab);
+        s.classList.toggle("drin", ab + stufe > a + 1e-9 && ab < b - 1e-9);
+      });
+    };
+    const preisAlle = () => document.querySelectorAll("[data-preisregler]").forEach(preisAnzeigen);
+    document.addEventListener("DOMContentLoaded", preisAlle);
+    document.addEventListener("htmx:afterSettle", preisAlle);
+    document.addEventListener("input", (e) => {
+      const r = e.target.closest?.("[data-preisregler]");
+      if (!r || e.target.type !== "range") return;
+      e.stopPropagation();
+      const min = r.querySelector('[data-grenze="min"]'), max = r.querySelector('[data-grenze="max"]');
+      if (Number(min.value) > Number(max.value)) {
+        if (e.target === min) max.value = min.value; else min.value = max.value;
+      }
+      preisAnzeigen(r);
+    }, true);
+    const preisSetzen = (r, von, bis) => {
+      for (const [name, wert] of [["preis_min", von], ["preis_max", bis]]) {
+        const feld = r.querySelector(`input[name="${name}"]`);
+        feld.value = wert;
+        feld.disabled = wert === "";
+      }
+      r.closest("form").requestSubmit();
+    };
+    document.addEventListener("change", (e) => {
+      const r = e.target.closest?.("[data-preisregler]");
+      if (!r || e.target.type !== "range") return;
+      e.stopPropagation();
+      const grenze = Number(r.dataset.max);
+      const min = Number(r.querySelector('[data-grenze="min"]').value), max = Number(r.querySelector('[data-grenze="max"]').value);
+      preisSetzen(r, min > 0 ? String(min) : "", max < grenze ? String(max) : "");
+    }, true);
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-preis-weg]");
+      if (knopf) preisSetzen(knopf.closest("[data-preisregler]"), "", "");
+    });
+    // Kleine Tabellen im Browser sortieren (table[data-sortierbar], Kopf th[data-sort="zahl|text"], Wert td[data-wert]):
+    // erster Klick bei Zahlen absteigend, bei Text aufsteigend, weiterer Klick kehrt um; leere Werte immer ans Ende.
+    document.addEventListener("click", (e) => {
+      const th = e.target.closest?.("table[data-sortierbar] th[data-sort]");
+      if (!th || e.target.closest("a")) return;
+      const tabelle = th.closest("table"), tbody = tabelle.tBodies[0], index = th.cellIndex;
+      const zahl = th.dataset.sort === "zahl";
+      const richtung = th.getAttribute("aria-sort") === (zahl ? "descending" : "ascending")
+        ? (zahl ? "ascending" : "descending") : (zahl ? "descending" : "ascending");
+      const wert = (tr) => tr.cells[index]?.dataset.wert ?? tr.cells[index]?.textContent.trim() ?? "";
+      const faktor = richtung === "ascending" ? 1 : -1;
+      [...tbody.rows].sort((a, b) => {
+        const x = wert(a), y = wert(b);
+        if (x === "" || y === "") return (x === "") - (y === "");
+        return faktor * (zahl ? Number(x) - Number(y) : x.localeCompare(y, "de"));
+      }).forEach((tr) => tbody.append(tr));
+      for (const k of tabelle.querySelectorAll("th[data-sort]")) {
+        k.removeAttribute("aria-sort");
+        const pfeil = k.querySelector(".sortpfeil");
+        if (pfeil) pfeil.textContent = "↕";
+      }
+      th.setAttribute("aria-sort", richtung);
+      const pfeil = th.querySelector(".sortpfeil");
+      if (pfeil) pfeil.textContent = richtung === "ascending" ? "▲" : "▼";
+    });
+    // Versanddialog (Reports): Knopf data-dialog="<id>" öffnet den Dialog (data-nur="<id>": nur diese Person
+    // angehakt), data-dialog-zu schließt ihn, data-adresse übernimmt einen Vorschlag ins Adressfeld. Der Senden-Knopf
+    // zeigt die Zahl der Empfänger:innen und ist ohne Auswahl ausgegraut.
+    const versandZaehlen = (form) => {
+      const haken = form.querySelectorAll("ul.empfaenger input[type=checkbox]:checked:not(:disabled)").length;
+      const feld = form.querySelector("textarea[name=adressen]");
+      const frei = feld ? feld.value.split(/[\s,;]+/).filter((a) => a.includes("@")).length : 0;
+      const dialog = form.closest("dialog"), n = haken + frei, knopf = dialog.querySelector("[data-senden]");
+      dialog.querySelector("[data-anzahl]").textContent = n ? `Geht an ${n} Empfänger:in${n === 1 ? "" : "nen"}` : "";
+      knopf.textContent = n ? `An ${n} senden` : "Senden";
+      n ? freigeben(knopf) : ausgrauen(knopf, "Bitte Empfänger:innen auswählen oder Adressen eintragen");
+    };
+    document.addEventListener("click", (e) => {
+      const oeffnen = e.target.closest?.("[data-dialog]");
+      if (oeffnen) {
+        const dialog = document.getElementById(oeffnen.dataset.dialog);
+        if (!dialog) return;
+        if (oeffnen.dataset.nur) dialog.querySelectorAll("ul.empfaenger input[type=checkbox]:not(:disabled)")
+          .forEach((c) => { c.checked = c.value === oeffnen.dataset.nur; });
+        versandZaehlen(dialog.querySelector("form"));
+        dialog.showModal();
+        return;
+      }
+      if (e.target.closest?.("[data-dialog-zu]")) { e.target.closest("dialog")?.close(); return; }
+      const vorschlag = e.target.closest?.("[data-adresse]");
+      if (vorschlag) {
+        const feld = vorschlag.form.querySelector("textarea[name=adressen]");
+        if (!feld.value.split(/[\s,;]+/).includes(vorschlag.dataset.adresse))
+          feld.value = (feld.value.trim() ? feld.value.trim().replace(/,?$/, ", ") : "") + vorschlag.dataset.adresse;
+        versandZaehlen(vorschlag.form);
+      }
+    });
+    document.addEventListener("input", (e) => { if (e.target.form?.matches("[data-versand]")) versandZaehlen(e.target.form); });
+    document.addEventListener("change", (e) => { if (e.target.form?.matches("[data-versand]")) versandZaehlen(e.target.form); });
+    // Klick auf den abgedunkelten Hintergrund schließt den Dialog
+    document.addEventListener("click", (e) => { if (e.target.matches?.("dialog.versand-dialog")) e.target.close(); });
+    // Aufklappbare Tabellenzeile (z. B. Vorschau „Pro CPO“): Knopf öffnet die nächste Zeile
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-aufklappen]");
+      if (!knopf) return;
+      const zeile = knopf.closest("tr")?.nextElementSibling;
+      if (!zeile) return;
+      zeile.hidden = !zeile.hidden;
+      knopf.setAttribute("aria-expanded", String(!zeile.hidden));
+      knopf.textContent = zeile.hidden ? "▸" : "▾";
+    });
+    // Lade-Animation (E-Auto an der Ladesäule): erscheint erst, wenn eine htmx-Anfrage länger als 300 ms dauert
+    // (z. B. Dashboard über einen großen Zeitraum), damit schnelle Seitenwechsel nicht flackern.
+    let ladeAnfragen = 0, ladeTimer = null;
+    const ladenEnde = () => {
+      ladeAnfragen = Math.max(0, ladeAnfragen - 1);
+      if (ladeAnfragen) return;
+      clearTimeout(ladeTimer);
+      document.documentElement.classList.remove("laedt");
+    };
+    document.addEventListener("htmx:beforeRequest", () => {
+      if (ladeAnfragen++) return;
+      ladeTimer = setTimeout(() => document.documentElement.classList.add("laedt"), 300);
+    });
+    for (const ereignis of ["htmx:afterRequest", "htmx:sendError", "htmx:timeout"]) document.addEventListener(ereignis, ladenEnde);
+    // Zurück-Navigation aus dem Browser-Cache: keine hängende Animation
+    window.addEventListener("pageshow", () => { ladeAnfragen = 0; clearTimeout(ladeTimer); document.documentElement.classList.remove("laedt"); });
+    // Hinweise mit data-ausblenden="<Sekunden>" blenden sich aus (Maus darüber hält sie an); Warnungen/Fehler bleiben
+    const ausblenden = () => document.querySelectorAll("[data-ausblenden]:not([data-ausblenden-laeuft])").forEach((el) => {
+      el.dataset.ausblendenLaeuft = "1";
+      let rest = Number(el.dataset.ausblenden) * 1000, start = Date.now(), timer;
+      const los = () => { start = Date.now(); timer = setTimeout(() => {
+        el.classList.add("blendet-aus");
+        setTimeout(() => el.remove(), 600);
+      }, rest); };
+      el.addEventListener("mouseenter", () => { clearTimeout(timer); rest = Math.max(1500, rest - (Date.now() - start)); });
+      el.addEventListener("mouseleave", los);
+      los();
+    });
+    document.addEventListener("DOMContentLoaded", ausblenden);
+    document.addEventListener("htmx:afterSettle", ausblenden);
+    // Blättern in Detailseiten: hx-boost tauscht den Inhalt ohne sichtbares Neuladen – darum blendet der neue Inhalt
+    // kurz ein und die Überschrift leuchtet kurz auf (CSS: main.blaettern-vor/-zurueck)
+    let blaetterRichtung = null;
+    // Capture-Phase: vor htmx (das bei geboosteten Links selbst preventDefault ruft), aber nach der Abfrage
+    // „ungespeicherte Änderungen“ (früher registriert; bricht sie ab, kommt der Klick hier nicht mehr an)
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest?.("a[data-blaettern]");
+      blaetterRichtung = a && !e.defaultPrevented ? a.dataset.blaettern : null;
+    }, true);
+    document.addEventListener("htmx:afterSettle", () => {
+      if (!blaetterRichtung) return;
+      document.querySelector("main")?.classList.add("blaettern-" + blaetterRichtung);
+      document.querySelector("main h1")?.classList.add("titel-blitz");
+      blaetterRichtung = null;
+    });
+    // PDF-Reports und ZIP: das Erzeugen dauert, der Download meldet aber kein Ende. Darum eine Kennung an die Adresse
+    // hängen; der Server setzt mit der Datei das Cookie „ladefalke_download“ = Kennung (main.py) – dann ausblenden.
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest?.('a[href^="/reports/"]');
+      if (!a || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      const url = new URL(a.href, location.href);
+      if (!/\.(pdf|zip)$/.test(url.pathname)) return;
+      e.preventDefault();
+      const kennung = Math.random().toString(36).slice(2, 10);
+      url.searchParams.set("download_kennung", kennung);
+      const html = document.documentElement, beginn = Date.now();
+      const timer = setTimeout(() => html.classList.add("laedt"), 300);
+      const fertig = () => { clearTimeout(timer); clearInterval(pruefen); html.classList.remove("laedt");
+        document.cookie = "ladefalke_download=; Max-Age=0; Path=/"; };
+      const pruefen = setInterval(() => {
+        if (document.cookie.split("; ").includes(`ladefalke_download=${kennung}`) || Date.now() - beginn > 120000) fertig();
+      }, 250);
+      window.location.href = url.toString();
+    });
+  </script>
+</head>
+{%- set ich = request.state.benutzer | default(none) if request else none %}
+{%- set links = true if ich else false %}{# Seitenleiste links für alle Angemeldeten; schmale Fenster: oben mit „☰ Menü“ #}
+{%- set body_klassen = (["nur-lesen"] if ich and ich.rolle == "viewer" else ["als-admin"] if ich and ich.rolle == "admin" else []) + (["menue-links"] if links else []) %}
+<body hx-boost="true"{% if body_klassen %} class="{{ body_klassen | join(' ') }}"{% endif %}>
+  <script>
+    // Schmale Fenster: Menüpunkte hinter „☰ Menü“ (html.menue-kompakt) – oben ab 1100 px, Seitenleiste ab 1024 px.
+    // Hier am Anfang des body, damit die Leiste nicht erst breit gezeichnet wird.
+    (() => {
+      const setzen = () => document.documentElement.classList.toggle("menue-kompakt",
+        window.innerWidth < (document.body.classList.contains("menue-links") ? 1024 : 1100));
+      setzen();
+      if (!window.menueKompaktBeobachtet) { window.menueKompaktBeobachtet = true; window.addEventListener("resize", setzen); }
+    })();
+  </script>
+  {# Logo-Zeichnung „Ladefalke“ einmal je Seite; _makros.falke und die Lade-Animation verweisen darauf #}
+  <svg hidden aria-hidden="true"><symbol id="falke-zeichen" viewBox="0 0 1399 905"><path fill="currentColor" stroke="none"
+    fill-rule="evenodd" d="M818.1 899.2C814.3 897.1 814.7 897.8 797.5 865C776.7 825.3 725.6 730.6 712 706.5C705.1 694.2 703.8 689.2 706.4 683.9C708.4 679.7 707 680.6 738.5 663.7C752.8 656.1 764.9 649.5 765.3 649.1C766.4 648 762.6 643.5 758.5 641C755.8 639.3 752.3 638.6 743.9 637.9C723.4 636.1 706.6 630.3 685 617.5C661.1 603.4 658.3 601.9 651.5 599.7C645.5 597.8 642.4 597.5 629.5 597.6L614.5 597.7L591 603.8C555.5 613 537.7 615.9 507 617.6C492.7 618.3 492.8 618.3 485.5 628.5C466.1 655.5 458.9 694.8 463.4 749.2C466.1 782.2 466 783 456.3 792.2C440.9 806.8 412.9 819.1 410.3 812.3C409.7 810.7 414.2 792.2 427 743.5C429.8 733 433.4 717.3 435.1 708.5C442.7 668.5 444.3 661.1 447.6 651.1C449.5 645.3 453.3 636.4 456 631.3L461 622L458.2 622.6C439.1 626.8 419.6 633.7 392.9 645.6C382.2 650.3 373.2 654.4 372.8 654.7C372.3 654.9 372 654.6 372 654C372 650.4 394 630.9 409.5 620.8C434.8 604.2 455.2 597.9 496 594C533.5 590.4 550.9 586.8 583.4 575.9C604 569 618.7 565.1 624.2 565C628 565 627.8 564.5 620.6 556.2C607.8 541.6 591.9 529.1 573.6 519.3L563.5 513.9L574.6 514.4C597.6 515.5 627.2 524 645.8 534.9C654 539.7 665.4 548 664.7 548.6C664.4 548.9 659.8 547.7 654.4 546.1C645.8 543.4 630.9 540 627.8 540C627.2 540 629.2 542.1 632.1 544.8C639 550.8 648.4 560.8 659.7 574C688.3 607.3 711.7 621.9 744 626.5C753.7 627.9 758 629.2 765.3 632.8C765.8 633 765.4 631.8 764.5 630C762.1 625.3 755.8 618.8 747 611.8C734.4 601.9 727 590.5 726.2 579.9C726 576.7 726.2 574 726.6 574C727.1 574 729 576.2 730.7 578.8C735.3 585.6 745.8 596 757 604.8C773.5 617.8 784.8 630 789 639.1C791.2 644 791.7 655.7 789.9 659.2C787.6 663.4 790.2 662 796.8 655.4C804.8 647.4 809.3 639.3 811.7 628.7C813.2 621.9 813.6 621.2 819.4 615.8C830 606.1 835 594.4 835 578.6C835 567.6 833.1 560 827.5 548.7C810.7 514.8 770.6 481.7 720 459.7C701.9 451.8 680.1 445.2 647.5 437.5C645.2 437 648.1 440.4 662.5 454.7C672.4 464.5 683.7 476.3 687.6 481C695.8 490.9 703.5 502 702.1 502C700.8 502 681.6 491.6 669 484C631.2 461.3 583.4 422.2 556 391.4C536.2 369.3 525 354 507.4 325.2C486 290.3 476.7 277.7 458.5 259.5C429.1 230 392.5 208 328.5 181.3C307.6 172.6 305.5 171.7 253 152C173.8 122.2 144.7 108.5 118.3 88.6C107 80.1 93.3 66.3 87.1 57.2C69.9 31.8 66.8 4 81.3 4C84.4 4 88.3 6.8 110.2 24.6C176 77.9 234.1 110.8 355 163C488.8 220.8 508.9 235.4 554 307.4C608 393.7 624.4 412.9 651.7 421.8C655.1 422.9 666.1 425.9 676.2 428.4C707.5 436.1 730.4 444.6 752.3 456.7L764.2 463.2L790.3 448.2C909.2 380.3 959.9 368 1079.5 378.5C1141.6 383.9 1172.3 384 1205.6 379C1259.9 370.9 1317.3 350.7 1371 320.8C1387.6 311.6 1391.3 310.1 1393.4 311.9C1398.3 316 1389.9 337.2 1377.1 353.3C1354.8 381.3 1318.3 401.3 1277.8 407.7C1268.6 409.2 1260.5 409.5 1233.5 409.5C1201.3 409.4 1193.3 409 1145.5 405C1014.2 393.9 970 398.2 894.5 429.5C879.6 435.6 807 471.1 795.3 478L790.1 481L799.9 489.9C814.7 503.4 830.6 522.2 836.4 533.1L838.3 536.7L849.9 537.3C868.1 538.2 881.8 543 901.5 555.3C920.3 567 947.6 591.4 945.1 594.4C942.6 597.4 934 598.5 914.5 598.4C892.3 598.4 882.9 596.8 862.6 589.5L850.1 585.1L848.9 590.8C846.2 604.3 837.7 618.3 828.5 624.7C823 628.6 821.5 631 824.8 631C829.2 631 826.1 626.5 885.5 719.5C894.9 734.2 924.2 780.9 944.8 813.8C950.1 822.3 951.2 824.8 951.2 828.6C951.4 837.3 949.9 838.4 910 859C894.3 867 870 879.7 856 887C828.1 901.6 824.5 902.8 818.1 899.2ZM851.3 875.3C864.6 868.4 888.3 856 904 847.9C940.1 829.2 938 830.4 938 828.2C938 825.2 828.8 651.9 823 645.7C820.3 642.8 816.8 644.4 814 649.8C810 657.4 798.3 668.2 789.6 672.5C777.4 678.6 766.3 677.7 770.7 671C772.8 667.9 775.5 662.3 776.5 659.1C777.1 657 775.1 657.8 758.9 666.3C725.8 683.5 718.5 687.7 718.2 689.7C718.1 690.7 720.9 696.9 724.5 703.5C747.3 744.7 776.1 798 802.5 848C824.2 889 823.6 888 825.6 888C826.4 888 838 882.3 851.3 875.3ZM844.6 844.8C843.8 841.9 841.3 832.5 839.1 824C831.7 795.8 827.7 781.1 827 779.9C826.5 779.2 822.3 781 814.4 785.4C799.1 793.9 798.5 793.9 799.3 785.8C800 778.6 803.6 722.3 804.8 701.6C805.9 680.5 805.3 679.7 821.1 722.9C825.4 734.7 829.2 744.5 829.4 744.7C829.7 745 835.5 742.2 842.5 738.5C850.8 734.1 855.5 732.1 856.1 732.7C857 733.6 852.2 804 849 837C848.5 842.2 848 847.3 848 848.2C848 851.8 846.1 849.9 844.6 844.8ZM308.2 838.9C301.7 837.3 301 834.8 305 827.1C314.6 807.9 384.8 700.4 392.4 693.1L396 689.6L396 695.6C396 698.8 395.1 709.1 394 718.5C392.9 727.9 390.4 749.5 388.4 766.5C382 823.3 380.9 826.1 362.5 833C347.8 838.4 319.2 841.5 308.2 838.9ZM240.5 827C218.2 821.9 195 809.8 195 803.2C195 799.3 212.2 783.3 251.5 750.5C307.4 704 342.7 677.3 345.2 679.8C345.9 680.5 341 691 329.7 713.1C320.7 730.9 305.8 761 296.6 780C278.6 817.2 275 823.3 268 826.8C262.4 829.6 252.2 829.7 240.5 827ZM153.5 779.2C139.7 774 122.8 763.1 114.3 753.7C109 748 108.1 744.7 110.6 741.3C113.4 737.6 135.9 724.6 196.5 691.8C298.4 636.6 326 622.7 326 626.8C326 630.4 252.9 706.7 216.1 741.4C191.3 764.9 178.4 776.1 173 778.7C167.8 781.2 159.5 781.4 153.5 779.2ZM84.1 714.5C77.3 711.3 65.2 699.3 61.6 692.3C58.3 685.7 58.1 679.9 61.2 677C68.8 669.9 231.5 614.3 266 607C276.6 604.8 278 604.7 278 605.8C278 608.8 202.4 658.4 148.5 690.7C104.6 717.1 96.1 720.2 84.1 714.5ZM72.2 643.6C65.7 640 57.7 625 58.2 617.4C58.6 610.6 60.7 609.5 79 606C87.5 604.4 111.4 599.9 132 596C259.5 571.8 301.9 557.9 355.5 522.5C370.6 512.5 389.3 499 388.8 498.4C388.6 498.2 384.2 498.7 379 499.5C328.7 506.8 282.8 494.7 252.6 466C244.6 458.4 243.3 456.2 244.9 453.2C246 451.1 284.1 431.5 304.2 422.6C339.3 407.2 371.7 397.5 390.5 396.8C395.2 396.6 397.5 396.9 397.5 397.6C397.5 398.3 390.6 404.4 382.3 411.4C357.1 432.2 314.2 474 318 474C318.7 474 327.8 471 338.3 467.4C379.9 453 398.8 447.7 422 443.8C432.2 442.1 475.6 442.1 488 443.8C524.3 448.9 558.8 458.4 580.1 469.1C591.1 474.5 602.7 481.8 604.9 484.3C606.1 485.9 605.9 485.9 601.9 484.4C591.4 480.7 568.5 475.9 553.5 474.3C521.2 471 490.4 476 460.5 489.7C444.3 497.1 437.9 500.9 405 523.1C373.4 544.4 331.4 561.8 269.5 579.1C203.2 597.7 180.4 605.4 132 625C79 646.5 77.9 646.8 72.2 643.6ZM793 629.1C791.5 626.3 791.8 624.2 793.6 623.2C797.4 621.1 801.3 625.2 799.6 629.5C798.8 631.7 794.3 631.4 793 629.1ZM787.1 604.7C786.5 603.1 786 601.6 786 601.2C785.9 598.3 781.9 595.7 777.2 595.4C770.2 595.1 763.2 591.4 759.5 586.1C756.8 582.2 756.5 581.1 756.5 574C756.5 566.6 756.7 565.9 759.5 563C761.1 561.3 763.5 559.7 764.7 559.4C768 558.5 767.7 557.7 760.4 544.9C750.7 528.1 751.3 529.6 754.8 531.4C767 537.7 786.9 557 792.1 567.6C797.7 578.9 797.1 592.8 790.6 603.5L788.1 607.5L787.1 604.7ZM988.3 592.6C975.5 589.4 963.4 580.7 947.8 563.4C932.7 546.8 916 524.8 916 521.7C916 514.7 963.6 530.3 996 547.7C1013.6 557.2 1050.6 578.3 1052.2 579.8C1053.2 580.6 1054 581.9 1054 582.7C1054 584.5 1045.3 588.5 1035.4 591.1C1025.3 593.8 996.6 594.7 988.3 592.6ZM779 574C781.1 570 778.1 566.2 773.9 567.5C771.5 568.3 770.4 572.5 772 574.5C773.8 576.7 777.7 576.4 779 574ZM1080.3 567.5C1067.1 563.9 1043.4 548.9 1019 528.6C1007.6 519.1 984 496 984 494.4C984 489.6 1018 498.1 1055 512C1063.5 515.2 1080.2 521.6 1092 526.3C1103.8 530.9 1121.4 537.3 1131 540.5C1151.4 547.2 1153.5 548.2 1152 551C1149.6 555.4 1131 563.5 1115 567.1C1104.8 569.3 1087.9 569.5 1080.3 567.5ZM1162 527.9C1131.7 519.7 1074 490 1048.2 469.3C1042.9 464.9 1042.9 464 1048.6 464C1056.4 464 1066.1 465.8 1114.5 476.5C1174.8 489.8 1194.5 493.3 1228.1 496.5C1244.9 498 1247 498.5 1247 500.5C1247 502.6 1237.6 510.5 1229.2 515.3C1206.5 528.5 1181.6 533.1 1162 527.9ZM1229.5 475.3C1193.6 470.9 1150 460.3 1115.3 447.6C1101.4 442.5 1087 436.1 1087 435C1087 433.4 1101 433.1 1151.5 433.7C1237.4 434.6 1265.6 432 1324.4 417.8C1343.9 413.1 1345.4 412.8 1346.6 414.4C1348.3 416.8 1346.9 420.7 1341.1 429.5C1326.7 451.4 1298 469.7 1270.3 474.5C1262.5 475.9 1238 476.4 1229.5 475.3ZM214.5 434.7C199 430.7 177.4 411.8 180.9 405.2C182.2 402.7 281.5 368.3 315.3 358.6C334.3 353.1 349.3 350 356.2 350L361.5 350.1L358.5 352.8C347.2 363.1 283.2 406.7 259.1 420.5C235.6 434 225.1 437.4 214.5 434.7ZM161.2 380.5C148 376.8 135.5 366.8 125.7 352C123.7 349.1 123.5 343.7 125.3 342.1C126.1 341.5 135.2 339.9 145.6 338.5C167.3 335.6 216.3 327.3 255.5 320C304.3 310.8 334.1 307.4 330 311.4C325.3 315.9 272.9 343.2 242.9 356.8C198.1 377.1 174.1 384.1 161.2 380.5ZM116.1 318C101.4 316.4 85.6 305.3 74.6 288.7C66.5 276.4 64.1 267.3 68.6 265.6C69.5 265.3 75.7 265.6 82.4 266.5C124 271.6 171.3 273.6 212.5 272C260.7 270.2 299.6 269.6 300.3 270.8C301.3 272.3 287 278 258.5 287.5C212.1 303 161.4 315.5 137 317.5C132.9 317.8 128.2 318.2 126.5 318.4C124.8 318.6 120.2 318.4 116.1 318ZM114.1 245.9C95.7 244.8 78.1 241.8 69.6 238.4C50.7 230.9 34.9 215 24.7 193.2C18.5 179.8 18.5 168 24.8 168C25.6 168 37.6 171.8 51.4 176.4C112.7 197 173.8 212.4 242 224.4C273 229.9 278 230.9 278 232C278 232.7 257.9 236.9 244 238.9C204.4 244.9 147 248 114.1 245.9ZM227.3 190.5C182.8 186 122.2 173.9 86.6 162.4C60.1 153.7 45.2 145.2 31.5 130.9C11.3 109.7 -1.2 77.2 6.4 65.6C9.6 60.7 12.9 61.8 32.6 74.7C104.2 121.3 160.1 149.6 239 179.2C255.2 185.3 268.9 190.6 269.5 191.1C270.9 192.4 242.6 192 227.3 190.5Z"/></symbol></svg>
+  {% set pfad = request.url.path %}
+  {% set offene_punkte = request.state.offen %}
+  {% if ich %}
+  <header class="container">
+    <nav>
+      <ul><li><a href="/" class="marke" title="Ladefalke – Der elektrische Fuhrpark im Blick">{{ m.falke() }}<span class="marke-text"><strong>Ladefalke</strong><small>resch.cloud</small></span></a></li>
+        <li class="menue-knopf-eintrag"><button type="button" class="menue-knopf outline secondary" aria-expanded="false"
+          aria-controls="hauptmenue" onclick="const h = this.closest('header'); this.setAttribute('aria-expanded', String(h.classList.toggle('menue-offen')))">☰ Menü</button></li></ul>
+      <ul id="hauptmenue">
+        <li><a href="/" {% if pfad == "/" %}aria-current="page"{% endif %}>Dashboard</a></li>
+        <li><a href="/import" class="import-ablage" title="Dateien hierher ziehen zum Importieren" {% if pfad.startswith("/import") %}aria-current="page"{% endif %}>Import
+          {%- if offene_punkte and offene_punkte.vorschauen %}<span class="punkt" role="status"
+            title="{{ offene_punkte.vorschauen }} offene Vorschau{{ 'en' if offene_punkte.vorschauen != 1 }}"><span class="unsichtbar">{{ offene_punkte.vorschauen }} offen</span></span>{% endif %}</a></li>
+        <li><a href="/ladevorgaenge" {% if pfad.startswith("/ladevorgaenge") %}aria-current="page"{% endif %}>Ladevorgänge</a></li>
+        <li><a href="/aufgaben" {% if pfad.startswith("/aufgaben") %}aria-current="page"{% endif %}>Aufgaben
+          {%- if offene_punkte and offene_punkte.zu_klaeren %}<span class="punkt" role="status"
+            title="{{ offene_punkte.beschreibung }}"><span class="unsichtbar">{{ offene_punkte.zu_klaeren }} offen</span></span>{% endif %}</a></li>
+        <li>
+          {# Seitenleiste (links, breit): per CSS aufklappbare Gruppe statt Dropdown – Skript „Seitenleiste“ unten #}
+          <details class="dropdown">
+            <summary {% if pfad.startswith("/stammdaten") %}aria-current="page"{% endif %}>Stammdaten</summary>
+            <ul>
+              {% set bs = request.state.bestand or {} %}
+              {% macro menue_anzahl(n, text) %}{% if n is not none %}<span class="menue-anzahl" title="{{ n }} {{ text }}">{{ n }}</span>{% endif %}{% endmacro %}
+              <li><a href="/stammdaten/msp">{{ m.symbol("msp") }} {{ MSP }}{{ menue_anzahl(bs.get("msp"), "MSP") }}</a></li>
+              <li><a href="/stammdaten/ladekarten">{{ m.symbol("karte") }} Ladekarten{{ menue_anzahl(bs.get("ladekarten"), "aktive Ladekarten") }}</a></li>
+              <li><a href="/stammdaten/fahrzeuge">{{ m.symbol("auto") }} Fahrzeuge{{ menue_anzahl(bs.get("fahrzeuge"), "aktive Fahrzeuge") }}</a></li>
+              <li><a href="/stammdaten/fahrer">{{ m.symbol("person") }} Fahrer:innen{{ menue_anzahl(bs.get("fahrer"), "aktive Fahrer:innen") }}</a></li>
+              <li><a href="/stammdaten/zuordnungen">{{ m.symbol("zuordnung") }} Zuordnungen</a></li>
+              <li><a href="/stammdaten/zuordnungen/zeitleiste">{{ m.symbol("zeitleiste") }} Zeitleiste</a></li>
+            </ul>
+          </details>
+        </li>
+        <li><a href="/auswertungen" {% if pfad.startswith("/auswertungen") %}aria-current="page"{% endif %}>Auswertungen</a></li>
+        <li><a href="/reports" {% if pfad.startswith("/reports") %}aria-current="page"{% endif %}>Reports</a></li>
+        <li><a href="/einstellungen" {% if pfad.startswith("/einstellungen") %}aria-current="page"{% endif %}>Einstellungen</a></li>
+        <li class="benutzer-eintrag">
+          <details class="dropdown benutzermenue">
+            <summary {% if pfad.startswith(("/konto", "/benutzer", "/protokoll")) %}aria-current="page"{% endif %}
+                     title="Angemeldet als {{ ich.benutzername }} ({{ {"admin": "Admin", "operator": "Operator", "viewer": "Viewer"}[ich.rolle] }})">{{ ich.name }}</summary>
+            <ul{% if not links %} dir="rtl"{% endif %}>
+              <li dir="ltr"><a href="/konto">Mein Konto</a></li>
+              {% if ich.rolle == "admin" %}<li dir="ltr"><a href="/benutzer">Benutzer:innen</a></li>
+              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Benutzerverwaltung nur für Admins">Benutzer:innen 🔒</span></li>{% endif %}
+              {% if ich.rolle == "admin" %}<li dir="ltr"><a href="/protokoll">Protokoll</a></li>
+              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Änderungsprotokoll nur für Admins">Protokoll 🔒</span></li>{% endif %}
+              <li dir="ltr"><form method="post" action="/logout" class="inline" data-immer>
+                <button type="submit" class="outline secondary klein">Abmelden</button></form></li>
+            </ul>
+          </details>
+        </li>
+      </ul>
+      {% if links %}{# Seitenleiste: was sonst im Footer steht, unten in der Leiste (Footer dann ausgeblendet) #}
+      <div class="seiten-fuss">
+        <span>Ladefalke – Der elektrische Fuhrpark im Blick</span>
+        <a href="https://resch.cloud" target="_blank" rel="noopener" hx-boost="false">resch.cloud ↗</a>
+        <small title="Commit-Stand und Build-Datum">Version {{ app_version() }}</small>
+      </div>{% endif %}
+    </nav>
+  </header>
+  {% endif %}
+  {% if links %}
+  <script>
+    // Seitenleiste: Stammdaten aufgeklappt, wenn man auf einer Stammdaten-Seite ist; das Benutzermenü steht immer
+    // offen und lässt sich nicht einklappen – nur in der breiten Darstellung (schmal: normale Dropdowns)
+    (() => {
+      if (!window.matchMedia("(min-width: 1024px)").matches) return;
+      document.querySelectorAll("body > header nav details.dropdown").forEach((d) => {
+        if (d.classList.contains("benutzermenue") || d.querySelector(":scope > summary[aria-current]")) d.open = true;
+      });
+    })();
+    if (!window.benutzermenueFest) {
+      window.benutzermenueFest = true;
+      document.addEventListener("click", (e) => {
+        if (e.target.closest?.("details.benutzermenue > summary") && window.matchMedia("(min-width: 1024px)").matches
+            && !document.documentElement.classList.contains("menue-kompakt")) e.preventDefault();
+      });
+    }
+  </script>
+  {% endif %}
+  <main class="container">
+    {% for m in meldungen_holen(request) %}
+      <p class="meldung meldung-{{ m.art }}" role="{{ 'alert' if m.art != 'info' else 'status' }}"
+         {%- if m.art == "info" and not m.aktion %} data-ausblenden="8"{% endif %}>{{ m.text }}
+        {%- if m.aktion %}
+        <form method="post" action="{{ m.aktion.url }}" class="inline meldung-aktion">
+          {%- for name, wert in m.aktion.felder.items() %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+          <button type="submit" class="outline klein">{{ m.aktion.text }}</button></form>{% endif %}</p>
+    {% endfor %}
+    {% block inhalt %}{% endblock %}
+  </main>
+  <footer class="fuss">
+    <div class="fuss-inhalt">
+      <span class="fuss-marke">{{ m.falke() }} Ladefalke – Der elektrische Fuhrpark im Blick</span>
+      <span class="fuss-rechts">
+        <a href="https://resch.cloud" target="_blank" rel="noopener" hx-boost="false">resch.cloud ↗</a>
+        <small class="fuss-version" title="Commit-Stand und Build-Datum">Version {{ app_version() }}</small>
+      </span>
+    </div>
+  </footer>
+  {# Lade-Animation (siehe Skript oben); eigene Zeichnung im Stil der Symbole #}
+  <div class="lade-anzeige" role="status" aria-live="polite">
+    <div class="lade-karte">
+      {{ m.lade_auto() }}
+      <span class="unsichtbar">Lädt …</span>{# nur für Screenreader #}
+    </div>
+  </div>
+</body>
+</html>

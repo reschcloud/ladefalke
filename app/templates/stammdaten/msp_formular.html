@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% import "_ladevorgaenge.html" as lv %}
+{% block titel %}{{ msp.name if msp else "Neuer MSP" }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="/stammdaten/msp" role="button" class="outline secondary klein nav-knopf">← Alle MSP</a>{{ m.blaettern(blaettern) }}</p>
+<h1>{{ msp.name if msp else "Neuer MSP" }}</h1>
+{% if parser_fehlt %}
+<p class="meldung meldung-warnung" role="alert">⚠ Der Parser <code>{{ msp.parser_key }}</code> ist nicht installiert
+  (sein Modul liegt nicht in der App bzw. wurde beim Start nicht geladen): Dateien dieses Formats werden nicht erkannt. Importierte Daten bleiben vollständig erhalten.
+  {% if msp.parser_aktiv %}Zum Aufräumen den Parser unten deaktivieren und speichern; danach lässt sich die Verknüpfung entfernen.{% endif %}</p>
+{% endif %}
+<form method="post" class="formular" data-nur-admin action="{{ '/stammdaten/msp/%d' % msp.id if msp else '/stammdaten/msp/neu' }}">
+  {{ m.feld("name", "Name", werte, fehler, pflicht=true) }}
+  <label>Parser
+    <select name="parser_key" aria-describedby="parser-hinweis"{% if fehler.get("parser_key") %} aria-invalid="true"{% endif %}>
+      {% for wert, text in parser_wahl %}<option value="{{ wert }}" {% if (werte.get("parser_key") or "") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+    {% if fehler.get("parser_key") %}<small class="fehler">{{ fehler.parser_key }}</small>{% endif %}
+    <small id="parser-hinweis">Format, mit dem Rechnungen dieses {{ MSP }} eingelesen werden. Neu installierte Parser
+      bekommen beim Start automatisch einen eigenen {{ MSP }}.</small>
+  </label>
+  {{ m.haken("parser_aktiv", "Parser aktiv", werte) }}
+  <small class="haken-hinweis">Deaktiviert: Die App tut, als gäbe es den Parser nicht – keine Erkennung beim Import,
+    keine Auswahl, nicht in der Liste der Formate. Bereits importierte Daten bleiben unverändert.</small>
+  {{ m.haken("abrechnung_je_karte", "Abrechnung je Ladekarte", werte) }}
+  <small class="haken-hinweis">Monatliche Rechnung je Ladekarte: Die Vollständigkeitsprüfung erwartet dann je aktiver
+    Karte einen Eintrag pro Monat statt einen je {{ MSP }}.</small>
+  {{ m.auswahl("standard_ladeart", "Standard-Ladeart", ladearten, werte, fehler, pflicht=true) }}
+  <label>Standard AC/DC
+    <select name="stromart_standard" aria-describedby="stromart-hinweis">
+      {% for wert, text in [("", "keine Angabe"), ("AC", "AC"), ("DC", "DC")] %}
+        <option value="{{ wert }}" {% if (werte.get("stromart_standard") or "") == wert %}selected{% endif %}>{{ text }}</option>
+      {% endfor %}
+    </select>
+    <small id="stromart-hinweis">Für Ladevorgänge, deren Rechnung keine Stromart angibt: beim Import vorbelegt,
+      nachträglich unter „Aufgaben“ anwendbar.</small>
+  </label>
+  {# Knöpfe gehören zu eigenen Formularen unter diesem (form-Attribut) – Formulare lassen sich nicht schachteln #}
+  {% if msp and ohne_stromart %}
+  <div class="aktionszeile vorgabe"><span>{{ ohne_stromart }} Ladevorgänge dieses {{ MSP }} haben keine AC/DC-Angabe.</span>
+    <a href="/aufgaben?stromart_msp={{ msp.id }}#stromart" role="button" class="outline klein nav-knopf">In den Aufgaben setzen →</a>
+  </div>
+  {% endif %}
+  <label>Standard {{ CPO }}
+    <input type="text" name="cpo_standard" value="{{ werte.get('cpo_standard') or '' }}" maxlength="60"
+           placeholder="z. B. AT*XYZ oder Eigene Ladestationen" aria-describedby="cpo-hinweis">
+    <small id="cpo-hinweis">Für Ladevorgänge, deren Datei keinen {{ CPO }} liefert (keine EVSE-ID, z. B. Exporte eigener Wallboxen):
+      öffentliche Kennung („AT*XYZ“) oder ein Name, wenn der Betreiber keine hat (z. B. das eigene Unternehmen).
+      Gilt bei neuen Importen; nachträglich hier anwendbar. Ein {{ CPO }} aus der Rechnung hat immer Vorrang.</small>
+  </label>
+  {% if msp and msp.cpo_standard and cpo_abweichend %}
+  <div class="aktionszeile vorgabe"><span>{{ cpo_abweichend }} Ladevorgänge dieses {{ MSP }} ohne {{ CPO }} aus der
+    Rechnung haben noch nicht die Vorgabe.</span>
+    <button type="submit" form="cpo-anwenden" class="outline klein"
+            data-bestaetigen="{{ CPO | striptags }} von {{ cpo_abweichend }} Ladevorgängen auf „{{ msp.cpo_standard }}“ setzen?">Vorgabe „{{ msp.cpo_standard }}“ anwenden</button>
+  </div>
+  {% elif msp and ohne_cpo %}
+  <div class="aktionszeile vorgabe"><span>{{ ohne_cpo }} Ladevorgänge dieses {{ MSP }} haben keinen {{ CPO }}.</span>
+    <small>(zuerst einen Standard-{{ CPO }} eintragen und speichern)</small></div>
+  {% endif %}
+  <button type="submit">Speichern</button>
+</form>
+{% if msp %}
+<form method="post" action="/stammdaten/msp/{{ msp.id }}/cpo-anwenden" id="cpo-anwenden" hidden></form>
+{% endif %}
+{% if msp %}
+<div class="aktionszeile" data-nur-admin>
+  {% if msp.parser_key %}
+  {# immer sichtbar; ausgegraut mit Grund, solange das Entfernen nicht möglich ist #}
+  {% set grund = ("Der Parser ist installiert – entfernen lässt sich nur die Verknüpfung zu einem fehlenden Parser.\n"
+       ~ "„Installiert“ heißt: Das Parser-Modul liegt in der App (app/parsers/) und wurde beim Start geladen. "
+       ~ "Fehlend ist ein Parser erst, wenn sein Modul gelöscht (oder bei einem Update entfernt) und die App neu "
+       ~ "gestartet wurde – deaktivieren allein reicht dafür nicht.")
+       if not parser_fehlt else "Zuerst den Parser deaktivieren und speichern" if msp.parser_aktiv else none %}
+  <form method="post" action="/stammdaten/msp/{{ msp.id }}/parser-entfernen" class="inline"
+        hx-confirm="Verknüpfung zum Parser „{{ msp.parser_key }}“ entfernen? Der {{ MSP | striptags }} und alle Daten bleiben.">
+    <button type="submit" class="outline secondary klein{{ ' ausgegraut' if grund }}"
+            {% if grund %}aria-disabled="true" title="{{ grund }}"{% else %}title="Verknüpfung zum fehlenden Parser entfernen – der MSP und seine Daten bleiben"{% endif %}>Parser-Verknüpfung entfernen</button>
+  </form>
+  {% endif %}
+  {% if hat_daten %}<small>Löschen ist nicht möglich, weil Ladekarten oder Importe zu diesem {{ MSP }} gehören.</small>
+  {% else %}{{ m.loeschen_knopf("/stammdaten/msp/%d/loeschen" % msp.id, "MSP „%s“ endgültig löschen?" % msp.name) }}{% endif %}
+</div>
+  {{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?msp_id=%d" % msp.id, mit_karte=true, mit_fahrzeug=true, art=request.state.stichtag) }}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+%%%%% Kopfzeile mit Steuerzeichen
+Wien Energie GmbH | 1030 Wien | Postfach 500
+Test GmbH
+z.H. Herr Max Muster www.wienenergie.at/kontakt
+Musterweg 1
+1010 Wien
+Kundennummer:1000000000
+Servicerechnung für E-Mobilität Nr.7100000001 vom05.10.2026
+wir danken für Ihr Vertrauen und verrechnen folgende Serviceleistungen EUR
+VertragWien Energie:AT-VIE-C00000001-A
+Wien Energie-Ladestationen 20,67
+Ladestationen anderer Betreiber (Roaming) 23,29
+Gebühren und Entgelte 9,90
+VertragWien Energie:AT-VIE-C00000002-B
+Gebühren und Entgelte 9,90
+VertragWien Energie:AT-VIE-C00000003-C
+Wien Energie-Ladestationen 12,10
+Gebühren und Entgelte 9,90
+Wien Energie GmbH | Thomas-Klestil-Platz 14 | 1030 Wien | Postfach 500 | www.wienenergie.at
+Rechnungsbetrag (inkl. USt.) 85,76
+Rechnungsbetrag entspricht Nettobetrag71,47 EUR +20% USt14,29 EUR.
+Zahlungshinweis
+Von Ihrem Konto buchen wir den zu zahlenden Betrag am 21.10.2026 ab.
+%%SSXX__test
+Vertrag Wien Energie AT-VIE-C00000001-A
+Wien Energie-Ladestationen
+Ladebeginn Ladeende Leistung Verrechnungsbasis Verrechnungspreis EUR Brutto EUR
+1010 Wien, Teststraße 1,AT*VIE*E0000001*1,PLUS,City,AC11 - Ladekarte: 100001
+15.09.2026 18:26 15.09.2026 21:59 Standzeit in Std. 3,550 3,42 12,14
+15.09.2026 22:00 15.09.2026 23:59 Standzeit in Std. 2,000 0,96 1,92
+16.09.2026 00:00 16.09.2026 06:53 Standzeit in Std. 6,883 0,96 6,61
+Wien Energie-Ladestationen 20,67
+Ladestationen anderer Betreiber (Roaming)
+Ladebeginn Ladeende Leistung Verrechnungsbasis Verrechnungspreis EUR Brutto EUR
+2000 Teststadt, Autobahn A1 KM 1,AT*TST*E0002*1,PLUS,Roaming Partner,DC150 - Ladekarte:
+100001
+07.09.2026 13:15 07.09.2026 13:38 Standzeit in Std. 0,367 34,08 12,50
+Ladebeginn Ladeende Leistung Verrechnungsbasis Verrechnungspreis EUR Brutto EUR
+2000 Teststadt, Autobahn A1 KM 1,AT*TST*E0002*2,PLUS,Roaming Partner,DC50 - Ladekarte: 100001
+21.09.2026 12:18 21.09.2026 12:38 Standzeit in Std. 0,317 34,08 10,79
+Ladestationen anderer Betreiber (Roaming) 23,29
+Gebühren und Entgelte
+Produkt Menge Verrechnungspreis EUR Brutto EUR
+Monatliche Grundgebühr für Tarif-Paket PLUS 1.9.2026 - 30.9.2026 9,90 9,90
+Gebühren und Entgelte 9,90
+Vertrag Wien Energie AT-VIE-C00000002-B
+Gebühren und Entgelte
+Produkt Menge Verrechnungspreis EUR Brutto EUR
+Monatliche Grundgebühr für Tarif-Paket PLUS 1.9.2026 - 30.9.2026 9,90 9,90
+Gebühren und Entgelte 9,90
+Vertrag Wien Energie AT-VIE-C00000003-C
+Wien Energie-Ladestationen
+Ladebeginn Ladeende Leistung Verrechnungsbasis Verrechnungspreis EUR Brutto EUR
+1020 Wien, Probegasse 2,AT*VIE*E0000003*1,PLUS,Fast,DC50 - Ladekarte: 100003
+05.09.2026 10:00 05.09.2026 10:30 kWh 20,500 0,59 12,10
+Wien Energie-Ladestationen 12,10
+Gebühren und Entgelte
+Produkt Menge Verrechnungspreis EUR Brutto EUR
+Monatliche Grundgebühr für Tarif-Paket PLUS 1.9.2026 - 30.9.2026 9,90 9,90
+Gebühren und Entgelte 9,90

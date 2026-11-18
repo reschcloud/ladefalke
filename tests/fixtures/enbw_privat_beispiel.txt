@@ -1,0 +1,27 @@
+EnBW
+Energie Baden-Württemberg AG
+Ihre EnBW mobility+ Rechnung 10. März 2026
+für Österreich im Februar 2026
+Guten Tag Testperson,
+vielen Dank für Ihr Vertrauen in EnBW mobility+. Nachfolgend finden Sie Ihre Rechnungs-Nr.
+180 000 000 002
+Rechnung und eine detaillierte Übersicht der Einzelladevorgänge.
+Nettobetrag Umsatzsteuer Bruttobetrag
+Ladeenergie 11,44 € 2,29 € (20%) 13,73 €
+Summe 1 11,44 € 2,29 € 13,73 €
+Rechnungsendbetrag 13,73 €
+Ihre Einzelladevorgänge im Detail
+Nr Datum Adresse Ladeart Kostenart Menge Einheit Nettobetrag Bruttobetrag
+1 11.02.2026 Teststraße 180 DC Energie 0,00 kWh 0,00 € 0,00 €
+3999 Testort Gesamt 0,00 € 0,00 €
+Start: 11.02.2026 17:42:11 Ladepunkt-ID: AT*TST*E0001*1DC
+Ende: 11.02.2026 17:44:37 Transaktions-ID: TST-PRIV-0001
+Dauer: 00:02:26 Ladevorgang über: Ladekarte (P100-AAAA-BBBB-0002)
+Details: Ladekosten für 0,000 kWh zu 56 ct/kWh = 0 ct
+Nr Datum Adresse Ladeart Kostenart Menge Einheit Nettobetrag Bruttobetrag
+2 11.02.2026 Teststraße 180 DC Energie 24,53 kWh 11,44 € 13,73 €
+3999 Testort Gesamt 11,44 € 13,73 €
+Start: 11.02.2026 18:03:02 Ladepunkt-ID: AT*TST*E0001*2DC
+Ende: 11.02.2026 18:23:12 Transaktions-ID: TST-PRIV-0002
+Dauer: 00:20:10 Ladevorgang über: Ladekarte (P100-AAAA-BBBB-0002)
+Details: Ladekosten für 24,532 kWh zu 56 ct/kWh = 1373 ct

@@ -1,0 +1,12 @@
+.git
+# nur der aktuelle Commit-Stand und die Tags für die Versionsanzeige (app/version.py), ohne Historie
+!.git/HEAD
+!.git/refs
+!.git/packed-refs
+.env
+samples/
+data/
+**/__pycache__
+.pytest_cache
+# Lokale Einstellungen von Claude Code (enthalten lokale Pfade), Werkzeug-Caches
+.claude/

@@ -1,0 +1,10 @@
+# Entwicklung: ergänzt compose.yaml – Image mit Testwerkzeugen (pytest, httpx) und Beispieldateien für die
+# Parser-Tests. Einschalten in .env:  COMPOSE_FILE=compose.yaml:compose.dev.yaml
+services:
+  app:
+    build:
+      args:
+        DEV: "1"
+    volumes:
+      # Beispieldateien für Parser-Tests (nicht im Git, echte Personendaten)
+      - ./samples:/app/samples:ro,Z

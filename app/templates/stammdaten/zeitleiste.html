@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block titel %}Zeitleiste Zuordnungen{% endblock %}
+{% block inhalt %}
+{% set nach_fahrzeug = nach == "fahrzeug" %}
+<div class="kopf">
+  <h1>Zeitleiste {{ "Fahrzeuge · Fahrer:innen" if nach_fahrzeug else "Fahrer:innen · Fahrzeuge" }}</h1>
+  <a href="/stammdaten/zuordnungen" role="button" class="outline secondary klein nav-knopf">Als Tabelle anzeigen</a>
+</div>
+
+<nav class="zeitraumwahl" aria-label="Zeitraum und Ansicht">
+  {% if rollierend %}
+    <strong class="zeitraum-label">{{ zl.von | datum }} – {{ zl.bis | datum }}</strong>
+  {% else %}
+    <a href="{{ url(jahr=jahr - 1) }}" role="button" class="outline klein" aria-label="Vorjahr">◀</a>
+    <strong class="zeitraum-label">{{ jahr }}</strong>
+    <a href="{{ url(jahr=jahr + 1) }}" role="button" class="outline klein" aria-label="Folgejahr">▶</a>
+  {% endif %}
+  <span class="arten umschalter">
+    <a href="{{ url(ansicht=none) }}" {% if not rollierend %}aria-current="true"{% endif %}>Kalenderjahr</a>
+    {% for wert, text in [("12monate", "Letzte 12 Monate"), ("5jahre", "Letzte 5 Jahre"), ("alles", "Alles")] %}
+    <a href="{{ url(ansicht=wert, jahr=none) }}" {% if ansicht == wert %}aria-current="true"{% endif %}>{{ text }}</a>
+    {% endfor %}
+  </span>
+  <span class="arten umschalter" aria-label="Zeilen">
+    <a href="{{ url(nach='fahrzeug') }}" {% if nach_fahrzeug %}aria-current="true"{% endif %} title="Eine Zeile je Fahrzeug">Fahrzeuge</a>
+    <a href="{{ url(nach='fahrer') }}" {% if not nach_fahrzeug %}aria-current="true"{% endif %} title="Eine Zeile je Fahrer:in">Fahrer:innen</a>
+  </span>
+  <span class="arten umschalter">
+    {%- for wert, text in [("aktiv", "Aktive"), ("inaktiv", "Inaktive"), ("alle", "Alle")] %}
+    <a href="{{ url(status=wert) }}" {% if status == wert %}aria-current="true"{% endif %}>{{ text }}</a>
+    {%- endfor %}
+  </span>
+</nav>
+
+{% set balken_was = "Person" if nach_fahrzeug else "Fahrzeug" %}
+<p class="zeitleiste-legende">
+  <span class="legende-balken"></span> Zuordnung ({{ "Name" if nach_fahrzeug else "Kennzeichen · Modell" }} im Balken; Maus darüber hebt
+  {{ "die Person" if nach_fahrzeug else "das Fahrzeug" }} überall hervor, Klick zum Bearbeiten)
+  {% if nach_fahrzeug %}<span class="legende-luecke"></span> ⚠ Lücke ohne Fahrer:in{% endif %}
+  <span class="legende-heute"></span> heute
+  {% if nach_fahrzeug %}<span class="legende-leasing"></span> Leasingbeginn/-ende
+  <span class="legende-ausserhalb"></span> außerhalb des Leasings{% endif %}
+  {% if zl.mit_luecken %} · <strong>{{ zl.mit_luecken }} Fahrzeug{{ "e" if zl.mit_luecken != 1 }} mit Lücken</strong>{% endif %}
+</p>
+
+{# Hover/Fokus auf einem Balken hebt alle Balken desselben Objekts hervor (reines CSS über :has) #}
+<style>
+  .zeitleiste:has(.zl-balken:is(:hover, :focus-visible)) .zl-balken { background: var(--zl-grau); color: var(--zl-grau-text); font-weight: normal; }
+  {% for id in zl.balken_ids %}
+  .zeitleiste:has(.zl-balken[data-id="{{ id }}"]:is(:hover, :focus-visible)) .zl-balken[data-id="{{ id }}"] { background: var(--zl-hervor); color: var(--zl-hervor-text); font-weight: 600; }
+  {% endfor %}
+</style>
+<div class="zeitleiste-rahmen">
+<div class="zeitleiste" role="table" aria-label="Zuordnungen über die Zeit">
+  <div class="zl-zeile zl-kopf" role="row">
+    <div class="zl-fahrzeug" role="columnheader">{{ "Fahrzeug" if nach_fahrzeug else "Fahrer:in" }}</div>
+    <div class="zl-achse" role="columnheader">
+      {% for text, links, breite in zl.monate %}
+        <span class="zl-monat" style="left: {{ links }}%; width: {{ breite }}%">{{ text }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% for zeile in zl.zeilen %}
+  <div class="zl-zeile" role="row" style="--spuren: {{ zeile.spuren }}">
+    <div class="zl-fahrzeug" role="rowheader">
+      <a href="{{ zeile.link }}">{{ zeile.name }}</a>
+      {% if zeile.zusatz %}<small>{{ zeile.zusatz }}</small>{% endif %}
+    </div>
+    <div class="zl-achse" role="cell">
+      {% for text, links, breite in zl.monate %}<span class="zl-gitter" style="left: {{ links }}%"></span>{% endfor %}
+      {% for links, breite in zeile.ausserhalb %}<span class="zl-ausserhalb" style="left: {{ links }}%; width: {{ breite }}%"
+        title="außerhalb des Leasings"></span>{% endfor %}
+      {% if zeile.leasing_beginn is not none %}<span class="zl-leasing beginn" style="left: {{ zeile.leasing_beginn }}%"
+        title="Leasingbeginn {{ zeile.objekt.leasing_beginn | datum }}"></span>{% endif %}
+      {% if zeile.leasing_ende is not none %}<span class="zl-leasing ende" style="left: {{ zeile.leasing_ende }}%"
+        title="Leasing-Ende {{ zeile.objekt.leasing_ende | datum }}"></span>{% endif %}
+      {% if zl.heute is not none %}<span class="zl-heute" style="left: {{ zl.heute }}%"></span>{% endif %}
+      {% if zeile.nie_zugeordnet %}
+        <a class="zl-luecke" href="{{ zeile.link }}" style="left: 0; width: 100%"
+           title="Noch nie {{ 'einer Fahrer:in' if nach_fahrzeug else 'einem Fahrzeug' }} zugeordnet"><span>⚠ noch nie zugeordnet</span></a>
+      {% endif %}
+      {% for l in zeile.luecken %}
+        <a class="zl-luecke" href="{{ zeile.link }}?ab={{ l.von.isoformat() }}{% if l.bis %}&bis={{ l.bis.isoformat() }}{% endif %}#{{ 'neue-fahrer-zuordnung' if nach_fahrzeug else 'neue-fahrzeug-zuordnung' }}"
+           style="left: {{ l.links }}%; width: {{ l.breite }}%; --hoehe: {{ zeile.spuren }}" title="{{ l.text }}">
+          <span>⚠ Lücke</span></a>
+      {% endfor %}
+      {% for b in zeile.balken %}
+        <a class="zl-balken" data-id="{{ b.gegenueber.id }}"
+           href="/stammdaten/zuordnungen/fahrer/{{ b.zuordnung.id }}?zurueck={{ url() | urlencode }}"
+           style="left: {{ b.links }}%; width: {{ b.breite }}%; --spur: {{ b.spur }}" title="{{ b.text }}">
+          <span>{{ b.beschriftung }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <p>Keine Einträge.</p>
+  {% endfor %}
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}{{ "Pauschale bearbeiten" if p else "Neue Pauschale" }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="/import{{ '?pauschalen_jahr=%d' % p.monat.year if p }}#pauschalen" role="button" class="outline secondary klein nav-knopf">← Import · Pauschalen</a></p>
+<h1>{{ "Pauschale %s – %s" % (p.bezeichnung, p.monat | monat) if p else "Neue Pauschale" }}</h1>
+
+<form method="post" class="formular" action="{{ '/import/pauschalen/%d' % p.id if p else '/import/pauschalen/neu' }}">
+  <div class="grid">
+    {{ m.feld("monat", "Monat", werte, fehler, typ="month", pflicht=true) }}
+    <label>Bezeichnung / Standort *
+      <input type="text" name="bezeichnung" value="{{ werte.get('bezeichnung') or '' }}" list="bezeichnungen" required
+             {% if fehler.get('bezeichnung') %}aria-invalid="true" aria-describedby="bezeichnung-fehler"{% endif %}>
+      {% if fehler.get('bezeichnung') %}<small id="bezeichnung-fehler">{{ fehler['bezeichnung'] }}</small>{% endif %}
+      <datalist id="bezeichnungen">{% for b in bezeichnungen %}<option value="{{ b }}">{% endfor %}</datalist>
+    </label>
+  </div>
+  <div class="grid">
+    {{ m.feld("kwh", "kWh im Monat", werte, fehler, pflicht=true) }}
+    {{ m.feld("betrag_netto", "Betrag netto (€)", werte, fehler, pflicht=true) }}
+    {{ m.auswahl("ladeart", "Ladeart", ladearten, werte, fehler, pflicht=true) }}
+  </div>
+  {{ m.textfeld("notiz", "Notiz", werte, fehler) }}
+  <small>Bei Papierrechnungen den Nettobetrag der Rechnung (z. B. Grundgebühr) und die Monats-kWh eingeben.</small>
+  <button type="submit">Speichern</button>
+</form>
+{% if p %}
+  {{ m.loeschen_knopf("/import/pauschalen/%d/loeschen" % p.id, "Pauschale %s für %s löschen?" % (p.bezeichnung, p.monat | monat)) }}
+{% endif %}
+{% endblock %}

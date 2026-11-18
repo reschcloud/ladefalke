@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Ladekarten{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Ladekarten</h1>
+  <a href="/stammdaten/ladekarten/neu" role="button" data-schreiben>Neue Ladekarte</a>
+</div>
+<div class="filterleiste">
+  {{ m.status_filter(status, "/stammdaten/ladekarten", msp_paare) }}
+  <form method="get" action="/stammdaten/ladekarten" class="filterzeile sofort">
+    <input type="hidden" name="status" value="{{ status }}">
+    {{ m.mehrfach("msp_id", MSP, msp_optionen, msp_id) }}
+    <noscript><button type="submit" class="outline">Filtern</button></noscript>
+  </form>
+</div>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Kennung</th><th>Typ</th><th>Bezeichnung</th><th>{{ MSP }}</th><th>Aktuell zugeordnet</th>{% if status == "alle" %}<th>Status</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for k in karten %}
+    <tr>
+      <td><a href="/stammdaten/ladekarten/{{ k.id }}">{{ k.kennung }}</a></td>
+      <td>{{ k.kennung_typ.label }}</td>
+      <td>{{ k.bezeichnung or "" }}</td>
+      <td>{{ k.msp.name }}</td>
+      <td>
+        {% if k.ist_gastkarte %}<span class="marker gast">Gäste</span>
+        {% elif aktuell.get(k.id) %}{{ m.karten_ziel(aktuell[k.id]) }}
+        {% else %}–{% endif %}
+      </td>
+      {% if status == "alle" %}<td>{{ m.aktiv_kennzeichen(k.aktiv) }}</td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="6">Keine Ladekarten gefunden.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

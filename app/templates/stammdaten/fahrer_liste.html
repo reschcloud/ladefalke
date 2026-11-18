@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Fahrer:innen{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Fahrer:innen</h1>
+  <a href="/stammdaten/fahrer/neu" role="button" data-schreiben>Neue Fahrer:in</a>
+</div>
+{{ m.status_filter(status, "/stammdaten/fahrer") }}
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Name</th><th>Aktuelles Fahrzeug</th>
+             <th>Ladekarten {{ m.hilfe("MSP der heute gültigen Ladekarten: gefüllt = persönliche Karte der Person, umrandet = Karte des aktuellen Fahrzeugs.") }}</th>
+             <th>Hinweise {{ m.hilfe(("Was bei der Person zu klären ist: Führerscheinkontrolle überfällig (rot), bald fällig (gelb, Hinweisfrist aus den Einstellungen) oder noch nicht eingetragen (grau); " if fuehrerschein_an else "Was bei der Person zu klären ist: ") ~ "E-Mail-Adresse fehlt (grau, für den Report-Versand). ✓ = alles in Ordnung" ~ (" (nächste Kontrolle im Tooltip)" if fuehrerschein_an else "") ~ ". Ein Klick führt zur Person.") }}</th>
+             {% if status == "alle" %}<th>Status</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for f, fz in zeilen %}
+    <tr>
+      <td><a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if f.email %} <span class="hat-email" title="E-Mail: {{ f.email }}">✉</span>{% endif %}</td>
+      <td>{% if fz %}<a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a>{% else %}–{% endif %}</td>
+      {% set eigene, ueber_fz, kz = karten_msp[f.id] %}
+      <td class="karten-msp">{% for name in eigene %}<span class="msp-marke" title="persönliche Ladekarte">{{ name }}</span>{% endfor %}
+        {%- for name in ueber_fz %}<span class="msp-marke fahrzeug" title="über Fahrzeug {{ kz }}">{{ name }}</span>{% endfor %}
+        {%- if not eigene and not ueber_fz %}–{% endif %}</td>
+      <td class="hinweise">{% if f.aktiv %}{% set liste, ok_text = hinweise[f.id] %}
+        {%- for h in liste %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>{% else %}<span class="alles-ok" title="{{ ok_text or 'Keine offenen Punkte' }}">✓</span>{% endfor %}
+        {%- else %}–{% endif %}</td>
+      {% if status == "alle" %}<td>{{ m.aktiv_kennzeichen(f.aktiv) }}</td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Keine Fahrer:innen gefunden.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

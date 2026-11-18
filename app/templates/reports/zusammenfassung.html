@@ -1,0 +1,130 @@
+{% extends "reports/_basis.html" %}
+{% import "reports/_basis.html" as r with context %}
+{% block titel %}Ladefalke – Zusammenfassung {{ z.label }}{% endblock %}
+{% block kopf %}Zusammenfassung {{ z.label }}{% endblock %}
+{% block inhalt %}
+<h1>Zusammenfassung {{ z.label }}</h1>
+<p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · Ladevorgänge nach {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} ·
+  alle Beträge netto{% if vergleich %} · Vergleich mit dem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
+
+{{ r.kennzahlen(a.gesamt, vergleich, z, dc=dc, drei=true, schnitt=a.schnitt_je_auto) }}
+
+{% set v = vollstaendigkeit %}
+{% if v.monate %}
+<div class="vollstaendig {{ v.status }}">
+  {% if v.status == "fehlt" %}<strong>⚠ Daten unvollständig</strong> – in {{ v.unvollstaendig | length }} von {{ v.monate | length }} Monat{{ "en" if v.monate | length != 1 }} fehlen Rechnungsdaten:
+  <table class="luecken">
+    {% for st in v.unvollstaendig %}
+    <tr><td>{{ st.label }}</td><td>{% for l in st.luecken %}{{ l.msp.name }}{% if l.karten %} <span class="klein">({{ l.karten | length }} von {{ l.karten_erwartet }} Karten)</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+  {% elif v.status == "offen" %}<strong>◷ Laufender Monat</strong> – Rechnungen folgen erst im Folgemonat.
+  {% else %}<strong>✓ Alle erwarteten Rechnungsdaten sind vorhanden.</strong>{% endif %}
+  {% if v.hinweise %}<span class="klein">{{ v.hinweise }} Hinweis{{ "e" if v.hinweise != 1 }} zur Prüfung in der App (Dashboard → Vollständigkeit).</span>{% endif %}
+</div>
+{% endif %}
+
+<h2>Verteilung</h2>
+{% set diagramme = [] %}
+{% if not verteilung.leer %}{% set diagramme = diagramme + [(verteilung, 0, "kWh je Fahrer:in", "kWh"), (verteilung, 1, "Ladekosten je Fahrer:in", "€")] %}{% endif %}
+{% if not msp_verteilung.leer %}{% set diagramme = diagramme + [(msp_verteilung, 0, "kWh je MSP", "kWh")] %}{% endif %}
+{% if not cpo_verteilung.leer %}{% set diagramme = diagramme + [(cpo_verteilung, 0, "kWh je CPO", "kWh")] %}{% endif %}
+{% if verteilung.torte %}{# ein Monat: zwei Torten nebeneinander #}
+<div class="spalten-raster">{% for v, feld, titel, einheit in diagramme %}<div>{{ r.torte(v, feld, titel, einheit, dia) }}</div>{% endfor %}</div>
+{% else %}{# mehrere Monate: je Diagramm eine Zeile mit Torte, Legende und Säulen je Monat #}
+{% for v, feld, titel, einheit in diagramme %}{{ r.torte(v, feld, titel, einheit, dia) }}{% endfor %}
+{% endif %}
+<p class="klein">Fahrer:innen: nur Ladungen, die einer Person zugerechnet sind (ohne Pool ohne eindeutige Person, Gäste,
+  Gebühren, Pauschalen). MSP und CPO: alle Ladungen. „Weitere“ fasst die übrigen zusammen (Anzahl in Klammern).</p>
+
+{{ r.heatmap_abschnitt(heatmap, neue_seite=true) }}
+{{ r.dc_histogramme(dc_oeffentlich) }}
+
+{% macro top(t, titel) %}
+<div class="block">
+<h3>{{ titel }}</h3>
+{% if not t.teilnehmer %}<p class="klein">Keine Fahrer:innen mit mindestens {{ t.mindestmenge | zahl(0) }} kWh im Zeitraum.</p>
+{% else %}
+<div class="spalten">
+  {% for name, liste in [("Günstigste", t.guenstigste), ("Teuerste", t.teuerste)] %}
+  <div><table>
+    <thead><tr><th>{{ name }}</th><th class="r">kWh</th><th class="r">Ø €/kWh</th><th class="r">Score</th></tr></thead>
+    <tbody>{% for e in liste %}<tr><td>{{ e.fahrer.name }}</td><td class="r">{{ e.kwh | zahl(0) }}</td>
+      <td class="r">{{ e.preis | zahl(2) }}</td><td class="r">{{ e.score | zahl(2) }}</td></tr>
+    {% else %}<tr><td colspan="4" class="klein">zu wenige Fahrer:innen</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endfor %}
+</div>
+<p class="klein">Score = (Kosten + m × Ø-Preis aller) / (kWh + m); Ø aller {{ t.p_flotte | zahl(2) }} €/kWh, m = {{ t.m | zahl(0) }} kWh,
+  {{ t.teilnehmer }} Fahrer:innen ab {{ t.mindestmenge | zahl(0) }} kWh.</p>
+{% endif %}
+</div>
+{% endmacro %}
+<h2 class="neue-seite">Toplisten</h2>
+{{ top(a.topliste, "Alle Ladungen") }}
+{% if a.topliste_oeffentlich %}{{ top(a.topliste_oeffentlich, "Öffentliches Laden") }}{% endif %}
+
+<h2>Gesamt</h2>
+<table>
+  <thead><tr><th>Bereich</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <tbody>
+  {% for name, s in [("Fahrzeuge", a.fahrzeuge_summe), ("Nicht zugeordnet", a.nicht_zugeordnet), ("Gäste", a.gaeste),
+                     ("Gebühren nicht zuordenbar", a.gebuehren_nicht_zuordenbar), ("Pauschalen", a.pauschalen)] %}
+    {% if not s.leer %}<tr><td>{{ name }}</td><td class="r">{{ s.anzahl }}</td><td class="r">{{ s.kwh | zahl(0) }}</td>
+      <td class="r">{{ s.kosten | geld }}</td><td class="r">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td></tr>{% endif %}
+  {% endfor %}
+  {% set g = a.gesamt %}
+  <tr class="summe"><td>Gesamt</td><td class="r">{{ g.anzahl }}</td><td class="r">{{ g.kwh | zahl(0) }}</td>
+    <td class="r">{{ g.kosten | geld }}</td><td class="r">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</td></tr>
+  </tbody>
+</table>
+
+<h2>Pro Fahrer:in</h2>
+<table>
+  <thead><tr><th>Fahrer:in</th><th>Fahrzeuge</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <tbody>
+  {% for zl in a.fahrer | sort(attribute="summe.kosten", reverse=true) %}
+    <tr><td>{{ zl.fahrer.name }}</td><td>{{ zl.fahrzeuge | sort | join(", ") }}</td><td class="r">{{ zl.summe.anzahl }}</td>
+      <td class="r">{{ zl.summe.kwh | zahl(0) }}</td><td class="r">{{ zl.summe.kosten | geld }}</td>
+      <td class="r">{{ zl.summe.preis | zahl(2) if zl.summe.preis is not none else "–" }}</td></tr>
+  {% else %}<tr><td colspan="6">Keine Daten im Zeitraum.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="klein">Nur Ladekosten ohne Gebühren; jede Ladung zählt für die Person, die zum Ladezeitpunkt gefahren ist.</p>
+
+<h2>Pro Fahrzeug</h2>
+<table>
+  <thead><tr><th>Kennzeichen</th><th>Fahrer:innen im Zeitraum</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <tbody>
+  {% for zl in a.fahrzeuge %}
+    <tr><td>{{ zl.fahrzeug.kennzeichen }}{% if zl.fahrzeug.modell %} <span class="klein">{{ zl.fahrzeug.modell }}</span>{% endif %}</td>
+      <td>{{ zl.fahrer_im_zeitraum | join(", ") or "–" }}</td><td class="r">{{ zl.summe.anzahl }}</td>
+      <td class="r">{{ zl.summe.kwh | zahl(0) }}</td><td class="r">{{ zl.summe.kosten | geld }}</td>
+      <td class="r">{{ zl.summe.preis | zahl(2) if zl.summe.preis is not none else "–" }}</td></tr>
+  {% else %}<tr><td colspan="6">Keine Daten im Zeitraum.</td></tr>{% endfor %}
+  </tbody>
+</table>
+<p class="klein">Kosten inkl. kartenbezogener Gebühren.</p>
+
+<div class="spalten">
+  <div>{{ r.summen_tabelle("Pro CPO (Top 10)", "CPO", (a.cpo | rejectattr(0, "none") | list)[:10]) }}</div>
+  <div>{{ r.summen_tabelle("Pro MSP", "MSP", a.msp) }}</div>
+</div>
+<div class="spalten">
+  <div><div class="block"><h3>Pro Land</h3>
+    <table>
+      <thead><tr><th>Land</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+      <tbody>{% for code, s in a.laender %}<tr><td>{{ (code | landname) if code else "unbekannt" }}</td><td class="r">{{ s.anzahl }}</td>
+        <td class="r">{{ s.kwh | zahl(0) }}</td><td class="r">{{ s.kosten | geld }}</td>
+        <td class="r">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td></tr>
+      {% else %}<tr><td colspan="5">Keine Daten im Zeitraum.</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+  <div><div class="block"><h3>Meistgenutzte Ladekarten</h3>
+    <table>
+      <thead><tr><th>Karte</th><th class="r">Vorgänge</th><th class="r">Kosten netto</th></tr></thead>
+      <tbody>{% for k in a.karten_meist_genutzt(10) %}<tr><td>{{ r.karte(a.karte(k.karte)) }}</td>
+        <td class="r">{{ k.summe.anzahl }}</td><td class="r">{{ k.summe.kosten | geld }}</td></tr>
+      {% else %}<tr><td colspan="3">Keine genutzten Karten im Zeitraum.</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+</div>
+{% endblock %}

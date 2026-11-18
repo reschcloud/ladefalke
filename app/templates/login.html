@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Anmelden{% endblock %}
+{% block inhalt %}
+<article class="login">
+  <div class="login-logo">{{ m.falke() }}</div>
+  <hgroup class="login-titel"><h1>Ladefalke</h1><p>Der elektrische Fuhrpark im Blick</p><p class="login-herkunft">resch.cloud</p></hgroup>
+  <form method="post" action="/login" hx-boost="false" data-ohne-pflichtsperre>
+    <input type="hidden" name="weiter_zu" value="{{ weiter }}">
+    <label>Benutzername
+      <input type="text" name="benutzer" value="{{ benutzer or '' }}" autocomplete="username" required autofocus>
+    </label>
+    <label>Passwort
+      <input type="password" name="passwort" autocomplete="current-password" required
+             {% if fehler %}aria-invalid="true" aria-describedby="login-fehler"{% endif %}>
+      {% if fehler %}<small id="login-fehler">{{ fehler }}</small>{% endif %}
+    </label>
+    <button type="submit">Anmelden</button>
+  </form>
+</article>
+{% endblock %}

@@ -1,0 +1,7 @@
+﻿Id;StartLocalTime;EndLocalTime;MeterStart;MeterEnd;MeterTotal;ChargePointLabel;ChargePointStreet;ChargePointZip;ChargePointCity;CardLabel;StationOwnerName;DurationTotal;TotalCosts;ChargePointSerialnumber;CardCustomerReference;CardNumber
+900001;2026-09-29 17:08:12;2026-10-01 05:51:20;1000000;1067088;67088;Teststandort 3;Musterweg 1;1010;Wien;Muster, Max;Test GmbH;49664;0,000;SER0000003;Zutrittschip;LXM.000001
+900002;2026-10-03 19:12:05;2026-10-04 06:58:41;2000000;2008144;8144;Teststandort 4;Musterweg 1;1010;Wien;GAST;Test GmbH;45286;0,000;SER0000004;Gast Anna;
+900003;2026-10-05 08:00:00;2026-10-05 12:00:00;3000000;3031067;31067;Teststandort 1;Musterweg 1;1010;Wien;Beispiel, Erika;Test GmbH;14400;0,000;SER0000001;;
+900004;2026-10-06 08:00:00;2026-10-06 08:05:00;3031067;3031067;0;Teststandort 1;Musterweg 1;1010;Wien;Beispiel, Erika;Test GmbH;300;0,000;SER0000001;;
+900005;2026-10-07 09:00:00;2026-10-07 15:30:00;4000000;4049396;49396;Teststandort 2;Musterweg 1;1010;Wien;Muster, Max;Test GmbH;23400;0,000;SER0000002;Zutrittschip;LXM.000001
+900006;2026-10-31 17:00:00;2026-10-31 18:38:53;5000000;5010994;10994;Teststandort 2;Musterweg 1;1010;Wien;GAST;Test GmbH;5933;0,000;SER0000002;Gästechip X;Chip 0001

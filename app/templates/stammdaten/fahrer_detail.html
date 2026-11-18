@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% import "_ladevorgaenge.html" as lv %}
+{% import "_zuordnung.html" as zo %}
+{% block titel %}{{ fahrer.name if fahrer else "Neue Fahrer:in" }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrer' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrer:innen</a>{{ m.blaettern(blaettern) }}</p>
+<h1>{{ fahrer.name if fahrer else "Neue Fahrer:in" }}</h1>
+{% if fahrer %}
+{{ m.offene_punkte(offen, "/stammdaten/fahrer/%d" % fahrer.id) }}
+{{ m.querverweise("Auswertung", [
+     ("/auswertungen/fahrer/%d" % fahrer.id, "Vormonat", "Auswertung des Vormonats"),
+     ("/auswertungen/fahrer/%d?art=jahr&jahr=%d" % (fahrer.id, heute_datum().year), heute_datum().year, "Auswertung des laufenden Jahres"),
+     ("/ladevorgaenge?fahrer=%d" % fahrer.id, "Ladevorgänge", "Alle Ladevorgänge, bei denen diese Fahrer:in gefahren ist"),
+     ("/reports?fahrer=%d#fahrer-%d" % (fahrer.id, fahrer.id), "Reports →", "PDF-Reports dieser Fahrer:in (Zeitraum dort wählbar)")]) }}
+{{ m.gesamt_kacheln(gesamt, "mit dieser Person am Steuer") }}
+{% endif %}
+
+<form method="post" class="formular" action="{{ '/stammdaten/fahrer/%d' % fahrer.id if fahrer else '/stammdaten/fahrer/neu' }}">
+  <div class="grid">
+    {{ m.feld("name", "Name", werte, fehler, pflicht=true) }}
+    {{ m.feld("email", "E-Mail", werte, fehler, typ="email", hilfe="Optional – für Mails an die Person, z. B. ihren eigenen Report.") }}
+  </div>
+  {% if fuehrerschein_an %}{# Feature Führerscheinkontrolle (Einstellungen → Fristen) #}
+  <div class="datum-mit-knopf">
+    {{ m.feld("fuehrerschein_kontrolle", "Letzte Führerscheinkontrolle", werte, fehler, typ="date") }}
+    <button type="button" class="outline secondary" data-datum-setzen="fuehrerschein_kontrolle"
+            data-wert="{{ heute_datum().isoformat() }}">Heute</button>
+  </div>
+  <small class="formular-hinweis">Kontrolle alle {{ intervall }} Monate (Einstellungen)
+    {%- if naechste_kontrolle %}; nächste fällig am <strong>{{ naechste_kontrolle | datum }}</strong>
+    {%- elif fahrer %}; noch keine Kontrolle eingetragen{% endif %}. Vor Fälligkeit erscheint eine Info unter
+    „Aufgaben“.</small>
+  {% endif %}
+  {{ m.aktiv_feld(werte) }}
+  <button type="submit">Speichern</button>
+</form>
+
+{% if fahrer %}
+{{ m.entfernen_knopf("/stammdaten/fahrer/%d" % fahrer.id, fahrer.name, fahrer.aktiv, referenziert) }}
+
+<h2>Fahrzeug</h2>
+{{ zo.abschnitt(fahrzeug_mini, "Fahrzeug", "Modell", formular="neue-fahrzeug-zuordnung") }}
+
+<article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
+  <header><strong>Neue Fahrzeug-Zuordnung</strong></header>
+  <form method="post" action="/stammdaten/fahrer/{{ fahrer.id }}/fahrzeug" id="neue-fahrzeug-zuordnung">
+    {% if zuordnung_fehler %}<p class="meldung meldung-fehler" role="alert">{{ zuordnung_fehler }}</p>{% endif %}
+    <div class="grid">
+      {{ m.auswahl("fahrzeug_id", "Fahrzeug", fahrzeuge | optionen("id", "kennzeichen"), zuordnung_werte, {}, pflicht=true) }}
+      {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
+      {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
+    </div>
+    {{ m.leasing_knoepfe(leasing_daten(fahrzeuge), "fahrzeug_id") }}
+    {{ m.neu_zuordnen_haken(zuordnung_werte) }}
+    <p class="zuordnung-hinweis"><small>Eine offene bisherige Zuordnung wird automatisch zum Vortag beendet.</small></p>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>
+  </form>
+</article>
+
+<h2>Ladekarten {{ m.hilfe("Persönliche Karten der Person und die Karten der Fahrzeuge, die sie gefahren ist – diese jeweils für die Zeit, in der sie das Fahrzeug hatte.") }}</h2>
+{{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine Karten – weder persönlich noch über ein Fahrzeug.") }}
+{{ zo.karte_zuordnen(karten_auswahl, "fahrer:%d" % fahrer.id, "/stammdaten/fahrer/%d" % fahrer.id) }}
+
+{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrer=%d" % fahrer.id, mit_karte=true, mit_fahrzeug=true, mit_fahrer=false, art=request.state.stichtag) }}
+{{ m.verlauf_abschnitt(verlauf) }}
+{% endif %}
+{% endblock %}

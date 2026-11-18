@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% import "importe/_schritte.html" as s %}
+{% block titel %}Vorschau {{ imp.dateiname }}{% endblock %}
+{% block inhalt %}
+{% macro fahrzeug_link(fz) %}<a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a>{% endmacro %}
+
+<p class="nav-leiste"><a href="/import" role="button" class="outline secondary klein nav-knopf">← Import-Übersicht</a></p>
+{{ s.schritte(2, navigation) }}
+<h1>Vorschau: {{ imp.dateiname }}</h1>
+<p><a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein">Originaldatei öffnen ↗</a>
+  <small>(neuer Tab)</small></p>
+{% if fehler %}<p class="meldung meldung-fehler" role="alert">{{ fehler }}</p>{% endif %}
+
+<article>
+  {% set parser_name = (parser | selectattr(0, "equalto", imp.parser_key) | map(attribute=1) | first) if imp.parser_key else none %}
+  <header class="block-kopf"><strong>1. Format und Ladeart</strong>
+    {% if parser_name and imp.msp_id %}<span class="block-status ok">✓ {{ parser_name }}</span>
+    {% else %}<span class="block-status offen">bitte Format wählen</span>{% endif %}</header>
+  <form method="post" action="/import/{{ imp.id }}/einstellungen" id="vorschau-einstellungen" data-verfolgen>
+    <div class="grid">
+      {{ m.auswahl("parser_key", "Format", parser, {"parser_key": imp.parser_key}, {}, pflicht=true) }}
+      {{ m.auswahl("msp_id", MSP, msps, {"msp_id": imp.msp_id}, {}, pflicht=true) }}
+      {{ m.auswahl("ladeart", "Ladeart", ladearten, {"ladeart": imp.ladeart.value}, {}, pflicht=true) }}
+      <label>Strompreis netto €/kWh{% if imp.ladeart.value == "privat" %} *{% endif %}
+        <input type="text" inputmode="decimal" name="strompreis"
+               value="{{ imp.strompreis_netto_kwh | zahl(4) if imp.strompreis_netto_kwh is not none }}"
+               placeholder="z. B. 0,30">
+        <small>Nur für Dateien ohne Kostenangabe: kWh × Strompreis ergibt die Kosten.</small>
+      </label>
+    </div>
+    <button type="submit" class="outline">Übernehmen und neu berechnen</button>
+    <p class="meldung meldung-warnung" data-erst-speichern-hinweis="vorschau-einstellungen" hidden>
+      Geändert, aber noch nicht übernommen – die Vorschau unten zeigt noch die bisherigen Einstellungen.
+      Bitte „Übernehmen und neu berechnen“ klicken.</p>
+  </form>
+</article>
+
+{% if vs.fehler %}
+  <p class="meldung meldung-fehler" role="alert">{{ vs.fehler }}</p>
+{% else %}
+{% set r = vs.ergebnis.rechnung %}
+<article>
+  <header class="block-kopf"><strong>2. Prüfen</strong>
+    {% if vs.warnungen %}<span class="block-status offen">⚠ {{ vs.warnungen | length }} Hinweis{{ "e" if vs.warnungen | length != 1 }} – bitte lesen</span>
+    {% else %}<span class="block-status ok">✓ keine Auffälligkeiten</span>{% endif %}</header>
+  <div class="kacheln">
+    <div class="kachel"><span class="kachel-zahl">{{ vs.neue | length }}</span><span>neue Ladevorgänge</span></div>
+    <div class="kachel"><span class="kachel-zahl">{{ vs.summe_kwh | zahl(0) }}</span><span>kWh</span></div>
+    <div class="kachel"><span class="kachel-zahl">{{ vs.summe_kosten | geld }}</span><span>Ladekosten netto</span></div>
+    <div class="kachel"><span class="kachel-zahl">{{ vs.summe_gebuehren | geld }}</span><span>Gebühren netto ({{ vs.neue_gebuehren | length }})</span></div>
+  </div>
+  <p>
+    {% if r.nummer %}Rechnung <strong>{{ r.nummer }}</strong>{% if r.datum %} vom {{ r.datum | datum }}{% endif %} · {% endif %}
+    {% if r.zeitraum_von %}Zeitraum {{ r.zeitraum_von | datum }} – {{ r.zeitraum_bis | datum }}{% endif %}
+    {% if r.summe_netto is not none %} · Rechnungssumme netto <strong>{{ r.summe_netto | geld }}</strong>{% endif %}
+  </p>
+  {% for w in vs.warnungen %}<p class="meldung meldung-warnung">{{ w }}</p>{% endfor %}
+</article>
+
+<form method="post" action="/import/{{ imp.id }}/bestaetigen">
+<article>
+  {% set neu = vs.unbekannte_karten | length %}
+  <header class="block-kopf"><strong>3. Ladekarten</strong>
+    {% if neu %}<span class="block-status offen">{{ neu }} neue Karte{{ "n" if neu != 1 }} – bitte entscheiden</span>
+    {% else %}<span class="block-status ok">✓ alle bekannt</span>{% endif %}</header>
+  <div class="tabelle">
+  <table>
+    <thead><tr><th>Kennung</th><th>Ladekarte</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
+               <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th>
+               <th>Zuordnung (Vorschlag)</th></tr></thead>
+    <tbody>
+    {% for k in vs.karten %}
+      <tr>
+        <td><code>{{ k.kennung }}</code>{% if k.vertragsnummer %}<br><small>{{ k.vertragsnummer }}</small>{% endif %}</td>
+        <td>
+          {% if k.karte %}
+            <a href="/stammdaten/ladekarten/{{ k.karte.id }}">{{ k.karte.bezeichnung or k.karte.kennung }}</a>
+            {% if k.karte.ist_gastkarte %}<span class="marker gast">Gäste</span>{% endif %}
+          {% else %}
+            {% set n = loop.index %}
+            <input type="hidden" name="karte_{{ n }}_kennung" value="{{ k.kennung }}">
+            <fieldset class="neue-karte">
+              <label><input type="radio" name="karte_{{ n }}_aktion" value="anlegen" checked> neu anlegen <span class="zusatz-hinweis">(Zuordnung später)</span></label>
+              <label><input type="radio" name="karte_{{ n }}_aktion" value="ignorieren"> ignorieren (ohne Karte importieren)</label>
+              <input type="text" name="karte_{{ n }}_bezeichnung" value="{{ k.bezeichnung or '' }}" placeholder="Bezeichnung" aria-label="Bezeichnung">
+              <label><input type="checkbox" name="karte_{{ n }}_gast" {% if k.gast %}checked{% endif %}> Gastkarte</label>
+            </fieldset>
+          {% endif %}
+        </td>
+        <td class="rechts">{{ k.anzahl }}</td>
+        <td class="rechts">{{ k.kwh | zahl(0) }}</td>
+        <td class="rechts">{{ k.kosten | geld }}</td>
+        <td class="rechts">{{ k.preis | zahl(2) if k.preis is not none else "–" }}</td>
+        <td>
+          {% if k.karte and k.karte.ist_gastkarte %}Topf „Gäste“
+          {% elif k.ziele %}
+            {% for person, fz in k.ziele.values() %}
+              {%- if person %}<a href="/stammdaten/fahrer/{{ person.id }}">{{ person.name }}</a> →
+                {% if fz %}{{ fahrzeug_link(fz) }}{% else %}<span class="marker warnung" title="Die Person hatte am Ladetag kein Fahrzeug – diese Vorgänge landen unter „Aufgaben“">kein Fahrzeug</span>{% endif %}
+              {%- else %}{{ fahrzeug_link(fz) }}{% endif %}{% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+          {% else %}<span class="marker spaeter" title="Nach dem Import unter „Aufgaben → Ladevorgänge ohne Fahrzeug“ zuordnen – die Auswertungen berücksichtigen die Vorgänge dann automatisch">später zuordnen</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">Keine Kartenkennungen in der Datei.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if vs.unbekannte_karten %}
+    <small>Neu angelegte Karten haben noch keine Zuordnung. Das kannst du später erledigen: Karte einer Fahrer:in oder
+      einem Fahrzeug zuordnen (Stammdaten → Ladekarten), die Vorgänge werden dann automatisch übernommen.</small>
+  {% endif %}
+</article>
+
+<details>
+  <summary>Ladevorgänge ({{ vs.vorgaenge | length }})</summary>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Start</th><th>Ende</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
+               <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th>
+               <th>Fahrzeug <small>· Fahrer:in beim Laden</small></th><th></th></tr></thead>
+    <tbody>
+    {% for x in vs.vorgaenge %}
+      <tr {% if x.duplikat %}class="gedimmt"{% endif %}>
+        <td>{{ x.v.start | datumzeit }}</td>
+        <td>{{ x.v.ende | datumzeit }}</td>
+        <td>{{ x.v.kartenkennung or "–" }}</td>
+        <td>{{ x.v.standort or "" }}</td>
+        <td class="rechts">{% if x.v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ x.kwh | zahl(3) }}</td>
+        <td class="rechts">{{ x.kosten | geld }}</td>
+        <td class="rechts">{{ x.preis | zahl(2) if x.preis is not none else "–" }}</td>
+        <td>{% if x.fahrzeug %}{{ fahrzeug_link(x.fahrzeug) }}{% endif %}
+          {%- if x.fahrer %} <small>({{ x.fahrer | join(", ") }})</small>{% endif %}</td>
+        <td>{% if x.duplikat %}<small>bereits importiert</small>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+
+{% if vs.gebuehren %}
+<details>
+  <summary>Gebühren ({{ vs.gebuehren | length }})</summary>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Bezeichnung</th><th>Karte / Vertrag</th><th class="rechts">Netto</th><th></th></tr></thead>
+    <tbody>
+    {% for x in vs.gebuehren %}
+      <tr {% if x.duplikat %}class="gedimmt"{% endif %}>
+        <td>{{ x.g.bezeichnung }}</td>
+        <td>{% if x.karte %}{{ x.karte.kennung }}{% else %}{{ x.g.kartenkennung or x.g.vertragsnummer or "–" }}
+            {% if not x.g.kartenkennung %}<small>(keiner Karte zuordenbar)</small>{% endif %}{% endif %}</td>
+        <td class="rechts">{{ x.g.betrag_netto | geld }}</td>
+        <td>{% if x.duplikat %}<small>bereits importiert</small>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{% endif %}
+
+{% set spaeter = vs.vorgaenge | rejectattr("duplikat") | selectattr("fahrzeug", "none")
+                 | rejectattr("karte.ist_gastkarte") | list | length %}
+<article class="bestaetigen-block">
+  <header class="block-kopf"><strong>4. Übernehmen</strong>
+    {% if navigation.offen > 1 %}<span class="block-status">danach weiter mit der nächsten Datei</span>
+    {% else %}<span class="block-status">letzte Datei – danach ist der Import abgeschlossen</span>{% endif %}</header>
+  {% set ohne_stromart = vs.neue | selectattr("v.stromart", "none") | list | length %}
+  {% set standard = imp.msp.stromart_standard if imp.msp else none %}
+  {% if ohne_stromart %}
+  <label class="stromart-vorgabe">AC/DC für {{ ohne_stromart }} Ladevorgänge, deren Rechnung keine Stromart angibt
+    <select name="stromart_vorgabe">
+      {% for wert, text in [("", "keine Angabe"), ("AC", "AC"), ("DC", "DC")] %}
+        <option value="{{ wert }}" {% if (standard or "") == wert %}selected{% endif %}>{{ text }}</option>
+      {% endfor %}
+    </select>
+    <small>Vorbelegt mit der Vorgabe des {{ MSP }}{% if not standard %} (keine){% endif %}.
+      Ladevorgänge ohne Angabe erscheinen unter „Aufgaben“.</small>
+  </label>
+  {% endif %}
+  {% if spaeter %}
+  <p class="meldung meldung-info hinweis-spaeter"><strong>{{ spaeter }} {{ "Ladevorgang" if spaeter == 1 else "Ladevorgänge" }} noch ohne Zuordnung</strong>
+    – das ist kein Fehler. Du kannst sie nach dem Import unter <em>Aufgaben → Ladevorgänge ohne Fahrzeug</em>
+    zuordnen; die Auswertungen berücksichtigen sie dann automatisch.</p>
+  {% endif %}
+  <button type="submit" data-erst-speichern="vorschau-einstellungen"
+          data-erst-speichern-text="Zuerst unter 1. „Übernehmen und neu berechnen“ – die Vorschau zeigt noch die bisherigen Einstellungen.">Import bestätigen und speichern</button>
+</article>
+</form>
+{% endif %}
+
+{{ m.loeschen_knopf("/import/%d/loeschen" % imp.id, "Vorschau verwerfen und hochgeladene Datei löschen?", "Vorschau verwerfen") }}
+{% endblock %}

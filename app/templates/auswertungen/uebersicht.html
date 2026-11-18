@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% import "auswertungen/_bausteine.html" as b %}
+{% import "_makros.html" as m %}
+{% block titel %}Auswertungen {{ a.zeitraum.label }}{% endblock %}
+{% block inhalt %}
+<div class="kopf"><h1>Auswertungen</h1>
+  {{ m.nav_knopf("/reports?" ~ parameter, "Reports →", "PDF-Reports für " ~ a.zeitraum.label ~ " (Seite „Reports“)") }}</div>
+{{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
+<p><small>Zeitraum {{ a.zeitraum.von | datum }} – {{ a.zeitraum.bis | datum }}, Ladevorgänge nach {{ stichtag }}.
+  Alle Beträge netto. <abbr class="geschaetzt">≈</abbr> = enthält geschätzte kWh.</small></p>
+<nav class="einstellungen-nav" aria-label="Abschnitte">
+  <a href="#gesamt">Gesamt</a><a href="#dc-oeffentlich">DC öffentlich</a><a href="#topliste">Topliste</a><a href="#topliste-oeffentlich">Topliste öffentlich</a>
+  <a href="#cpo">Pro {{ CPO }}</a><a href="#fahrer">Pro Fahrer:in</a><a href="#fahrzeuge">Pro Fahrzeug</a>
+  <a href="#ladekarten">Ladekarten</a><a href="#msp">Pro {{ MSP }}</a><a href="#land">Pro Land</a><a href="#ladeorte">Ladeorte</a>
+</nav>
+
+{% macro export(name) %}
+{{ m.export_knoepfe("/auswertungen/export/" ~ name, parameter) }}
+{% endmacro %}
+
+{% macro summenzellen(s) %}
+  <td class="rechts">{{ s.anzahl }}</td>
+  <td class="rechts">{{ b.geschaetzt_hinweis(s) }}{{ s.kwh | zahl(0) }}</td>
+  <td class="rechts">{{ s.kosten | geld }}{% if s.gebuehren %}<br><small>inkl. {{ s.gebuehren | geld }} Gebühren</small>{% endif %}</td>
+  <td class="rechts">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td>
+{% endmacro %}
+
+<section id="gesamt">
+  <div class="kopf"><h2>Gesamt</h2>{{ export("gesamt") }}</div>
+  {{ b.kennzahlen(a.gesamt, zeitraum=a.zeitraum, schnitt=a.schnitt_je_auto, dc=dc) }}
+  <div class="tabelle">
+  <table>
+    <thead><tr><th>Bereich</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+    <tbody>
+      <tr><td>Fahrzeuge</td>{{ summenzellen(a.fahrzeuge_summe) }}</tr>
+      <tr><td><a href="/aufgaben#ohne-fahrzeug">Nicht zugeordnet</a></td>{{ summenzellen(a.nicht_zugeordnet) }}</tr>
+      <tr><td>Gäste</td>{{ summenzellen(a.gaeste) }}</tr>
+      <tr><td>Gebühren nicht zuordenbar</td>{{ summenzellen(a.gebuehren_nicht_zuordenbar) }}</tr>
+      <tr><td><a href="/import?pauschalen_jahr={{ a.zeitraum.von.year }}#pauschalen">Pauschalen</a></td>{{ summenzellen(a.pauschalen) }}</tr>
+    </tbody>
+    <tfoot><tr><th>Gesamt</th>{{ summenzellen(a.gesamt) }}</tr></tfoot>
+  </table>
+  </div>
+  <h3>Öffentlich / privat</h3>
+  {{ b.oeffentlich_privat(a.gesamt) }}
+</section>
+
+<section id="dc-oeffentlich">
+  <div class="kopf"><h2>Öffentliches DC-Laden</h2></div>
+  {{ b.dc_oeffentlich(dc_oeffentlich) }}
+</section>
+
+<section id="topliste">
+  <div class="kopf"><h2>Topliste</h2>{{ export("topliste") }}</div>
+  {{ b.topliste(a.topliste, parameter) }}
+</section>
+
+<section id="topliste-oeffentlich">
+  <div class="kopf"><h2>Topliste öffentliches Laden</h2>{{ export("topliste_oeffentlich") }}</div>
+  {{ b.topliste(a.topliste_oeffentlich, parameter, oeffentlich=true) }}
+</section>
+
+<section id="cpo">
+  <div class="kopf"><h2>Pro {{ CPO }}</h2>{{ export("cpo") }}</div>
+  <div class="tabelle">
+  <table class="cpo-tabelle">
+    <thead><tr><th>{{ CPO }}</th><th>Land</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th><th></th></tr></thead>
+    {% for code, s in a.cpo %}
+    {% set d = a.cpo_personen.get(code) %}
+    {% set url = "/auswertungen/cpo/" ~ ((code | urlencode | replace("%2A", "*")) if code else "-") ~ "?" ~ parameter %}
+    <tbody>
+      <tr><td><a href="{{ url }}" title="Fahrer:innen und Ladekarten bei {{ code or 'unbekannt' }}">{% if code | cpo_land %}<code>{{ code }}</code>{% else %}{{ code or "unbekannt" }}{% endif %}</a></td>
+        {% set land = code | cpo_land %}<td>{{ (land | flagge ~ " " ~ land | landname) if land else "" }}</td>{{ summenzellen(s) }}
+        <td class="rechts">{% if d and d.nur_personen %}<button type="button" class="aufklappen" data-aufklappen aria-expanded="false"
+          title="Fahrer:innen mit den höchsten Kosten" aria-label="Fahrer:innen bei {{ code or 'unbekannt' }} anzeigen">▸</button>{% endif %}</td></tr>
+      {% if d and d.nur_personen %}
+      <tr class="cpo-vorschau" hidden><td colspan="7">
+        <ol>
+        {% for p in d.nur_personen[:5] %}
+          <li><span class="name">{{ m.symbol("person", "Person") }} <a href="/auswertungen/fahrer/{{ p.fahrer.id }}?{{ parameter }}">{{ p.name }}</a></span>
+            <strong class="preis" title="Ø €/kWh">{{ p.summe.preis | zahl(2) if p.summe.preis is not none else "–" }} €/kWh</strong>
+            <span class="betrag">{{ p.summe.kosten | geld }}</span>
+            <span class="karten">{% for k, ks in p.karten_liste %}<span class="karten-chip" title="{{ ks.kosten | geld }}, Ø {{ ks.preis | zahl(2) if ks.preis is not none else '–' }} €/kWh">
+              {%- if k %}{% set ka = a.karte(k) %}{{ ka.relativ(p.fahrer.id) if ka else (k.bezeichnung or k.kennung) }}{% if ka and ka.zusatz %} …{{ ka.zusatz }}{% endif %} <small>{{ k.msp.name }}</small>{% else %}ohne Karte{% endif %}</span>{% endfor %}</span></li>
+        {% endfor %}
+        </ol>
+        <a href="{{ url }}" role="button" class="outline klein">Details zu {{ code or "unbekannt" }}</a>
+      </td></tr>
+      {% endif %}
+    </tbody>
+    {% else %}
+    <tbody><tr><td colspan="7">Keine Daten im Zeitraum.</td></tr></tbody>
+    {% endfor %}
+  </table>
+  </div>
+  <p><small>{{ CPO }}-Kennung aus der EVSE-ID des Ladepunkts (Land und Betreiber, z. B. AT*MER). „unbekannt“: Rechnungen
+    ohne EVSE-ID (z. B. eigene Wallboxen). Nur Ladevorgänge, ohne Gebühren und Pauschalen. ▸ zeigt die
+    fünf Fahrer:innen mit den höchsten Kosten (nur öffentliche Ladungen), ein Klick auf den {{ CPO }} alle mit ihren Karten.</small></p>
+</section>
+
+<section id="fahrer">
+  <div class="kopf"><h2>Pro Fahrer:in</h2>{{ export("fahrer") }}</div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Fahrer:in</th><th>Fahrzeuge</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
+               <th class="rechts">Ladekosten netto</th><th class="rechts">Ø €/kWh</th><th class="rechts">öffentlich (kWh)</th></tr></thead>
+    <tbody>
+    {% for z in a.fahrer %}
+      <tr>
+        <td><a href="/auswertungen/fahrer/{{ z.fahrer.id }}?{{ parameter }}">{{ z.fahrer.name }}</a></td>
+        <td>{{ z.fahrzeuge | sort | join(", ") }}</td>
+        {{ summenzellen(z.summe) }}
+        <td class="rechts">{{ z.summe.anteil_oeffentlich_kwh | prozent }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">Keine Ladevorgänge mit eindeutiger Fahrer:in im Zeitraum.</td></tr>
+    {% endfor %}
+    </tbody>
+    {% if a.fahrer %}
+    <tfoot><tr><th colspan="2">Summe Fahrer:innen</th>{{ summenzellen(a.fahrer_summe) }}
+               <th class="rechts">{{ a.fahrer_summe.anteil_oeffentlich_kwh | prozent }}</th></tr></tfoot>
+    {% endif %}
+  </table>
+  </div>
+  <p><small>Nur Ladekosten ohne Gebühren, je Person zum Ladezeitpunkt {{ m.zurechnung() }}.
+    {% if a.fahrer_nicht_eindeutig.kwh %}Nicht enthalten: {{ a.fahrer_nicht_eindeutig.kwh | zahl(0) }} kWh von
+    Poolfahrzeugen mit mehreren Fahrer:innen.{% endif %}</small></p>
+</section>
+
+<section id="fahrzeuge">
+  <div class="kopf"><h2>Pro Fahrzeug</h2>{{ export("fahrzeuge") }}</div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Fahrzeug</th><th>Fahrer:innen im Zeitraum</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
+               <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th><th class="rechts">öffentlich (kWh)</th></tr></thead>
+    <tbody>
+    {% for z in a.fahrzeuge %}
+      <tr>
+        <td><a href="/auswertungen/fahrzeug/{{ z.fahrzeug.id }}?{{ parameter }}">{{ z.fahrzeug.kennzeichen }}</a>
+            {% if z.fahrzeug.modell %}<br><small>{{ z.fahrzeug.modell }}</small>{% endif %}</td>
+        <td>{{ z.fahrer_im_zeitraum | join(", ") or "–" }}
+            {% if z.fahrer_aktuell and z.fahrer_aktuell != z.fahrer_im_zeitraum %}<br><small>aktuell: {{ z.fahrer_aktuell | join(", ") }}</small>{% endif %}</td>
+        {{ summenzellen(z.summe) }}
+        <td class="rechts">{{ z.summe.anteil_oeffentlich_kwh | prozent }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">Keine Daten im Zeitraum.</td></tr>
+    {% endfor %}
+    </tbody>
+    {% if a.fahrzeuge %}
+    <tfoot><tr><th colspan="2">Summe Fahrzeuge</th>{{ summenzellen(a.fahrzeuge_summe) }}
+               <th class="rechts">{{ a.fahrzeuge_summe.anteil_oeffentlich_kwh | prozent }}</th></tr></tfoot>
+    {% endif %}
+  </table>
+  </div>
+</section>
+
+<section id="ladekarten">
+  <div class="kopf"><h2>Ladekarten-Nutzung</h2>{{ export("ladekarten") }}</div>
+  {% macro kartentabelle(titel, zeilen, mit_rang=false) %}
+  <div>
+    {% if titel %}<h3>{{ titel }}</h3>{% endif %}
+    <div class="tabelle">
+    <table {% if mit_rang %}class="striped"{% endif %}>
+      <thead><tr>{% if mit_rang %}<th class="rechts">Platz</th>{% endif %}<th>Karte {{ m.hilfe("Wer die Karte im Zeitraum hatte: Person bzw. Fahrzeug mit Fahrer:in; „+1“ = im Zeitraum auch anderen zugeordnet. Kennung und MSP-Details im Tooltip.") }}</th>
+                 <th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th></tr></thead>
+      <tbody>
+      {% for k in zeilen %}
+        <tr>
+          {% if mit_rang %}<td class="rechts">{{ loop.index }}</td>{% endif %}
+          <td>{{ m.karte(a.karte(k.karte), k.karte) }}</td>
+          <td class="rechts">{{ k.summe.anzahl }}</td>
+          <td class="rechts">{{ k.summe.kwh | zahl(0) }}</td>
+          <td class="rechts">{{ k.summe.kosten | geld }}{% if k.summe.gebuehren %}<br><small>inkl. {{ k.summe.gebuehren | geld }} Gebühren</small>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="{{ 5 if mit_rang else 4 }}">Keine.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% endmacro %}
+  {% if karten_alle %}
+    {{ kartentabelle(none, a.karten, mit_rang=true) }}
+    <p><a href="/auswertungen?{{ parameter }}#ladekarten" role="button" class="outline secondary klein">Nur Top {{ karten_top }} anzeigen</a></p>
+  {% else %}
+  <div class="grid">
+    {{ kartentabelle("Am meisten genutzt", a.karten_meist_genutzt(karten_top)) }}
+    {{ kartentabelle("Am wenigsten genutzt", a.karten_wenigst_genutzt(karten_top)) }}
+  </div>
+  {% if a.karten | length > (a.karten_meist_genutzt(karten_top) | length) + (a.karten_wenigst_genutzt(karten_top) | length) %}
+    <p><a href="/auswertungen?{{ parameter }}&amp;karten=alle#ladekarten" role="button" class="outline secondary klein">Alle {{ a.karten | length }} Karten als Rangliste anzeigen</a></p>
+  {% endif %}
+  {% endif %}
+  {% set ungenutzt = a.karten_ungenutzt %}
+  <p><small>Nutzung = Anzahl Ladevorgänge im Zeitraum (bei Gleichstand kWh); Kosten inkl. kartenbezogener Gebühren.
+    {% if ungenutzt %}<strong>{{ ungenutzt | length }} aktive Karte{{ "n" if ungenutzt | length != 1 }} ohne Ladevorgang</strong>
+    {%- set geb = ungenutzt | sum(attribute="summe.gebuehren") %}{% if geb %}, dafür {{ geb | geld }} Gebühren{% endif %}.
+    {% endif %}</small></p>
+</section>
+
+<section id="msp">
+  <div class="kopf"><h2>Pro {{ MSP }}</h2>{{ export("msp") }}</div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>{{ MSP }}</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+    <tbody>
+    {% for name, s in a.msp %}
+      <tr><td>{{ name }}</td>{{ summenzellen(s) }}</tr>
+    {% else %}
+      <tr><td colspan="5">Keine Daten im Zeitraum.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p><small>Pauschalen haben keinen MSP und sind hier nicht enthalten.</small></p>
+</section>
+
+<section id="land">
+  <div class="kopf"><h2>Pro Land</h2>{{ export("land") }}</div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Land</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+    <tbody>
+    {% for code, s in a.laender %}
+      <tr><td><a href="/ladevorgaenge?land={{ code or '-' }}&amp;{{ parameter }}">{{ (code | flagge ~ " " ~ code | landname) if code else "unbekannt" }}</a></td>{{ summenzellen(s) }}</tr>
+    {% else %}
+      <tr><td colspan="5">Keine Daten im Zeitraum.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p><small>Nur Ladevorgänge, ohne Gebühren und Pauschalen. Land aus der EVSE-ID des Ladepunkts, sonst aus der
+    Rechnung (Länderangabe) bzw. dem Standardland des {{ MSP }}.</small></p>
+</section>
+
+<section id="ladeorte">
+  <div class="kopf"><h2>Häufigste Ladeorte</h2>{{ export("ladeorte") }}</div>
+  {% set orte = a.ladeorte if ladeorte_alle else a.ladeorte[:10] %}
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th class="rechts">Rang</th><th>Ladeort</th><th>Land</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+    <tbody>
+    {% for o, s in orte %}
+      <tr><td class="rechts">{{ loop.index }}</td>
+        <td><a href="/ladevorgaenge?ladeort_id={{ o.id }}&amp;{{ parameter }}">{{ o.adresse }}</a></td>
+        <td>{{ (o.land | flagge ~ " " ~ o.land | landname) if o.land else "" }}</td>{{ summenzellen(s) }}</tr>
+    {% else %}
+      <tr><td colspan="7">Keine öffentlichen Ladungen mit Ladeort im Zeitraum.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if ladeorte_alle %}
+    <p><a href="/auswertungen?{{ parameter }}#ladeorte" role="button" class="outline secondary klein">Nur Top 10 anzeigen</a></p>
+  {% elif a.ladeorte | length > 10 %}
+    <p><a href="/auswertungen?{{ parameter }}&amp;ladeorte=alle#ladeorte" role="button" class="outline secondary klein">Alle {{ a.ladeorte | length }} Ladeorte anzeigen</a></p>
+  {% endif %}
+  <p><small>Nur öffentliche Ladevorgänge mit bekannter Adresse, nach Anzahl der Vorgänge, auch Orte
+    ohne genaue Verortung. Der Link zeigt alle Vorgänge an diesem Ort im Zeitraum.</small></p>
+</section>
+{% endblock %}

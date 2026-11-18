@@ -1,0 +1,294 @@
+{# Grundgerüst der PDF-Reports (WeasyPrint, services/reports.py): A4, Kopfzeile mit Logo und Titel, Fußzeile mit
+   Seitenzahl, Erstellungsdatum und Version. Eigene Druck-Styles – unabhängig von Pico und dem Bildschirm-Theme. #}
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>{% block titel %}{% endblock %}</title>
+<style>
+  @page {
+    size: A4; margin: 24mm 15mm 18mm 15mm;
+    @top-left { content: element(kopf); width: 100%; }
+    @bottom-left { content: "Ladefalke · erstellt {{ erstellt.strftime('%d.%m.%Y %H:%M') }} · Version {{ app_version().split(' · ')[0] }}";
+                   font-family: "Liberation Sans", "DejaVu Sans", sans-serif; font-size: 7.5pt; color: #6b7079; width: 70mm; }
+    {% if tlp %}@bottom-center { content: "TLP:{{ tlp }}"; font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+                    font-size: 8pt; font-weight: 700; color: {{ tlp_farbe }}; background: #000000; padding: .6mm 2.5mm;
+                    height: 4mm; margin-top: 5mm; vertical-align: middle; text-align: center; }{% endif %}
+    @bottom-right { content: "Seite " counter(page) " von " counter(pages);
+                    font-family: "Liberation Sans", "DejaVu Sans", sans-serif; font-size: 7.5pt; color: #6b7079; }
+  }
+  {% block seite %}{% endblock %}{# eigenes Seitenformat bzw. Styles eines Reports (z. B. Flottenbilanz 16:9) #}
+  :root { --blau: #0172ad; --grau: #6b7079; --linie: #d9dee5; --flaeche: #f3f6f9;
+          --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s0: #c3c2b7; }
+  body { font-family: "Liberation Sans", "DejaVu Sans", sans-serif; font-size: 9pt; color: #1f2933; line-height: 1.35; }
+  .kopf { position: running(kopf); display: flex; align-items: center; gap: 3mm; padding-bottom: 2mm;
+          border-bottom: .6pt solid var(--linie); font-size: 8pt; color: var(--grau); }
+  .kopf img { height: 9mm; }
+  .kopf .marke { font-weight: 700; color: var(--blau); font-size: 10pt; line-height: 1.05; }
+  .kopf .marke small { display: block; font-weight: 400; font-size: 6.5pt; color: var(--grau); letter-spacing: .02em; }
+  .kopf .rechts { margin-left: auto; text-align: right; }
+  h1 { font-size: 17pt; margin: 0 0 1mm; }
+  h2 { font-size: 11.5pt; margin: 7mm 0 2mm; color: var(--blau); break-after: avoid; }
+  h3 { font-size: 9.5pt; margin: 3mm 0 1.5mm; break-after: avoid; }
+  p { margin: 0 0 2mm; }
+  .untertitel { color: var(--grau); margin-bottom: 5mm; }
+  .klein { font-size: 7.5pt; color: var(--grau); }
+  .msp-etikett { display: inline-block; padding: 0 1.2mm; border-radius: .8mm; font-size: 7pt; color: var(--blau);
+    background: #e8f1f8; white-space: nowrap; }
+  .kacheln { display: flex; gap: 3mm; margin: 2mm 0 1mm; }
+  .kachel { flex: 1; background: var(--flaeche); border-radius: 2mm; padding: 2.5mm 3mm; }
+  .kachel .zahl { font-size: 14pt; font-weight: 700; display: block; }
+  .kachel .text { color: var(--grau); }
+  .kachel .vgl { display: block; font-size: 7.5pt; margin-top: 1mm; color: var(--grau); }
+  .kacheln.drei { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+  .kacheln.drei .kachel { padding: 3mm 4mm; }
+  .kacheln.drei .zahl { font-size: 17pt; white-space: nowrap; }
+  .kacheln.drei .kachel:nth-child(-n+3) { background: #e8f1f8; }
+  .vgl.mehr { color: #c92a2a; } .vgl.weniger { color: #1a7f5a; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 2mm; break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th { text-align: left; font-weight: 700; border-bottom: .8pt solid #9aa5b1; padding: 1.2mm 1.5mm; }
+  td { border-bottom: .4pt solid var(--linie); padding: 1.1mm 1.5mm; vertical-align: top; }
+  tbody tr:nth-child(even) td { background: #fafbfc; }
+  .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.summe td { font-weight: 700; border-top: .8pt solid #9aa5b1; }
+  .spalten { display: flex; gap: 6mm; }
+  .spalten > * { flex: 1; min-width: 0; }
+  .spalten table { font-size: 8pt; }
+  .spalten-raster { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+  /* Spaltenpaare beim Seitenumbruch zusammenhalten (sonst verschiebt WeasyPrint die Spalten unterschiedlich) und
+     Überschriften oben bündig */
+  .spalten { break-inside: avoid; align-items: flex-start; margin-top: 4mm; }
+  .spalten > * > .block:first-child > h3, .spalten > * > h3:first-child { margin-top: 0; }
+  .diagramm { display: flex; gap: 3mm; align-items: flex-start; break-inside: avoid; margin-bottom: 3mm; }
+  .diagramm svg { width: 26mm; height: 26mm; flex: none; }
+  .diagramm .legende { flex: 1; font-size: 7.5pt; }
+  .diagramm .legende td { padding: .5mm 1mm; border: 0; background: none !important; white-space: nowrap; }
+  .diagramm .legende strong { display: block; }
+  .diagramm.mit-saeulen { border-bottom: .4pt solid var(--linie); padding-bottom: 3mm; }
+  .diagramm.mit-saeulen .legende { flex: 0 0 62mm; }
+  .diagramm .monate { flex: 1; min-width: 0; }
+  .diagramm .monate svg { width: 100%; height: auto; }
+  .farbe { display: inline-block; width: 2.5mm; height: 2.5mm; border-radius: .5mm; margin-right: 1mm; }
+  .slot-1 { fill: var(--s1); background: var(--s1); } .slot-2 { fill: var(--s2); background: var(--s2); }
+  .slot-3 { fill: var(--s3); background: var(--s3); } .slot-4 { fill: var(--s4); background: var(--s4); }
+  .slot-5 { fill: var(--s5); background: var(--s5); } .slot-0 { fill: var(--s0); background: var(--s0); }
+  .ok { color: #1a7f5a; } .warnung { color: #b06d00; }
+  .vollstaendig { margin: 3mm 0 1mm; padding: 2.5mm 4mm; border-radius: 2mm; background: #eef8f3; border-left: 1mm solid #1a7f5a; }
+  .vollstaendig.fehlt { background: #fff6e5; border-left-color: #c98a00; }
+  .vollstaendig.offen { background: #f3f6f9; border-left-color: var(--grau); }
+  .vollstaendig strong { color: #1a7f5a; } .vollstaendig.fehlt strong { color: #9a6200; }
+  .vollstaendig .luecken { margin: 1.5mm 0 1mm; font-size: 8pt; }
+  .vollstaendig .luecken td { border: 0; padding: .4mm 2mm .4mm 0; background: none !important; }
+  .vollstaendig .luecken td:first-child { white-space: nowrap; font-weight: 700; width: 18mm; }
+  .vollstaendig .klein { display: block; margin-top: 1mm; }
+  .block { break-inside: avoid; }
+  /* Fester Seitenumbruch vor einem Abschnitt (Abschnitte beginnen immer oben auf einer Seite) */
+  .neue-seite { break-before: page; margin-top: 0; }
+  .neue-seite > h2:first-child, h2.neue-seite { margin-top: 0; }
+  .dc-histogramme svg { width: 100%; height: auto; margin-top: 1mm; }
+  .platzierung { display: flex; align-items: center; gap: 6mm; margin: 4mm 0 2mm; padding: 3mm 5mm;
+                 border-radius: 2.5mm; background: #f6f7f9; border: .5pt solid var(--linie); break-inside: avoid; }
+  .platzierung.oben { background: #fff8e1; border-color: #f0d27a; }
+  .platzierung .treppchen { width: 40mm; height: auto; flex: none; }
+  /* Textzeilen als Blöcke untereinander (in einer Flex-Spalte berechnet WeasyPrint umbrechenden Text zu niedrig) */
+  .platz-text { display: block; flex: 1; min-width: 0; }
+  .platz-text > span { display: block; margin-bottom: .8mm; }
+  .platz-titel { font-size: 8pt; color: var(--grau); text-transform: uppercase; letter-spacing: .05em; }
+  .platz-gross { font-size: 22pt; font-weight: 700; color: #1f2933; line-height: 1.1; }
+  .platz-gross small { font-size: 12pt; font-weight: 400; color: var(--grau); }
+  .platz-gross.klein-gross { font-size: 15pt; }
+  .platzierung.oben .platz-gross { color: #8a5a00; }
+  .platz-spruch { font-size: 10pt; }
+  .cpo-block { break-inside: avoid; margin-bottom: 4mm; }
+  .cpo-block h3 { margin-bottom: 1.5mm; }
+  .cpo-spalten { margin-top: 0; }
+  .cpo-spalten > .breit { flex: 1.7; }
+  td.eingerueckt { padding-left: 4mm; }
+  tr.person td { border-top: .6pt solid #c5ccd5; }
+  table.msp-art tr.neue-art td { border-top: .8pt solid #9aa5b1; }
+  .heatmap img { width: 100%; border-radius: 1.5mm; border: .4pt solid var(--linie); }
+</style>
+</head>
+<body>
+<div class="kopf">
+  <img src="ladefalke.svg" alt="">
+  <span class="marke">Ladefalke<small>resch.cloud</small></span>
+  <span>{% block kopf %}{% endblock %}</span>
+  <span class="rechts">{% block kopf_rechts %}{{ z.von | datum }} – {{ z.bis | datum }}{% endblock %}</span>
+</div>
+{% block inhalt %}{% endblock %}
+</body>
+</html>
+
+{# Bausteine #}
+{% macro wert(x, einheit) %}{{ x | geld if einheit == "€" else (x | zahl(0)) ~ " " ~ einheit }}{% endmacro %}
+
+{% macro abweichung(wert, basis, teurer_ist_schlecht=false, pp=false) -%}
+{%- if wert is not none -%}
+{%- set klasse = ("mehr" if wert > 0 else "weniger" if wert < 0 else "") if teurer_ist_schlecht else "" -%}
+<span class="vgl {{ klasse }}">{{ "▲" if wert > 0 else "▼" if wert < 0 else "=" }} {{ "+" if wert > 0 -}}
+  {%- if pp %}{{ wert | zahl(1) }} Pp.{% else %}{{ (wert * 100) | zahl(0) }} %{% endif %} ggü. Ø {{ basis }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro dauer(minuten) %}{{ "%d:%02d h" % (minuten // 60, minuten % 60) if minuten >= 60 else "%d min" % minuten }}{% endmacro %}
+
+{% macro kennzahlen(s, v, z, mit_oeffentlich=true, gegen_flotte=none, flottenschnitt=none, dc=none, drei=false, schnitt=none) %}
+{% set sn = schnitt %}
+<div class="kacheln{{ ' drei' if drei }}">
+  <div class="kachel"><span class="zahl">{{ s.anzahl }}</span><span class="text">Ladevorgänge</span>
+    {%- set pt = z.pro_tag(s.anzahl) %}{% if pt is not none %}<span class="vgl">Ø {{ pt | zahl(1) }} pro Tag</span>{% endif %}
+    {% if sn %}<span class="vgl">Ø {{ sn.anzahl | zahl(1) }} {{ sn.text }}</span>{% endif %}
+    {% if v %}{{ abweichung(v.anzahl, v.basis) }}{% endif %}</div>
+  <div class="kachel"><span class="zahl">{{ s.kwh | zahl(0) }}</span><span class="text">kWh{% if s.kwh_geschaetzt %} (≈ {{ s.anteil_geschaetzt | prozent }} geschätzt){% endif %}</span>
+    {% if sn %}<span class="vgl">Ø {{ sn.kwh | zahl(0) }} kWh {{ sn.text }}</span>{% endif %}
+    {% if v %}{{ abweichung(v.kwh, v.basis) }}{% endif %}</div>
+  <div class="kachel"><span class="zahl">{{ s.kosten | geld }}</span><span class="text">Kosten netto</span>
+    {% if sn %}<span class="vgl">Ø {{ sn.kosten | geld }} {{ sn.text }}</span>{% endif %}
+    {% if v %}{{ abweichung(v.kosten, v.basis) }}{% endif %}</div>
+  <div class="kachel"><span class="zahl">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span>
+    {% if gegen_flotte is not none %}<span class="vgl {{ 'mehr' if gegen_flotte > 0 else 'weniger' if gegen_flotte < 0 }}">
+      {%- if gegen_flotte | abs < 0.005 %}= wie der Flottenschnitt
+      {%- else %}{{ "▲" if gegen_flotte > 0 else "▼" }} {{ ((gegen_flotte | abs) * 100) | zahl(0) }} % {{ "über" if gegen_flotte > 0 else "unter" }} dem Flottenschnitt{% endif %}
+      ({{ flottenschnitt | zahl(2) }})</span>{% endif %}
+    {% if v %}{{ abweichung(v.preis, v.basis, teurer_ist_schlecht=true) }}{% endif %}</div>
+  {% if dc %}
+  <div class="kachel"><span class="zahl">{{ dauer(dc.eigen) if dc.eigen is not none else "–" }}</span><span class="text">Ø Ladedauer DC</span>
+    <span class="vgl">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}
+      {%- if dc.flotte is not none %} · Flotte {{ dauer(dc.flotte) }}{% endif %}</span></div>
+  {% endif %}
+  {% if mit_oeffentlich %}
+  <div class="kachel"><span class="zahl">{{ s.anteil_oeffentlich_kwh | prozent }}</span><span class="text">öffentlich (kWh)</span>
+    {% if v %}{{ abweichung(v.oeffentlich_pp, v.basis, pp=true) }}{% endif %}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# Farben direkt am SVG (WeasyPrint wendet Klassen/Variablen in eingebettetem SVG nicht an); Palette wie in app.css #}
+{% set FARBEN = {1: "#2a78d6", 2: "#eb6834", 3: "#1baf7a", 4: "#eda100", 5: "#e87ba4", 0: "#c3c2b7"} %}
+{% macro saeulen(v, feld, einheit, dia, breite=460) %}
+{% set g = dia.saeulen(v, feld, breite=breite, hoehe=150) %}
+<svg viewBox="0 0 {{ g.breite }} {{ g.hoehe }}" width="{{ g.breite }}" height="{{ g.hoehe }}" class="saeulen"
+     font-family="Liberation Sans, DejaVu Sans, sans-serif" font-size="11" fill="#6b7079">
+  {% for y, w in g.teilstriche %}
+    <line x1="{{ g.links }}" x2="{{ g.breite }}" y1="{{ y }}" y2="{{ y }}" stroke="{{ '#b9b8b0' if loop.first else '#e6e5df' }}" stroke-width="1"/>
+    <text x="{{ g.links - 6 }}" y="{{ y + 4 }}" text-anchor="end">{{ w | zahl(0) }}</text>
+  {% endfor %}
+  {% for kurz, monat, x, segmente, summe in g.spalten %}
+    {% for s in segmente %}<rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.breite }}" height="{{ s.hoehe }}" fill="{{ FARBEN[s.reihe.slot] }}" stroke="#ffffff" stroke-width=".8"/>{% endfor %}
+    <text x="{{ x }}" y="{{ g.hoehe - 8 }}" text-anchor="middle">{{ kurz }}</text>
+  {% endfor %}
+</svg>
+{% endmacro %}
+
+{% macro torte(v, feld, titel, einheit, dia) %}
+{% set gesamt = v.summe(feld) %}
+<div class="diagramm{{ ' mit-saeulen' if not v.torte }}">
+  <svg viewBox="0 0 200 200" width="200" height="200">
+    {% for s in dia.torte(v, feld) %}
+      {% if s.pfad %}<path d="{{ s.pfad }}" fill="{{ FARBEN[s.reihe.slot] }}" stroke="#ffffff" stroke-width="2"/>
+      {% else %}<circle cx="100" cy="100" r="90" fill="{{ FARBEN[s.reihe.slot] }}"/>{% endif %}
+    {% endfor %}
+  </svg>
+  <div class="legende">
+    <strong>{{ titel }}</strong> <span class="klein">gesamt {{ wert(gesamt, einheit) }}</span>
+    <table>
+      {% for r in v.reihen %}{% set w = v.reihensumme(loop.index0, feld) %}
+      <tr><td><span class="farbe slot-{{ r.slot }}"></span>{{ r.name }}{% if r.enthalten %} ({{ r.enthalten | length }}){% endif %}</td>
+        <td class="r">{{ wert(w, einheit) }}</td><td class="r">{{ (w / gesamt) | prozent if gesamt else "–" }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% if not v.torte %}<div class="monate"><span class="klein">je Monat</span>{{ saeulen(v, feld, einheit, dia) }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{# Histogramm (diagramme.Histogramm) für den Druck: eine Reihe, Farbe direkt am SVG #}
+{% macro histogramm(h, titel, zusatz, achse) %}
+{% set teilstriche, saeulen = h.geometrie() %}
+<div>
+<strong>{{ titel }}</strong> <span class="klein">{{ zusatz }}</span>
+<svg viewBox="0 0 {{ h.breite }} {{ h.hoehe + 14 }}" width="{{ h.breite }}" height="{{ h.hoehe + 14 }}" class="histogramm"
+     font-family="Liberation Sans, DejaVu Sans, sans-serif" font-size="11" fill="#6b7079">
+  {% for y, w in teilstriche %}
+    <line x1="{{ h.links }}" x2="{{ h.breite }}" y1="{{ y }}" y2="{{ y }}" stroke="{{ '#b9b8b0' if loop.first else '#e6e5df' }}" stroke-width="1"/>
+    <text x="{{ h.links - 6 }}" y="{{ y + 4 }}" text-anchor="end">{{ w | zahl(0) }}</text>
+  {% endfor %}
+  {% for kurz, text, n, x, y, breite, hoehe in saeulen %}
+    {% if n %}<rect x="{{ x }}" y="{{ y }}" width="{{ breite }}" height="{{ hoehe }}" fill="{{ FARBEN[1] }}" stroke="#ffffff" stroke-width="1.5"/>{% endif %}
+    {% if kurz %}<text x="{{ x + breite / 2 }}" y="{{ h.hoehe - 8 }}" text-anchor="middle">{{ kurz }}</text>{% endif %}
+  {% endfor %}
+  <text x="{{ h.breite }}" y="{{ h.hoehe + 10 }}" text-anchor="end">{{ achse }}</text>
+</svg>
+</div>
+{% endmacro %}
+
+{# Öffentliches DC-Laden: Dauer des Ladevorgangs und Uhrzeit des Ladebeginns (diagramme.dc_oeffentlich) #}
+{% macro dc_histogramme(d, titel="Öffentliches DC-Laden") %}
+<div class="block dc-histogramme">
+<h2>{{ titel }}</h2>
+{% if d.dauer.anzahl %}
+<div class="spalten">
+  {{ histogramm(d.dauer, "Dauer des Ladevorgangs", "Median " ~ d.median_minuten ~ " min · " ~ d.dauer.anzahl ~ " Ladungen", "Minuten angesteckt") }}
+  {{ histogramm(d.stunde, "Uhrzeit des Ladebeginns", d.stunde.anzahl ~ " Ladungen", "Uhr") }}
+</div>
+<p class="klein">Nur öffentliche DC-Ladungen. Dauer = Steckzeit laut Rechnung (Beginn bis Ende).
+  {%- if d.ohne_uhrzeit %} {{ d.ohne_uhrzeit }} Ladung{{ "en" if d.ohne_uhrzeit != 1 }} ohne Uhrzeit in der Rechnung
+  {{- " zählen" if d.ohne_uhrzeit != 1 else " zählt" }} nur bei der Dauer.{% endif %}</p>
+{% else %}<p class="klein">Keine öffentlichen DC-Ladungen im Zeitraum.</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro heatmap_abschnitt(h, titel="Öffentliches Laden", neue_seite=false) %}
+<div class="block heatmap{{ ' neue-seite' if neue_seite }}">
+<h2>{{ titel }}</h2>
+{% if h.bild %}<img src="{{ h.bild }}" alt="Heatmap">
+<p class="klein">{{ h.ladungen }} öffentliche Ladung{{ "en" if h.ladungen != 1 }} an {{ h.orte }} Ort{{ "en" if h.orte != 1 }}
+  {%- if h.ohne_ort %}; {{ h.ohne_ort }} weitere ohne genauen Ort sind nicht eingezeichnet{% endif %}.</p>
+{% else %}<p class="klein">Keine öffentlichen Ladungen mit bekanntem Ort im Zeitraum.</p>{% endif %}
+</div>
+{% endmacro %}
+
+{# Ladekarte: Person bzw. Kennzeichen (Person) mit MSP-Etikett (services/kartenanzeige.py) #}
+{% macro karte(a, fahrer_id=none, msp=true) -%}
+{{ a.relativ(fahrer_id) if fahrer_id else a.name }}{% if a.zusatz %} <span class="klein">…{{ a.zusatz }}</span>{% endif %}
+{%- if a.weitere %} <span class="klein">+{{ a.weitere | length }}</span>{% endif %}
+{%- if msp %} <span class="msp-etikett">{{ a.msp }}</span>{% endif %}
+{%- endmacro %}
+{% macro summen_tabelle(titel, spalte, eintraege, leer="Keine Daten im Zeitraum.") %}
+<div class="block">
+<h3>{{ titel }}</h3>
+<table>
+  <thead><tr><th>{{ spalte }}</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <tbody>
+  {% for name, s in eintraege %}
+    <tr><td>{{ name }}</td><td class="r">{{ s.anzahl }}</td><td class="r">{{ s.kwh | zahl(0) }}</td>
+      <td class="r">{{ s.kosten | geld }}</td><td class="r">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td></tr>
+  {% else %}
+    <tr><td colspan="5">{{ leer }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{# Siegertreppchen: Pokal (Platz 1) und Medaille (Platz 2/3) als SVG-Gruppen (Fahrer:innen-Report, Flottenbilanz) #}
+{% macro pokal(x, y, s=1) %}
+<g transform="translate({{ x }} {{ y }}) scale({{ s }})">
+  <path d="M-9 -2 Q-17 -2 -15 6 Q-13 11 -7 11" fill="none" stroke="#c98a00" stroke-width="2.2"/>
+  <path d="M9 -2 Q17 -2 15 6 Q13 11 7 11" fill="none" stroke="#c98a00" stroke-width="2.2"/>
+  <path d="M-10 -4 H10 V4 Q10 15 0 16 Q-10 15 -10 4 Z" fill="#f5c518" stroke="#c98a00" stroke-width="1.2"/>
+  <path d="M-5 -1 V6" stroke="#fff3b0" stroke-width="2" stroke-linecap="round"/>
+  <rect x="-2.2" y="16" width="4.4" height="5" fill="#c98a00"/>
+  <rect x="-8" y="21" width="16" height="4" rx="1" fill="#8a5a00"/>
+</g>
+{% endmacro %}
+{% macro medaille(x, y, farbe, rand) %}
+<g transform="translate({{ x }} {{ y }})">
+  <path d="M-6 -12 L-2 0 M6 -12 L2 0" stroke="#2a78d6" stroke-width="3.5"/>
+  <circle cx="0" cy="6" r="8" fill="{{ farbe }}" stroke="{{ rand }}" stroke-width="1.4"/>
+  <circle cx="0" cy="6" r="4.5" fill="none" stroke="{{ rand }}" stroke-width=".8"/>
+</g>
+{% endmacro %}

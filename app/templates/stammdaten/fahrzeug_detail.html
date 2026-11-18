@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% import "_ladevorgaenge.html" as lv %}
+{% import "_zuordnung.html" as zo %}
+{% block titel %}{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrzeuge' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrzeuge</a>{{ m.blaettern(blaettern) }}</p>
+<h1>{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}</h1>
+{% if fahrzeug %}
+{{ m.offene_punkte(offen, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
+{{ m.querverweise("Auswertung", [
+     ("/auswertungen/fahrzeug/%d" % fahrzeug.id, "Vormonat", "Auswertung des Vormonats"),
+     ("/auswertungen/fahrzeug/%d?art=jahr&jahr=%d" % (fahrzeug.id, heute_datum().year), heute_datum().year, "Auswertung des laufenden Jahres"),
+     ("/ladevorgaenge?fahrzeug_id=%d" % fahrzeug.id, "Ladevorgänge", "Alle Ladevorgänge dieses Fahrzeugs")]) }}
+{{ m.gesamt_kacheln(gesamt, "dieses Fahrzeugs") }}
+{% endif %}
+
+<form method="post" class="formular" action="{{ '/stammdaten/fahrzeuge/%d' % fahrzeug.id if fahrzeug else '/stammdaten/fahrzeuge/neu' }}">
+  <div class="grid">
+    {{ m.feld("kennzeichen", "Kennzeichen", werte, fehler, pflicht=true) }}
+    {{ m.feld("modell", "Modell", werte, fehler) }}
+  </div>
+  <div class="grid leasing" data-leasing-monate="{{ leasing_monate }}">
+    {{ m.feld("leasing_beginn", "Leasingbeginn", werte, fehler, typ="date") }}
+    {{ m.feld("leasing_ende", "Leasing-Ende", werte, fehler, typ="date") }}
+  </div>
+  <small class="formular-hinweis">Leasing-Ende wird aus dem Beginn + {{ leasing_monate }} Monate vorbelegt
+    (Einstellungen) und lässt sich ändern. Vor Ablauf erscheint eine Info unter „Aufgaben“.</small>
+  {# Österreich: Vignette und Streckenmaut FLEX – nur, wenn das Feature aktiv ist (Einstellungen → Fristen) #}
+  {% macro maut(art, titel, frage, knoepfe=[]) %}
+  {% set an = werte.get(art ~ "_noetig") %}
+  <fieldset class="maut">
+    <legend>{{ titel }}</legend>
+    {{ m.haken(art ~ "_noetig", frage, werte) }}
+    <div data-aktiv-wenn="{{ art }}_noetig" {% if not an %}class="inaktiv"{% endif %}>
+      <div class="grid">
+        {% for teil, text in (("ab", "Gültig ab"), ("bis", "Gültig bis")) %}
+        <label>{{ text }}
+          <input type="date" name="{{ art }}_{{ teil }}" value="{{ werte.get(art ~ '_' ~ teil) or '' }}" {% if not an %}readonly{% endif %}
+                 {% if fehler.get(art ~ "_" ~ teil) %}aria-invalid="true"{% endif %}>
+          {% if fehler.get(art ~ "_" ~ teil) %}<small>{{ fehler[art ~ "_" ~ teil] }}</small>{% endif %}
+        </label>
+        {% endfor %}
+      </div>
+      {% if knoepfe %}<div class="knoepfe">{% for jahr, ab, bis in knoepfe %}
+        <button type="button" class="outline secondary klein" data-datum-setzen="{{ art }}_ab,{{ art }}_bis"
+                data-wert="{{ ab.isoformat() }},{{ bis.isoformat() }}" {% if not an %}disabled{% endif %}
+                title="{{ ab | datum }} – {{ bis | datum }}">Jahresvignette {{ jahr }}</button>{% endfor %}</div>{% endif %}
+    </div>
+  </fieldset>
+  {% endmacro %}
+  {% if einst.feature_vignette %}{{ maut("vignette", "Autobahn-Vignette (Österreich)", "Vignette nötig", jahresvignetten) }}{% endif %}
+  {% if einst.feature_streckenmaut %}{{ maut("streckenmaut", "Streckenmaut FLEX (Österreich)", "Streckenmaut FLEX nötig") }}{% endif %}
+  {{ m.textfeld("notiz", "Notiz", werte, fehler) }}
+  {{ m.aktiv_feld(werte) }}
+  <button type="submit">Speichern</button>
+</form>
+
+{% if fahrzeug %}
+{{ m.entfernen_knopf("/stammdaten/fahrzeuge/%d" % fahrzeug.id, "Fahrzeug %s" % fahrzeug.kennzeichen, fahrzeug.aktiv, referenziert) }}
+<article>
+  <header><strong>Ladeprofil und kWh-Schätzung</strong> <small>(alle Vorgänge mit AC/DC-Angabe, ohne geschätzte kWh)</small></header>
+  <div class="tabelle">
+  <table>
+    <thead><tr><th></th><th class="rechts">Ladevorgänge</th><th class="rechts">Ø kWh je Vorgang</th>
+               <th class="rechts">Ø Ladeleistung</th><th class="rechts">95 % der Vorgänge bis</th>
+               <th>Zeitraum ({{ STICHTAG[request.state.stichtag] }})</th><th>Schätzung rechnet mit</th></tr></thead>
+    <tbody>
+    {% for art in ("AC", "DC") %}{% set p = profil.get(art) %}{% set w = schaetzwerte[art] %}
+      <tr><td>{{ m.stromart(art) }}</td>
+        {% if p %}
+        <td class="rechts">{{ p.anzahl }}</td>
+        <td class="rechts">{{ p.kwh_schnitt | zahl(1) }} kWh</td>
+        <td class="rechts">{{ p.leistung | zahl(1) if p.leistung is not none else "–" }} kW</td>
+        <td class="rechts">{{ p.kwh_p95 | zahl(1) }} kWh</td>
+        <td>{{ p.von | datum }} – {{ p.bis | datum }}</td>
+        {% else %}<td class="rechts">0</td><td class="rechts">–</td><td class="rechts">–</td><td class="rechts">–</td><td></td>{% endif %}
+        <td>{% if w.quelle == "fahrzeug" %}diesen Werten
+          {%- else %}{{ w.kw | zahl(1) }} kW, höchstens {{ w.obergrenze_kwh | zahl(1) }} kWh
+            <br><small>{{ w.quelle_text }}</small>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <small>Ø Ladeleistung = geladene Energie / angesteckte Dauer (Σ kWh / Σ Stunden). Für Rechnungen ohne kWh (z. B.
+    Zeittarife) schätzt die App Standzeit × Leistung (höchstens die Leistung des Ladepunkts), begrenzt auf „95 % der
+    Vorgänge bis“ – ab {{ mindestanzahl }} eigenen Vorgängen je Stromart mit diesen Werten, sonst mit dem Flottenschnitt
+    bzw. den Vorgaben aus den Einstellungen. Ändern sich die Daten, werden geschätzte kWh neu berechnet; Kosten bleiben.
+    {% if profil_ohne_angabe %}<br>{{ profil_ohne_angabe }} Vorgänge ohne AC/DC-Angabe sind nicht enthalten.{% endif %}
+    {% if profil_unplausibel %}<br>⚠ <a href="/ladevorgaenge?fahrzeug_id={{ fahrzeug.id }}&amp;unplausibel=1">{{ profil_unplausibel }}
+    unplausible{{ "r" if profil_unplausibel == 1 }} Vorgang{{ "e" if profil_unplausibel != 1 }}</a> nicht enthalten (AC/DC passt nicht zur Leistung).{% endif %}</small>
+</article>
+
+
+<h2>Fahrer:innen</h2>
+{{ zo.abschnitt(fahrer_mini, "Fahrer:in", formular="neue-fahrer-zuordnung") }}
+
+<article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
+  <header><strong>Neue Fahrer:in-Zuordnung</strong></header>
+  <form method="post" action="/stammdaten/fahrzeuge/{{ fahrzeug.id }}/fahrer" id="neue-fahrer-zuordnung">
+    {% if zuordnung_fehler %}<p class="meldung meldung-fehler" role="alert">{{ zuordnung_fehler }}</p>{% endif %}
+    <div class="grid">
+      {{ m.auswahl("fahrer_id", "Fahrer:in", fahrer_liste | optionen("id", "name"), zuordnung_werte, {}, pflicht=true) }}
+      {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
+      {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
+    </div>
+    {{ m.leasing_knoepfe({"*": leasing_daten([fahrzeug]).get(fahrzeug.id | string, [none, none])}) }}
+    <label class="haken">
+      <input type="checkbox" name="bisherige_austragen" {% if zuordnung_werte.get("bisherige_austragen") %}checked{% endif %}
+             aria-describedby="austragen-hinweis">
+      Bisherige Fahrer:in(nen) dieses Fahrzeugs zum Vortag austragen (Fahrerwechsel)
+    </label>
+    <small id="austragen-hinweis" class="haken-hinweis">Bei Poolfahrzeugen mit mehreren Fahrer:innen abwählen.</small>
+    {{ m.neu_zuordnen_haken(zuordnung_werte) }}
+    <p class="zuordnung-hinweis"><small>Ein offenes bisheriges Fahrzeug der gewählten Person wird automatisch zum Vortag beendet.</small></p>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>
+  </form>
+</article>
+
+<h2>Direkt zugeordnete Ladekarten</h2>
+{{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine direkt zugeordneten Karten.") }}
+{{ zo.karte_zuordnen(karten_auswahl, "fahrzeug:%d" % fahrzeug.id, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
+
+{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrzeug_id=%d" % fahrzeug.id, mit_karte=true, art=request.state.stichtag) }}
+{{ m.verlauf_abschnitt(verlauf) }}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,47 @@
+{# Tabelle „Letzte Ladevorgänge“ für Detailseiten; zeilen = [(Ladevorgang, [Fahrer:innen beim Laden])];
+   art: Stichtag („ende“/„beginn“) – bestimmt, welches Datum vorne steht und verlinkt ist #}
+{% import "_makros.html" as mk %}
+{% macro letzte_ladevorgaenge(zeilen, alle_link=none, mit_karte=false, mit_fahrzeug=false, mit_fahrer=true,
+                              anzahl=15, art="ende") %}
+<h2 id="ladevorgaenge">Letzte Ladevorgänge</h2>
+{% if zeilen %}
+<div class="tabelle">
+<table class="striped">
+  <thead><tr>{{ mk.zeit_kopf(art) }}{% if mit_karte %}<th>Karte</th>{% endif %}<th>Standort</th>
+             <th class="rechts">kWh</th><th class="rechts">Kosten</th><th class="rechts">€/kWh</th>
+             {% if mit_fahrzeug or mit_fahrer %}<th>{% if mit_fahrzeug %}Fahrzeug{% endif %}
+               {%- if mit_fahrzeug and mit_fahrer %} <small>· Fahrer:in beim Laden</small>
+               {%- elif mit_fahrer %}Fahrer:in beim Laden{% endif %}</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for v, fahrer in zeilen %}
+    <tr>
+      {{ mk.zeit_zellen(v, art) }}
+      {% if mit_karte %}
+      <td>{{ mk.karte_vorgang(v) }}</td>
+      {% endif %}
+      <td>{{ v.standort or "" }}</td>
+      <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
+      <td class="rechts">{{ v.kosten_netto | geld }}</td>
+      <td class="rechts">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
+      {% if mit_fahrzeug or mit_fahrer %}
+      <td>
+        {%- if mit_fahrzeug -%}
+          {%- if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>
+          {%- elif v.ladekarte and v.ladekarte.ist_gastkarte %}Gäste{% else %}<span class="marker inaktiv">keines</span>{% endif %}
+          {%- if mit_fahrer and fahrer %} <small>({{ fahrer | map(attribute="name") | join(", ") }})</small>{% endif %}
+        {%- else -%}
+          {{ fahrer | map(attribute="name") | join(", ") or "–" }}
+        {%- endif -%}
+      </td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p><small>{% if zeilen | length >= anzahl %}Die neuesten {{ anzahl }} Vorgänge. {% endif %}
+</small>{% if alle_link %} <a href="{{ alle_link }}" role="button" class="outline secondary klein nav-knopf">Alle Ladevorgänge anzeigen →</a>{% endif %}</p>
+{% else %}
+<p>Noch keine Ladevorgänge.</p>
+{% endif %}
+{% endmacro %}

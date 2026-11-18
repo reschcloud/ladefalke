@@ -1,0 +1,52 @@
+# Betrieb. Für die Entwicklung zusätzlich compose.dev.yaml (in .env: COMPOSE_FILE=compose.yaml:compose.dev.yaml).
+# Projektname fest (sonst aus dem Ordnernamen): bestimmt die Namen von Containern und Volumes (ladefalke_pgdata)
+name: ladefalke
+
+services:
+  db:
+    image: docker.io/library/postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ:-Europe/Vienna}
+      PGTZ: ${TZ:-Europe/Vienna}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      # Hochgeladene Originaldateien (ab Phase 2)
+      - ./data/uploads:/data/uploads:Z
+      # Sicherungen (Einstellungen → Backup; Wiederherstellen per Kommando, siehe README)
+      - ./data/backups:/data/backups:Z
+      # HTTPS-Zertifikat (selbstsigniert beim ersten Start erzeugt oder eigenes cert.pem/key.pem), siehe README
+      - ./data/tls:/data/tls:Z
+      # Freie Geodaten zum Einspielen (GeoNames-Postleitzahlen), nur lesend; die App geht nie ins Internet
+      - ./data/geo:/data/geo:ro,Z
+    depends_on:
+      db:
+        condition: service_healthy
+    # App antwortet und erreicht die Datenbank (/gesund); Startphase großzügig – vor Migrationen läuft eine Sicherung
+    healthcheck:
+      test: ["CMD", "python", "-m", "werkzeuge.gesund"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10m
+
+volumes:
+  pgdata:

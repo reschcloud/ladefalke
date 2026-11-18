@@ -1,0 +1,307 @@
+# Ladefalke – Der elektrische Fuhrpark im Blick
+
+Interne Webanwendung zur Erfassung und Auswertung der Ladevorgänge der Firmenflotte.
+Spezifikation: [SPEC.md](SPEC.md).
+
+## Start
+
+```sh
+cp .env.example .env      # Passwörter, SECRET_KEY und BACKUP_PASSWORT setzen
+docker compose up --build
+```
+
+Installation auf einem Server, Updates und Releases: siehe [Betrieb](#betrieb). Für die **Entwicklung** in `.env`
+zusätzlich `COMPOSE_FILE=compose.yaml:compose.dev.yaml` setzen – das Image enthält dann die Testwerkzeuge und die
+Beispieldateien aus `samples/` werden eingebunden (`compose.dev.yaml`).
+
+Die App läuft dann unter **https**://localhost:8000 (Port über `APP_PORT` in `.env`) – mit selbstsigniertem
+Zertifikat, der Browser fragt beim ersten Aufruf einmal nach (siehe „HTTPS und Reverse Proxy“).
+Beim Start werden die Datenbank-Migrationen automatisch ausgeführt.
+
+Mit Podman: `podman compose up --build` (bzw. `podman-compose`). Bind-Mounts sind für
+SELinux (Fedora) mit `:Z` gekennzeichnet.
+
+## HTTPS und Reverse Proxy
+
+**Ohne Proxy (Standard, `TLS=an`):** Die App spricht direkt HTTPS. Beim ersten Start erzeugt sie ein
+selbstsigniertes Zertifikat (10 Jahre gültig) in `data/tls/` für `localhost`, `127.0.0.1` und die Namen/IP-Adressen
+aus `TLS_NAMEN` (z. B. `TLS_NAMEN=ladekosten.firma.lan 192.168.1.20`). Es bleibt über Neustarts erhalten, damit die
+Ausnahme im Browser gültig bleibt. Neu erzeugen: `data/tls/` leeren und die App neu starten. Ein eigenes Zertifikat:
+`cert.pem` und `key.pem` (PEM, Schlüssel unverschlüsselt) nach `data/tls/` legen. Reines HTTP auf diesem Port wird
+nicht beantwortet.
+
+**Hinter einem Reverse Proxy (Echtbetrieb, `TLS=aus`):** Die App spricht HTTP auf Port 8000; der Proxy übernimmt
+HTTPS und reicht `X-Forwarded-For`/`X-Forwarded-Proto` durch. `FORWARDED_ALLOW_IPS` auf die Adresse des Proxys
+setzen (Standard `*`), den Port in `compose.yaml` am besten nur an den Proxy bzw. `127.0.0.1` binden. Beispiel nginx:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 50m;  # Rechnungs-PDFs
+}
+```
+
+Das Sitzungs-Cookie wird nur über HTTPS gesendet (`COOKIE_SECURE=true`); nur für einen reinen HTTP-Testbetrieb
+ohne Proxy auf `false` setzen.
+
+## Benutzer:innen und Rollen
+
+Beim ersten Anmeldeversuch wird aus `ADMIN_USER`/`ADMIN_PASSWORD` in `.env` der erste Admin angelegt – danach zählt
+nur die Benutzertabelle (Passwörter als scrypt-Hash). Weitere Benutzer:innen legt ein Admin unter „Benutzer:innen“ (Menü rechts)
+an:
+
+| Rolle | Darf |
+|---|---|
+| Admin | alles, auch Einstellungen ändern und Benutzerverwaltung (rote Leiste oben im Fenster) |
+| Operator | alles außer Einstellungen und MSP ändern sowie Benutzerverwaltung |
+| Viewer | nur lesen (inkl. Exporte und Originaldokumente) |
+
+Passwort und Theme ändert jede:r unter „Mein Konto“. Löschen geht erst nach dem Deaktivieren (nie das eigene
+Konto); der letzte aktive Admin lässt sich weder herabstufen noch deaktivieren.
+
+## Unterstützte Rechnungsformate
+
+Das Format wird beim Hochladen am Dateiinhalt erkannt (Parser unter `app/parsers/`, je Format ein Modul).
+
+| MSP | Datei | Besonderheiten |
+|---|---|---|
+| Standort (eigene Wallboxen) | has.to.be CSV | keine Kosten in der Datei → kWh × Strompreis (Vorbelegung in den Einstellungen); Karte über `CardLabel`, Gäste über `GAST` + Referenz |
+| Wien Energie | PDF | Zeittarife ohne kWh → kWh geschätzt (aus den Ladedaten je Fahrzeug bzw. Flotte); Brutto → netto exakt auf Rechnungssumme |
+| DCS / BMW Charging | PDF | Teilrechnung je Land; Karte = Vertragsnummer; Uhrzeiten in UTC → Wiener Zeit; ausländische MwSt ignoriert |
+| LINZ AG | PDF | Grundgebühr (Sammelposition) wird auf die Karten der Rechnung aufgeteilt |
+| Salzburg AG | PDF | Transaktionsnummer als externe ID |
+| EnBW mobility+ | PDF | eine Rechnung je Land und Monat; Transaktions-ID als externe ID |
+| Elli / Cupra Charging („Easy Charging“) | PDF | Monatsübersicht (keine Rechnung); Text über PDFium; keine Uhrzeiten; Karte = Kontoinhaber:in; Netto je Land, abgestimmt auf die ausgewiesene MwSt |
+
+Alle Beträge werden netto gespeichert. Tests laufen gegen anonymisierte Auszüge in `tests/fixtures/`
+und zusätzlich gegen echte Dateien in `samples/`, falls vorhanden.
+
+### Parser hinzufügen oder entfernen
+
+Der Kern der App kennt keine konkreten Anbieter – alles Anbieterspezifische steht im jeweiligen Parser.
+
+**Hinzufügen:** ein Modul `app/parsers/<name>.py` mit einer Unterklasse von `basis.Parser` anlegen:
+
+```python
+class NeuerParser(Parser):
+    key = "neuer_anbieter"           # eindeutig, wird am MSP gespeichert
+    name = "Neuer Anbieter (PDF)"    # erscheint in Auswahl und Formatliste
+    msp_name = "Neuer Anbieter"      # optional: Name des automatisch angelegten MSP
+    standard_ladeart = "oeffentlich" # optional: Vorbelegung des MSP („privat“ für eigene Wallboxen)
+    abrechnung_je_karte = False      # optional: Rechnung je Ladekarte (Vollständigkeitsprüfung)
+    standardland = None              # optional: ISO-Land, wenn die Rechnung keines nennt
+    liefert_evse = True              # optional: False, wenn der Ladepunkt keine EVSE-ID ist
+
+    def erkennen(self, pfad): ...    # True, wenn die Datei zu diesem Format passt (am Inhalt)
+    def parsen(self, pfad): ...      # liefert basis.Ergebnis (Rechnung, Vorgänge, Gebühren, Warnungen)
+```
+
+Dazu ein pytest-Test gegen eine anonymisierte Fixture in `tests/fixtures/`. Nach dem Neustart wird der Parser
+automatisch gefunden und bekommt einen eigenen MSP – keine Migration, keine Änderung am Kern.
+
+**Deaktivieren** (ohne etwas zu löschen): Stammdaten → MSP → „Parser aktiv“ ausschalten (nur Admin). Die App tut
+dann, als gäbe es den Parser nicht; importierte Daten bleiben.
+
+**Entfernen:** das Modul löschen und neu starten. Die MSP-Liste warnt dann „Parser fehlt“; die Daten bleiben
+vollständig. Ist der Parser am MSP deaktiviert, lässt sich dort die Verknüpfung entfernen (der MSP bleibt).
+
+## Befehle
+
+| Zweck | Befehl |
+|---|---|
+| Tests (nur mit `compose.dev.yaml`, siehe Start) | `docker compose run --rm --build app pytest` |
+| Migration | `docker compose run --rm app alembic upgrade head` |
+| Neue Migration | `docker compose run --rm -v ./alembic/versions:/app/alembic/versions:Z app alembic revision -m "…"` |
+
+Die Tests legen im Datenbank-Container eine eigene Datenbank `<POSTGRES_DB>_test` an und
+löschen sie danach wieder; die Produktivdaten bleiben unberührt.
+
+## Geodaten (Karte, Verortung der Ladeorte)
+
+Die App geht nie ins Internet. Für die Verortung der Ladeorte wird einmalig das freie Postleitzahlen-Verzeichnis
+von GeoNames eingespielt (Lizenz CC-BY 4.0, © GeoNames, https://www.geonames.org/):
+
+```
+mkdir -p data/geo && cd data/geo
+curl -LO https://download.geonames.org/export/zip/allCountries.zip && unzip -o allCountries.zip
+cd ../.. && docker compose run --rm app python -m app.services.geokodierung
+```
+
+Eingespielt werden nur europäische Länder; danach werden alle Ladeorte neu verortet. `data/geo` wird nur lesend
+in den Container eingebunden und nicht committet. Zum Aktualisieren die Schritte wiederholen.
+
+Die Heatmap im Dashboard braucht keine Kartenkacheln: Leaflet und Leaflet.heat liegen unter `app/static/leaflet/`,
+die Grenzen (Natural Earth, gemeinfrei) vereinfacht in `app/static/geo/basiskarte.js`. Neu erzeugen nur bei Bedarf,
+aus `ne_50m_admin_0_countries.geojson`, `ne_10m_admin_1_states_provinces.geojson` und
+`ne_10m_populated_places.geojson` (https://github.com/nvkelso/natural-earth-vector, Ordner `geojson`) sowie
+`cities5000.txt` von GeoNames (https://download.geonames.org/export/dump/cities5000.zip, entpackt):
+
+```
+python3 werkzeuge/basiskarte.py data/geo/ne_50m_admin_0_countries.geojson \
+  data/geo/ne_10m_admin_1_states_provinces.geojson data/geo/ne_10m_populated_places.geojson \
+  data/geo/cities5000.txt app/static/geo/basiskarte.js
+```
+
+Straßen, Flüsse, Seen und das schattierte Relief (`app/static/geo/details.json`, `relief.jpg`) erzeugt
+`werkzeuge/kartendetails.py` (braucht Pillow und numpy) aus den Natural-Earth-Dateien `ne_10m_roads`,
+`ne_10m_rivers_lake_centerlines`, `ne_10m_rivers_europe`, `ne_10m_lakes`, `ne_10m_lakes_europe` (GeoJSON, wie oben)
+und dem Raster https://naciscdn.org/naturalearth/10m/raster/SR_HR.zip (entpackt nach `sr_hr/`):
+
+```
+python3 werkzeuge/kartendetails.py data/geo/natural_earth app/static/geo
+```
+
+## Backup und Umzug
+
+Einstellungen → **Backup** (Aktionen nur für Admins): „Jetzt sichern“, Liste mit Herunterladen und Löschen,
+Zeitplan (aus / täglich / wöchentlich, Uhrzeit, wie viele automatische Sicherungen behalten werden; manuelle
+bleiben, bis man sie löscht). Ablage: `data/backups/` (Volume).
+
+Eine Sicherung (`ladefalke-backup-JJJJ-MM-TT_HHMMSS[-auto].tar.gz`) enthält die **ganze Datenbank** (Daten,
+Einstellungen, Benutzer:innen mit Passwort-Hashes, eingespielte Postleitzahlen), die **Originaldateien** aus
+`data/uploads/`, eine **Kopie der Parser** und ein Manifest (Datum, App-Version, Datenbankstand, Parser mit
+Prüfsumme, Anzahlen). Nicht enthalten und für einen Umzug nicht nötig: `.env`, GeoNames-Rohdaten, TLS-Zertifikat.
+
+**Verschlüsselung:** Ist `BACKUP_PASSWORT` in `.env` gesetzt, werden alle Sicherungen damit verschlüsselt
+(AES-256-GCM, Endung `.enc`). Das Passwort sicher aufbewahren – ohne ist die Sicherung wertlos. Ohne Passwort sind
+Sicherungen unverschlüsselt (Warnung in den Einstellungen); sie enthalten Personendaten. Achtung, falls `data/` in
+einem Sync-Ordner liegt: Die Sicherungen werden dann mit synchronisiert.
+
+Per Kommando:
+
+```sh
+docker compose exec app python -m werkzeuge.backup erstellen
+docker compose exec app python -m werkzeuge.backup liste
+```
+
+**Wiederherstellen / Umziehen** (bewusst nur per Kommando – ersetzt Datenbank und Originaldateien):
+
+1. Neue Installation einrichten (`.env` mit eigenen Werten, `docker compose up -d --build`).
+2. Sicherungsdatei nach `data/backups/` kopieren.
+3. ```sh
+   docker compose exec -it app python -m werkzeuge.backup wiederherstellen /data/backups/<datei> --ueberschreiben
+   docker compose restart app
+   ```
+
+Das Kommando fragt bei verschlüsselten Sicherungen nach dem Passwort (oder nimmt `BACKUP_PASSWORT`), lehnt
+Sicherungen einer neueren App-Version ab, hebt ältere per Migration an und meldet Parser, die in der Sicherung
+vorkommen, hier aber fehlen oder einen anderen Stand haben. Deren Kopien legt es neben die Sicherung
+(`<datei>_parser/`); übernommen werden sie nur von Hand (nach `app/parsers/` kopieren, Image neu bauen) – Code aus
+einer Sicherung wird nie automatisch geladen. Ohne `--ueberschreiben` verweigert es das Einspielen in eine
+Datenbank, die schon Ladevorgänge enthält. Danach gelten die Benutzer:innen aus der Sicherung.
+
+## Betrieb
+
+### Installation auf einem Server
+
+Voraussetzung: Docker mit Compose-Plugin und Git. Installiert wird immer ein **Release** (Git-Tag, siehe
+[CHANGELOG.md](CHANGELOG.md)), nicht der laufende Entwicklungsstand.
+
+```sh
+git clone git@github.com:reschcloud/ladefalke.git && cd ladefalke
+git checkout v1.0.0                 # gewünschtes Release
+cp .env.example .env                # Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus (Reverse Proxy)
+docker compose up -d --build
+docker compose ps                   # app „healthy“ = App antwortet und erreicht die Datenbank
+```
+
+Umzug bzw. Neuaufbau mit Daten: danach eine Sicherung einspielen (siehe [Backup und Umzug](#backup-und-umzug)) –
+mit dem `BACKUP_PASSWORT` der Sicherung. Die Sicherung enthält auch die eingespielten Postleitzahlen; GeoNames muss
+nicht neu geladen werden. Das TLS-Zertifikat entsteht neu (oder eigenes nach `data/tls/`). Sicherungen landen in
+`data/backups/` auf demselben Server – zusätzlich auf ein anderes System kopieren.
+
+### Update
+
+```sh
+cat CHANGELOG.md                    # „Beim Update beachten“ des neuen Release lesen
+git fetch --tags
+git checkout v1.1.0
+docker compose up -d --build
+docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
+```
+
+Der Footer zeigt danach die neue Version (z. B. „v1.1.0 · 20.11.2026“).
+
+**Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
+Sicherung** an (`ladefalke-backup-…-update.tar.gz`, Art „vor Update“; wird nie automatisch gelöscht). Schlägt diese
+Sicherung fehl, migriert und startet die App nicht (Meldung im Log) – abschaltbar mit `BACKUP_VOR_UPDATE=aus` in
+`.env`. Startet die App nach einer fehlgeschlagenen Migration immer wieder neu, entsteht keine weitere Sicherung.
+PostgreSQL führt Schemaänderungen in einer Transaktion aus: Schlägt eine Migration fehl, bleibt die Datenbank auf dem
+alten Stand; die Ursache steht in `docker compose logs app`.
+
+### Zurück auf ein älteres Release
+
+Verlässlich ist nur: altes Release starten und die Sicherung von vor dem Update einspielen.
+
+```sh
+git checkout v1.0.0
+docker compose build app
+docker compose stop app             # die alte App startet ohnehin nicht, solange die Datenbank neuer ist
+docker compose run --rm app python -m werkzeuge.backup liste
+docker compose run --rm -it app python -m werkzeuge.backup wiederherstellen \
+  /data/backups/<…-update.tar.gz.enc> --ueberschreiben
+docker compose up -d
+```
+
+Alles, was nach dem Update erfasst wurde, ist danach weg – vorher als CSV exportieren oder nach dem Rückschritt neu
+importieren.
+
+### PostgreSQL-Hauptversion wechseln (z. B. 16 → 17)
+
+Das Datenverzeichnis einer Hauptversion lässt sich nicht mit der nächsten öffnen; der Wechsel geht über die Sicherung:
+
+1. Sicherung erstellen (`docker compose exec app python -m werkzeuge.backup erstellen`) und auf ein anderes System
+   kopieren.
+2. In `compose.yaml` das Image auf `postgres:17` und den Volume-Namen von `pgdata` auf `pgdata17` ändern (beide
+   Stellen), im `Dockerfile` `postgresql-client-16` → `-17`. Das alte Volume `ladefalke_pgdata` bleibt unberührt –
+   das ist der Rückweg.
+3. `docker compose up -d --build` – startet mit leerer Datenbank.
+4. Sicherung einspielen (siehe [Backup und Umzug](#backup-und-umzug)). Läuft alles, kann das alte Volume später mit
+   `docker volume rm ladefalke_pgdata` weg.
+
+### Release erstellen (Entwicklung)
+
+Versionen nach `HAUPT.NEBEN.FIX`: FIX = nur Fehlerbehebungen, NEBEN = neue Funktionen (Update ohne Zutun),
+HAUPT = beim Update ist etwas von Hand zu tun (z. B. neue Pflichtangabe in `.env`). Migrationen allein machen noch
+keine Hauptversion.
+
+1. Tests grün (`docker compose run --rm --build app pytest`).
+2. In [CHANGELOG.md](CHANGELOG.md) den Abschnitt „Unveröffentlicht“ zur neuen Version mit Datum machen; unter
+   „Beim Update beachten“ alles, was von Hand zu tun ist (oder „nichts“).
+3. Commit, dann **einfacher** Tag (ohne `-a`, damit die Versionsanzeige ihn ohne Git-Historie erkennt):
+
+   ```sh
+   git tag v1.1.0 && git push origin main v1.1.0
+   ```
+
+### Abhängigkeiten aktualisieren
+
+Das Image installiert feste Versionen aus `requirements.lock` (Entwicklung: `requirements-dev.lock`); so baut jeder
+Server dieselben Bibliotheken wie getestet. Direkte Abhängigkeiten stehen in `requirements.txt` bzw.
+`requirements-dev.txt`. Aktualisieren (z. B. für Sicherheitsupdates):
+
+```sh
+sh werkzeuge/abhaengigkeiten_sperren.sh   # löst neu auf und schreibt beide .lock-Dateien
+docker compose run --rm --build app pytest
+```
+
+Danach die `.lock`-Dateien committen – mit dem nächsten Release erreichen sie die Server.
+
+## Datenschutz
+
+`samples/`, `data/` und `.env` enthalten echte Personendaten bzw. Zugangsdaten und werden
+nie committet (siehe `.gitignore`).
+
+## Lizenz
+
+Ladefalke ist freie Software unter der **GNU General Public License, Version 3** (GPL-3.0, siehe [LICENSE](LICENSE)).
+Du darfst sie nutzen, verändern und weitergeben; veränderte Versionen müssen wieder unter der GPL-3.0 und mit
+Quelltext weitergegeben werden. Ohne jede Gewährleistung.
+
+Mitgelieferte Fremdbestandteile behalten ihre Lizenzen: Leaflet und Leaflet.heat (BSD-2-Clause), htmx (Zero-Clause
+BSD), Pico CSS (MIT), Natural-Earth-Daten (gemeinfrei); die GeoNames-Postleitzahlen (CC-BY 4.0) werden nicht
+mitgeliefert, sondern bei Bedarf geladen (siehe „Geodaten“).
+

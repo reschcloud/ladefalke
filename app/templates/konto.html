@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Mein Konto{% endblock %}
+{% block inhalt %}
+{% set ich = request.state.benutzer %}
+<h1>Mein Konto</h1>
+<p>{{ ich.name }} <small>({{ ich.benutzername }})</small> · Rolle <strong>{{ rollen[ich.rolle] }}</strong>:
+  {{ rollen_text[ich.rolle] }}.</p>
+
+<section class="einstellung-gruppe">
+  <header class="kopf"><h2 id="darstellung">Darstellung</h2></header>
+  <form method="post" action="/konto/theme" class="theme-wahl" hx-boost="false" data-immer>  {# ganze Seite neu laden: hx-boost tauscht nur den body, das Theme steht am html #}
+    <span class="umschalter" role="group" aria-label="Theme" title="Theme">
+      {%- for wert, text in themes.items() %}
+      <button type="submit" name="theme" value="{{ wert }}" aria-pressed="{{ 'true' if ich.theme == wert else 'false' }}"
+              title="Theme: {{ text }}" aria-label="Theme {{ text }}">{{ {"auto": "◐", "hell": "☀", "dunkel": "☾"}[wert] }}</button>
+      {%- endfor %}
+    </span>
+    <small>Nur für dich, wirkt sofort. Auto folgt dem Betriebssystem bzw. Browser.</small>
+  </form>
+</section>
+
+<section class="einstellung-gruppe">
+  <header class="kopf"><h2 id="email">E-Mail</h2></header>
+  {% set darf = ich.rolle in ("admin", "operator") %}
+  <form method="post" action="/konto/email" class="formular" data-immer>
+    <label>E-Mail-Adresse
+      <input type="email" name="email" value="{{ ich.email or '' }}" placeholder="name@example.com"
+             {% if fehler.get("email") %}aria-invalid="true" aria-describedby="email-fehler"{% endif %}
+             {% if not darf %}disabled title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin"{% endif %}>
+      {% if fehler.get("email") %}<small id="email-fehler" class="fehler">{{ fehler.email }}</small>{% endif %}
+    </label>
+    <small class="formular-hinweis">Für Mails der App an dich (z. B. Reports). Leer lassen und speichern entfernt die Adresse.</small>
+    {% if darf %}<button type="submit">Speichern</button>
+    {% else %}<button type="submit" class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin">Speichern</button>{% endif %}
+  </form>
+  <form method="post" action="/konto/abo" class="abo" data-immer>
+    <label class="haken"><input type="checkbox" name="abo" {% if ich.zusammenfassung_abo %}checked{% endif %}
+      onchange="this.form.requestSubmit()"> Zusammenfassungen per Mail erhalten</label>
+    <small class="formular-hinweis">Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du im
+      Folgemonat die Zusammenfassung als PDF{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
+    <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
+  </form>
+  <form method="post" action="/konto/aufgaben-abo" class="abo" data-immer>
+    <label class="haken"><input type="checkbox" name="abo" {% if ich.aufgaben_abo %}checked{% endif %}
+      onchange="this.form.requestSubmit()"> Offene Aufgaben per Mail erhalten</label>
+    <small class="formular-hinweis">Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den
+      Report „Offene Aufgaben“ nach dessen Zeitplan{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
+    <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
+  </form>
+  {% for art, titel, wann in [("karten_cpo", "Karten und Preise je CPO", "im Folgemonat mit den Monatsreports"),
+                              ("flottenbilanz", "Flottenbilanz", "im Folgemonat mit den Monatsreports"),
+                              ("zuordnungen", "Zuordnungen am Stichtag", "nach dessen Zeitplan, Stichtag ist der Versandtag")] %}
+  <form method="post" action="/konto/report-abo/{{ art }}" class="abo" data-immer>
+    <label class="haken"><input type="checkbox" name="abo" {% if ich[art ~ "_abo"] %}checked{% endif %}
+      onchange="this.form.requestSubmit()"> {{ titel }} per Mail erhalten</label>
+    <small class="formular-hinweis">Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den
+      Report {{ wann }}{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
+    <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
+  </form>
+  {% endfor %}
+</section>
+
+<section class="einstellung-gruppe">
+  <header class="kopf"><h2 id="passwort">Passwort ändern</h2></header>
+  <form method="post" action="/konto/passwort" class="formular" data-immer>
+    {{ m.feld("aktuell", "Bisheriges Passwort", {}, fehler, typ="password", pflicht=true) }}
+    <div class="grid">
+      {{ m.feld("neu", "Neues Passwort", {}, fehler, typ="password", pflicht=true) }}
+      {{ m.feld("wiederholung", "Neues Passwort wiederholen", {}, fehler, typ="password", pflicht=true) }}
+    </div>
+    <small class="formular-hinweis">Mindestens {{ mindestlaenge }} Zeichen.</small>
+    <button type="submit">Passwort ändern</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Fahrzeuge{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Fahrzeuge</h1>
+  <a href="/stammdaten/fahrzeuge/neu" role="button" data-schreiben>Neues Fahrzeug</a>
+</div>
+<div class="filterleiste">
+  {{ m.status_filter(status, "/stammdaten/fahrzeuge", modell_paare) }}
+  <form method="get" action="/stammdaten/fahrzeuge" class="filterzeile sofort">
+    <input type="hidden" name="status" value="{{ status }}">
+    {{ m.mehrfach("modell", "Modell", modell_optionen, modell) }}
+    <noscript><button type="submit" class="outline">Filtern</button></noscript>
+  </form>
+</div>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Kennzeichen</th><th>Modell</th><th>Aktuelle Fahrer:in</th>
+             <th>Hinweise {{ m.hilfe("Was beim Fahrzeug zu klären ist: Leasingdaten (fehlend, endet bald, abgelaufen), Fahrer:innen-Zuordnung (aktuell ohne, Lücken), Ladevorgänge mit unplausibler oder fehlender AC/DC-Angabe. Rot = dringend, gelb = klären, grau = Angabe fehlt; ✓ = alles in Ordnung. Ein Klick führt zur Stelle, an der man es behebt.") }}</th>
+             {% if status == "alle" %}<th>Status</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for fz, fahrer in zeilen %}
+    <tr>
+      <td><a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a></td>
+      <td>{{ fz.modell or "" }}</td>
+      <td>{% for f in fahrer %}<a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if not loop.last %}, {% endif %}{% else %}–{% endfor %}</td>
+      <td class="hinweise">{% if fz.aktiv %}
+        {%- for h in hinweise.get(fz.id, []) %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>{% else %}<span class="alles-ok" title="Keine offenen Punkte">✓</span>{% endfor %}
+        {%- else %}–{% endif %}</td>
+      {% if status == "alle" %}<td>{{ m.aktiv_kennzeichen(fz.aktiv) }}</td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Keine Fahrzeuge gefunden.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p><small>Ladeprofil und Grundlage der kWh-Schätzung stehen auf der Seite des Fahrzeugs.</small></p>
+{% endblock %}

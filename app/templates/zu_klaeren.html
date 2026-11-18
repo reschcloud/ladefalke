@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Aufgaben{% endblock %}
+{% block inhalt %}
+<h1>Aufgaben</h1>
+{# Fristen: Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut FLEX (Vorwarnzeiten in den Einstellungen) #}
+{% if fristen %}
+<section class="meldung meldung-warnung fristen" id="fristen" role="status" aria-label="Fristen">
+  <strong>⏰ Fristen</strong>
+  <ul>
+  {% for f in fristen %}
+    <li>
+      {% if f.art == "leasing" %}Leasing <a href="{{ f.link }}">{{ f.name }}</a>
+        {%- if f.ueberfaellig %} <strong>abgelaufen</strong> am {{ f.faellig | datum }}
+        {%- else %} endet am {{ f.faellig | datum }} <small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endif %}
+      {%- elif f.art == "fuehrerschein" %}Führerscheinkontrolle <a href="{{ f.link }}">{{ f.name }}</a>
+        {%- if f.faellig is none %} <strong>fehlt</strong> <small>(noch keine Kontrolle eingetragen)</small>
+        {%- elif f.ueberfaellig %} <strong>überfällig</strong> seit {{ f.faellig | datum }}
+        {%- else %} fällig am {{ f.faellig | datum }} <small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endif %}
+      {%- else %}{{ "Vignette" if f.art == "vignette" else "Streckenmaut FLEX" }} <a href="{{ f.link }}">{{ f.name }}</a>
+        {%- if f.zustand == "fehlt" %} <strong>Gültigkeit fehlt</strong> <small>(ab/bis beim Fahrzeug eintragen)</small>
+        {%- elif f.zustand == "noch_nicht" %} <strong>noch nicht gültig</strong> – erst ab {{ f.ab | datum }}
+        {%- elif f.zustand == "abgelaufen" %} <strong>abgelaufen</strong> am {{ f.faellig | datum }}
+        {%- else %} läuft ab am {{ f.faellig | datum }} <small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endif %}
+      {%- endif %}
+    </li>
+  {% endfor %}
+  </ul>
+  <small>Hinweis {{ einst.leasing_vorwarnung_tage }} Tage vor Leasing-Ende
+    {%- if einst.feature_fuehrerschein %}, {{ einst.fuehrerschein_vorwarnung_tage }} Tage vor der Führerscheinkontrolle
+      (alle {{ einst.fuehrerschein_intervall_monate }} Monate){% endif %}
+    {%- if einst.feature_vignette %}, {{ einst.vignette_vorwarnung_tage }} Tage vor Ablauf der Vignette{% endif %}
+    {%- if einst.feature_streckenmaut %}, {{ einst.streckenmaut_vorwarnung_tage }} Tage vor Ablauf der Streckenmaut FLEX{% endif %}
+    – einstellbar unter <a href="/einstellungen#fristen">Einstellungen</a>. Erledigt: Datum beim Fahrzeug bzw. bei der
+    Person aktualisieren.</small>
+</section>
+{% endif %}
+{# Hinweis: Zeiträume, in denen ein aktives Fahrzeug keine Fahrer:in hatte (services/luecken.py) #}
+{% if luecken %}
+<section class="meldung meldung-info luecken" role="status" aria-label="Lücken in der Fahrer:innen-Zuordnung">
+  <strong>ⓘ Lücken in der Fahrer:innen-Zuordnung</strong>
+  <ul>
+  {% for l in luecken %}
+    <li><a href="/stammdaten/fahrzeuge/{{ l.fahrzeug.id }}">{{ l.fahrzeug.kennzeichen }}</a>
+      {% if l.offen %}seit {{ l.von | datum }} ohne Fahrer:in
+      {%- else %}{{ l.von | datum }} – {{ l.bis | datum }} ohne Fahrer:in{% endif %}
+      <small>({{ l.tage }} Tag{{ "e" if l.tage != 1 }}
+        {%- if l.ladevorgaenge %}, <a href="/ladevorgaenge?fahrzeug_id={{ l.fahrzeug.id }}&amp;von={{ l.von.isoformat() }}&amp;bis={{ l.bis.isoformat() }}">{{ l.ladevorgaenge }} {{ "Ladevorgang" if l.ladevorgaenge == 1 else "Ladevorgänge" }}</a> ohne Fahrer:in{% endif %})</small></li>
+  {% endfor %}
+  </ul>
+  <small>Geprüft ab Leasingbeginn (sonst ab der ersten Zuordnung) bis heute bzw. Leasing-Ende. Ladevorgänge in einer
+    Lücke zählen in keiner Auswertung pro Fahrer:in. Beheben: auf der Fahrzeugseite eine Fahrer:in für den Zeitraum
+    zuordnen (mit „neu zuordnen“) – oder ignorieren, wenn das Fahrzeug bewusst ohne Fahrer:in war. Überblick:
+    <a href="/stammdaten/zuordnungen/zeitleiste?ansicht=alles">Zeitleiste (alles)</a>.</small>
+</section>
+{% endif %}
+{# Übersicht: je Aufgabe eine Kachel mit Anzahl; offene farbig, erledigte mit Häkchen; Klick springt zum Abschnitt #}
+{% macro aufgabe(anker, anzahl, titel, hinweis) %}
+{# erledigte Aufgaben haben keinen Abschnitt – daher keine Verlinkung #}
+{% if anzahl %}<a class="kachel aufgabe offen" href="#{{ anker }}">{% else %}<div class="kachel aufgabe erledigt">{% endif %}
+  <span class="kachel-zahl">{% if anzahl %}{{ anzahl }}{% else %}✓{% endif %}</span>
+  <strong>{{ titel }}</strong>
+  <small>{% if anzahl %}{{ hinweis }}{% else %}nichts zu tun{% endif %}</small>
+{% if anzahl %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+<nav class="kacheln aufgaben-uebersicht" aria-label="Übersicht der Aufgaben">
+  {{ aufgabe("fristen", fristen | length, "Fristen", "Datum beim Fahrzeug bzw. der Person aktualisieren") }}
+  {{ aufgabe("ohne-fahrzeug", request.state.offen.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug",
+             "Karte zuordnen oder Vorgänge manuell zuweisen") }}
+  {{ aufgabe("gebuehren", gebuehren | length, "Gebühren ohne Ladekarte", "einer Ladekarte zuweisen") }}
+  {{ aufgabe("unplausibel", unplausible | length, "Unplausible AC/DC-Angaben",
+             "Stromart korrigieren oder ausnehmen") }}
+  {{ aufgabe("stromart", request.state.offen.ohne_stromart, "Ladevorgänge ohne AC/DC-Angabe",
+             "Stromart je MSP setzen") }}
+  {% if geo_vorhanden %}
+  {{ aufgabe("ladeorte", ladeorte | length, "Ladeorte ohne Koordinaten", "PLZ eintragen") }}
+  {% else %}
+  <a class="kachel aufgabe nicht-verfuegbar" href="#ladeorte"><span class="kachel-zahl">–</span>
+    <strong>Ladeorte ohne Koordinaten</strong><small>nicht prüfbar: PLZ-Verzeichnis fehlt</small></a>
+  {% endif %}
+</nav>
+{% if not (request.state.offen.ohne_fahrzeug or vorgaenge or gebuehren or unplausible or request.state.offen.ohne_stromart
+           or stromart_msp or ladeorte or fristen or luecken) %}<p class="meldung meldung-info">✓ Alles erledigt – nichts zu klären.</p>{% endif %}
+
+{% if request.state.offen.ohne_fahrzeug or vorgaenge %}
+<div class="kopf">
+  <h2 id="ohne-fahrzeug">Ladevorgänge ohne Fahrzeug</h2>
+  <form method="post" action="/aufgaben/automatisch" class="inline">
+    <input type="hidden" name="zurueck" value="/aufgaben#ohne-fahrzeug">
+    <button type="submit" class="outline">Automatische Zuordnung erneut versuchen</button>
+  </form>
+</div>
+<p>Meist fehlt der Karte eine Zuordnung: Karte rückwirkend zuordnen und dabei
+  „bereits importierte Ladevorgänge neu zuordnen“ wählen. Einzelne Vorgänge lassen sich unten auch manuell zuweisen.</p>
+{% if gaeste[0] %}
+  <p><small>Nicht enthalten: {{ gaeste[0] }} Ladevorgänge von Gastkarten ({{ gaeste[1] | zahl(0) }} kWh,
+    {{ gaeste[2] | geld }}) – sie bleiben bewusst ohne Fahrzeug (Topf „Gäste“).</small></p>
+{% endif %}
+
+<h3>Nach Karte</h3>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Karte</th><th>{{ MSP }}</th><th>Zeitraum ({{ STICHTAG[request.state.stichtag] }})</th><th class="rechts">Ladevorgänge</th>
+             <th class="rechts">kWh</th><th class="rechts">Kosten</th><th></th></tr></thead>
+  <tbody>
+  {% for karte_id, roh, msp_id, anzahl, kwh, kosten, von, bis in gruppen %}
+    {% set k = karten.get(karte_id) %}
+    <tr>
+      <td>{% if k %}<a href="/stammdaten/ladekarten/{{ k.id }}">{{ k.bezeichnung or k.kennung }}</a>
+          {% if k.bezeichnung %}<br><small>{{ k.kennung }}</small>{% endif %}
+          {% else %}{{ roh or "ohne Kennung" }} <small>(keine Ladekarte)</small>{% endif %}</td>
+      <td>{{ k.msp.name if k else "" }}</td>
+      <td>{{ von | datum }} – {{ bis | datum }}</td>
+      <td class="rechts">{{ anzahl }}</td>
+      <td class="rechts">{{ kwh | zahl(0) }}</td>
+      <td class="rechts">{{ kosten | geld }}</td>
+      <td class="rechts">
+        {% if k %}<a href="/aufgaben?karte_id={{ k.id }}#vorgaenge" role="button" class="outline klein">anzeigen</a>
+          <a href="/stammdaten/ladekarten/{{ k.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ von.date().isoformat() }}#neue-karten-zuordnung"
+             role="button" data-schreiben class="outline klein" title="Zuordnung ab dem ersten offenen Ladevorgang anlegen, danach zurück hierher">Karte zuordnen</a>
+        {% else %}<a href="/aufgaben?roh={{ (roh or '') | urlencode }}#vorgaenge" role="button" class="outline klein">anzeigen</a>{% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7">Alle Ladevorgänge sind einem Fahrzeug zugeordnet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if vorgaenge %}
+<h3 id="vorgaenge">Einzelne Vorgänge {% if gefiltert %}<small>(gefiltert) <a href="/aufgaben#vorgaenge" role="button" class="outline secondary klein">Filter aufheben</a></small>{% endif %}</h3>
+<form method="post" action="/aufgaben/zuweisen">
+  {# nach dem Zuweisen zurück zur selben (gefilterten) Liste #}
+  <input type="hidden" name="zurueck" value="{{ request.url.path }}{{ '?' ~ request.url.query if request.url.query }}#{{ 'vorgaenge' if gefiltert else 'ohne-fahrzeug' }}">
+  <div class="filterzeile">
+    <label>Ausgewählte zuweisen an
+      <select name="fahrzeug_id" required>
+        <option value="">– Fahrzeug wählen –</option>
+        {% for fz in fahrzeuge %}<option value="{{ fz.id }}">{{ fz.kennzeichen }}{% if fz.modell %} ({{ fz.modell }}){% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Manuell zuweisen</button>
+  </div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th><input type="checkbox" aria-label="alle auswählen"
+                          onclick="for (const c of this.form.querySelectorAll('input[name=vorgang_ids]')) c.checked = this.checked"></th>
+               <th>{{ STICHTAG[request.state.stichtag] }}</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th><th class="rechts">Kosten</th></tr></thead>
+    <tbody>
+    {% for v in vorgaenge %}
+      <tr>
+        <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="auswählen"></td>
+        <td><a href="/ladevorgaenge/{{ v.id }}">{{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</a></td>
+        <td>{{ m.karte_vorgang(v, msp=false) }}</td>
+        <td>{{ v.standort or "" }}</td>
+        <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
+        <td class="rechts">{{ v.kosten_netto | geld }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if vorgaenge | length >= max_zeilen %}<p><small>Nur die neuesten {{ max_zeilen }} angezeigt – bitte nach Karte filtern.</small></p>{% endif %}
+</form>
+{% endif %}
+
+{% endif %}
+
+{% if gebuehren %}
+<h2 id="gebuehren">Gebühren ohne Ladekarte</h2>
+<p><small>Diese Gebühren fließen als „nicht zuordenbar“ in die Gesamtwerte ein. Mit einer Karte werden sie
+  deren Fahrzeug zugerechnet.</small></p>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Bezeichnung</th><th>Import</th><th>Kennung laut Rechnung</th><th class="rechts">Netto</th><th>Ladekarte zuweisen</th></tr></thead>
+  <tbody>
+  {% for g in gebuehren %}
+    <tr>
+      <td>{{ g.bezeichnung }}</td>
+      <td><a href="/import/{{ g.import_id }}">{{ g.import_.bezeichnung }}</a></td>
+      <td>{{ g.roh_kartenkennung or "–" }}</td>
+      <td class="rechts">{{ g.betrag_netto | geld }}</td>
+      <td>
+        <form method="post" action="/aufgaben/gebuehr/{{ g.id }}" class="filterzeile">
+          <input type="hidden" name="zurueck" value="/aufgaben#gebuehren">
+          <select name="ladekarte_id" required aria-label="Ladekarte">
+            <option value="">– Karte –</option>
+            {% for k in karten_je_msp.get(g.import_.msp_id, []) %}
+              <option value="{{ k.id }}">{{ k.kennung }}{% if k.bezeichnung %} – {{ k.bezeichnung }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="outline klein">Zuweisen</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{% if unplausible %}
+<h2 id="unplausibel">Unplausible AC/DC-Angaben</h2>
+<p>Die angegebene Stromart passt nicht zur Leistung über den Vorgang (kWh / angesteckte Dauer). Solche Vorgänge zählen
+  nicht für das Ladeprofil, bis die Stromart auf der Detailseite korrigiert oder der Vorgang ausgenommen ist. Kosten und
+  kWh bleiben in allen Auswertungen erhalten. Grenzen: <a href="/einstellungen#datenqualitaet">Einstellungen</a>.</p>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>{{ STICHTAG[request.state.stichtag] }}</th><th>{{ MSP }}</th><th>Karte</th><th>Fahrzeug</th><th class="rechts">kWh</th>
+             <th>Grund</th><th></th></tr></thead>
+  <tbody>
+  {% for v, grund in unplausible %}
+    <tr>
+      <td><a href="/ladevorgaenge/{{ v.id }}">{{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</a></td>
+      <td>{{ v.msp.name }}</td>
+      <td>{{ m.karte_vorgang(v, msp=false) }}</td>
+      <td>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}</td>
+      <td class="rechts">{{ v.kwh | zahl(3) }}</td>
+      <td>⚠ {{ grund }}</td>
+      <td class="rechts nowrap"><a href="/ladevorgaenge/{{ v.id }}" role="button" data-schreiben class="outline klein">korrigieren</a>
+        <form method="post" action="/ladevorgaenge/{{ v.id }}/profil" class="inline">
+          <input type="hidden" name="ausnehmen" value="1"><input type="hidden" name="zurueck" value="/aufgaben#unplausibel">
+          <button type="submit" class="outline secondary klein"
+                  title="Kosten und kWh bleiben in allen Auswertungen; nur das Ladeprofil des Fahrzeugs lässt den Vorgang weg. Rückgängig auf der Detailseite.">ausnehmen</button>
+        </form>
+        <a href="/import/{{ v.import_id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein">Original ↗</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{% if request.state.offen.ohne_stromart or stromart_msp %}
+<h2 id="stromart">Ladevorgänge ohne AC/DC-Angabe</h2>
+<p>Die Rechnung nennt keine Stromart. Je {{ MSP }} AC oder DC setzen (vorbelegt mit der Vorgabe des {{ MSP }},
+  einstellbar in den Stammdaten); einzelne Vorgänge auf ihrer Detailseite.</p>
+{% if ohne_stromart %}
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>{{ MSP }}</th><th class="rechts">Ladevorgänge</th><th>AC/DC setzen</th><th></th></tr></thead>
+  <tbody>
+  {% for msp, anzahl in ohne_stromart %}
+    <tr>
+      <td><a href="/stammdaten/msp/{{ msp.id }}">{{ msp.name }}</a></td>
+      <td class="rechts">{{ anzahl }}</td>
+      <td>
+        <form method="post" action="/aufgaben/stromart" class="aktionszeile stromart-setzen">
+          <input type="hidden" name="msp_id" value="{{ msp.id }}">
+          <select name="stromart_vorgabe" aria-label="Stromart für {{ msp.name }}">
+            {% for wert in ["AC", "DC"] %}<option value="{{ wert }}" {% if msp.stromart_standard == wert %}selected{% endif %}>{{ wert }}</option>{% endfor %}
+          </select>
+          <button type="submit" class="outline klein"
+                  data-bestaetigen="Alle {{ anzahl }} Ladevorgänge von {{ msp.name }} ohne Angabe auf {wert} setzen?">Setzen</button>
+        </form>
+      </td>
+      <td class="rechts"><a href="/aufgaben?stromart_msp={{ msp.id }}#stromart-einzeln" role="button" class="outline klein">anzeigen</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>Keine.</p>
+{% endif %}
+
+{% if stromart_vorgaenge %}
+<h3 id="stromart-einzeln">Einzelne Vorgänge
+  {%- if stromart_msp %} <small>(ein {{ MSP }}) <a href="/aufgaben#stromart-einzeln" role="button" class="outline secondary klein">Filter aufheben</a></small>{% endif %}</h3>
+<form method="post" action="/aufgaben/stromart-einzeln">
+  <input type="hidden" name="stromart_msp" value="{{ stromart_msp }}">
+  <div class="aktionszeile">
+    <span>Vorschläge nach Leistung:</span>
+    {% for art in ["AC", "DC"] %}
+    <button type="button" class="outline secondary" data-vorschlag-markieren="{{ art }}"
+            onclick="for (const c of this.form.querySelectorAll('input[name=vorgang_ids]')) c.checked = c.dataset.vorschlag === this.dataset.vorschlagMarkieren">
+      {{ art }}-Vorschläge markieren</button>
+    {% endfor %}
+  </div>
+  <div class="aktionszeile">
+    <span>Markierte setzen auf</span>
+    <button type="submit" name="stromart_wert" value="AC" class="outline" aria-label="Markierte auf AC"
+            data-bestaetigen="{n} markierte Ladevorgänge auf {wert} setzen?">{{ m.stromart("AC") }}</button>
+    <button type="submit" name="stromart_wert" value="DC" class="outline" aria-label="Markierte auf DC"
+            data-bestaetigen="{n} markierte Ladevorgänge auf {wert} setzen?">{{ m.stromart("DC") }}</button>
+    <button type="submit" name="stromart_wert" value="" class="outline secondary"
+            data-bestaetigen="{n} markierte Ladevorgänge bewusst auf „keine Angabe“ setzen? Sie sind dann keine Aufgabe mehr."
+            title="Bewusst keine Angabe – die Vorgänge sind dann keine Aufgabe mehr">{{ m.stromart(none) }} keine Angabe</button>
+  </div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th><input type="checkbox" aria-label="alle auswählen"
+                          onclick="for (const c of this.form.querySelectorAll('input[name=vorgang_ids]')) c.checked = this.checked"></th>
+               <th>{{ STICHTAG[request.state.stichtag] }}</th><th>{{ MSP }}</th><th>Standort</th><th>{{ CPO }}</th>
+               <th class="rechts">kWh</th><th class="rechts">Dauer</th>
+               <th class="rechts">Ø Leistung {{ m.hilfe("kWh / angesteckte Dauer – die tatsächliche Ladeleistung war mindestens so hoch. Ab " ~ (einst.plausibel_ac_max_kw | zahl(0)) ~ " kW ist AC unplausibel (Vorschlag DC), unter " ~ (einst.plausibel_dc_min_kw | zahl(0)) ~ " kW DC (Vorschlag AC) – Grenzen aus den Einstellungen. Dazwischen kein Vorschlag; wenige kW über Stunden können auch DC sein, wenn das Auto lange angesteckt blieb.") }}</th>
+               <th class="rechts">Kosten</th><th class="rechts">€/kWh</th>
+               <th>Vorschlag {{ m.hilfe("Nach der Ø-Leistung und den Plausibilitätsgrenzen der Einstellungen: ab der AC-Grenze DC, unter der DC-Grenze AC, dazwischen keiner. Nur ein Vorschlag – übernommen wird er erst mit „AC“ bzw. „DC“ oben.") }}</th></tr></thead>
+    <tbody>
+    {% for v, kw, vorschlag, grund in stromart_vorgaenge %}
+      <tr>
+        <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="auswählen"
+                   data-vorschlag="{{ vorschlag or '' }}"></td>
+        <td><a href="/ladevorgaenge/{{ v.id }}">{{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</a></td>
+        <td>{{ v.msp.name }}</td>
+        <td>{{ v.standort or "" }}</td>
+        <td>{{ v.betreiber_id or "–" }}</td>
+        <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
+        <td class="rechts nowrap">{{ v.start | dauer(v.ende) }}</td>
+        <td class="rechts">{{ (kw | zahl(1)) ~ " kW" if kw is not none else "–" }}</td>
+        <td class="rechts">{{ v.kosten_netto | geld }}</td>
+        <td class="rechts">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
+        <td title="{{ grund }}">{% if vorschlag %}{{ m.stromart(vorschlag) }}{% else %}<small>–</small>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if stromart_vorgaenge | length >= max_zeilen %}<p><small>Nur die neuesten {{ max_zeilen }} angezeigt – nach {{ MSP }} filtern („anzeigen“ oben) oder abarbeiten, dann erscheinen die nächsten.</small></p>{% endif %}
+</form>
+{% endif %}
+
+{% endif %}
+
+{% if ladeorte or not geo_vorhanden %}
+<div class="kopf">
+  <h2 id="ladeorte">Ladeorte ohne Koordinaten</h2>
+  {% if geo_vorhanden %}
+  <form method="post" action="/aufgaben/ladeorte/verorten" class="inline">
+    <button type="submit" class="outline">Alle Ladeorte neu verorten</button>
+  </form>
+  {% endif %}
+</div>
+{% if not geo_vorhanden %}
+<p class="meldung meldung-warnung">Das Postleitzahlen-Verzeichnis ist noch nicht eingespielt – Ladeorte können noch
+  nicht verortet werden. Befehl siehe README („Geodaten“).</p>
+{% elif ladeorte %}
+<p>Diese Ladeorte erscheinen nicht auf der Karte: Die Adresse enthält keine gültige PLZ und keinen bekannten
+  Ortsnamen. Eine PLZ oder einen Ortsnamen eintragen genügt – das gilt für alle Ladevorgänge an dieser Adresse. Ist beides unbekannt: „nicht verorten“ (keine Aufgabe mehr, nicht auf der Karte).</p>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Adresse</th><th>Land</th><th class="rechts">Ladevorgänge</th><th>Stand</th><th>PLZ oder Ort</th><th></th></tr></thead>
+  <tbody>
+  {% for o, anzahl, erster in ladeorte %}
+    <tr>
+      <td><a href="{{ '/ladevorgaenge/%d' % erster if anzahl == 1 else '/ladevorgaenge?ladeort_id=%d' % o.id }}"
+             title="{{ 'Zum Ladevorgang' if anzahl == 1 else 'Zu den %d Ladevorgängen' % anzahl }} – dort lässt sich auch das Land korrigieren">{{ o.adresse }}</a>
+        {{ m.maps_link(o.adresse, o.land, "z. B. um PLZ oder Ort herauszufinden") }}</td>
+      <td>{{ o.land | landname if o.land else "unbekannt" }}</td>
+      <td class="rechts">{{ anzahl }}</td>
+      <td>{{ "nur Landesmitte" if o.genauigkeit == "land" else "nicht verortet" }}
+        {%- if o.plz_wirksam %}<br><small>PLZ {{ o.plz_wirksam }} unbekannt</small>{% endif %}</td>
+      <td>
+        <form method="post" action="/aufgaben/ladeort/{{ o.id }}" class="filterzeile ladeort-eingabe">
+          <input type="text" name="plz" value="{{ o.plz_manuell or '' }}" maxlength="12" size="7" placeholder="PLZ"
+                 aria-label="PLZ für {{ o.adresse }}">
+          <input type="text" name="ort" value="{{ o.ort_manuell or '' }}" maxlength="120" placeholder="oder Ort"
+                 aria-label="Ort für {{ o.adresse }}" title="Ortsname wie im Postleitzahlen-Verzeichnis, z. B. „Bregenz am Bodensee“">
+          <button type="submit" class="outline klein">Speichern</button>
+        </form>
+      </td>
+      <td class="nowrap">
+        <form method="post" action="/aufgaben/ladeort/{{ o.id }}/verzichten" class="inline">
+          <button type="submit" class="outline secondary klein"
+                  data-bestaetigen="„{{ o.adresse }}“ bewusst ohne Verortung lassen? Er ist dann keine Aufgabe mehr und erscheint nicht auf der Karte."
+                  title="Keine Aufgabe mehr, nicht auf der Karte; rückgängig durch Eintragen von PLZ oder Ort">nicht verorten</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p>Keine – alle Ladeorte sind verortet.</p>
+{% endif %}
+{% endif %}
+{% if nicht_verortet %}
+<details class="nicht-verortet" id="nicht-verortet">
+  <summary>Bewusst nicht verortet ({{ nicht_verortet | length }})</summary>
+  <p><small>Keine Aufgabe und nicht auf der Karte. „Wieder verorten“ nimmt das zurück; ohne PLZ oder Ort steht der
+    Ladeort danach wieder unter „Ladeorte ohne Koordinaten“.</small></p>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Adresse</th><th>Land</th><th class="rechts">Ladevorgänge</th><th></th></tr></thead>
+    <tbody>
+    {% for o, anzahl in nicht_verortet %}
+      <tr><td><a href="/ladevorgaenge?ladeort_id={{ o.id }}">{{ o.adresse }}</a></td>
+        <td>{{ o.land | landname if o.land else "unbekannt" }}</td><td class="rechts">{{ anzahl }}</td>
+        <td class="rechts"><form method="post" action="/aufgaben/ladeort/{{ o.id }}/wieder-verorten" class="inline">
+          <button type="submit" class="outline secondary klein" data-schreiben>wieder verorten</button></form></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{% endif %}
+{% endblock %}

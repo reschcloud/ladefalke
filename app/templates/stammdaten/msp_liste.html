@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}MSP{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Mobility Service Provider <small>(Ladekartenanbieter)</small></h1>
+  <a href="/stammdaten/msp/neu" role="button" data-schreiben data-nur-admin>Neuer MSP</a>
+</div>
+{% if fehlend %}
+<p class="meldung meldung-warnung" role="alert">⚠ {{ fehlend | length }} {{ MSP }} verweis{{ "t" if fehlend | length == 1 else "en" }}
+  auf einen nicht installierten Parser: {% for msp in fehlend %}<a href="/stammdaten/msp/{{ msp.id }}">{{ msp.name }}</a>
+  (<code>{{ msp.parser_key }}</code>){% if not loop.last %}, {% endif %}{% endfor %} – das Parser-Modul liegt nicht in
+  der App bzw. wurde beim Start nicht geladen. Dateien dieses Formats werden nicht erkannt; importierte Daten bleiben
+  erhalten.</p>
+{% endif %}
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Name</th><th>Parser</th><th>Standard-Ladeart</th><th>Standard AC/DC</th><th>Standard {{ CPO }}</th><th class="rechts">Ladekarten</th></tr></thead>
+  <tbody>
+  {% for msp, anzahl in msps %}
+    <tr>
+      <td><a href="/stammdaten/msp/{{ msp.id }}">{{ msp.name }}</a></td>
+      <td>{% if msp.parser_key %}<code>{{ msp.parser_key }}</code>
+        {% if msp.parser_key not in installiert %}<span class="marker warnung" title="Parser nicht installiert: Sein Modul liegt nicht in der App (app/parsers/) bzw. wurde beim Start nicht geladen. Importierte Daten bleiben erhalten.">⚠ fehlt</span>
+        {%- elif not msp.parser_aktiv %}<span class="marker inaktiv" title="Die App nutzt diesen Parser nicht">deaktiviert</span>{% endif %}
+        {%- if msp.abrechnung_je_karte %} <small title="Monatliche Rechnung je Ladekarte">je Karte</small>{% endif %}
+        {%- else %}–{% endif %}</td>
+      <td>{{ msp.standard_ladeart.label }}</td>
+      <td>{{ m.stromart(msp.stromart_standard, text=true, ohne="keine Angabe") }}</td>
+      <td>{{ msp.cpo_standard or "–" }}</td>
+      <td class="rechts"><a href="/stammdaten/ladekarten?status=alle&msp_id={{ msp.id }}">{{ anzahl }}</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">Noch keine MSP angelegt.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

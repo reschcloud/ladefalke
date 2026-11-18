@@ -1,0 +1,280 @@
+"""Import von Laderechnungen: Hochladen, Vorschau, Bestätigen, Löschen.
+
+Ablauf in drei Schritten (Schrittanzeige auf Import- und Vorschauseite): ① Dateien hochladen → ② je Datei prüfen und
+bestätigen („Datei x von y“) → ③ abgeschlossen. Ein Durchgang (Sitzung, `DURCHGANG`) merkt sich die bestätigten bzw.
+verworfenen Vorschauen seit dem letzten Hochladen; nach der letzten offenen Vorschau geht es zurück auf die
+Import-Seite mit einem Abschlusskasten (Summen, Ladevorgänge zum späteren Zuordnen, Links)."""
+import mimetypes
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import FileResponse, RedirectResponse
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+from starlette.datastructures import UploadFile as StarletteUploadFile
+
+from app.db import get_db
+from app.formatierung import decimal_lesen
+from app.models import Gebuehr, Import, ImportStatus, Ladeart, Ladekarte, Ladevorgang, Msp, ZuordnungKarte
+from app.parsers import PARSER
+from app.services import parser_verwaltung
+from app.routers import pauschalen
+from app.services.importe import (ImportFehler, KartenEntscheidung, bestaetigen, datei, hochladen, loeschen,
+                                  naechste_vorschau, offene_vorschauen, vorschau_berechnen)
+from app.services import kartenanzeige, stromart
+from app.services.aufloesung import stichtag_art
+from app.services.offen import ohne_fahrzeug_bedingungen
+from app.web import meldung, render, weiter
+
+router = APIRouter(prefix="/import")
+
+DURCHGANG = "import_durchgang"
+
+
+def _durchgang(request: Request) -> dict:
+    """Aktueller Durchgang: erledigte Import-IDs, Namen verworfener Dateien, ob alles abgearbeitet ist."""
+    d = request.session.get(DURCHGANG)
+    return d if isinstance(d, dict) else {"erledigt": [], "verworfen": [], "fertig": False}
+
+
+def _durchgang_neu(request: Request) -> None:
+    request.session[DURCHGANG] = {"erledigt": [], "verworfen": [], "fertig": False}
+
+
+def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int | None = None,
+                       verworfen: str | None = None):
+    """Vorschau bestätigt (`import_id`) oder verworfen (`verworfen` = Dateiname): weiter zur nächsten offenen Vorschau
+    (nach `bezug`, der ID der erledigten Vorschau) oder – war es die letzte – zurück auf die Import-Seite mit
+    Abschlusskasten."""
+    d = _durchgang(request)
+    if d["fertig"]:  # nach einem abgeschlossenen Durchgang beginnt mit der nächsten Vorschau ein neuer
+        d = {"erledigt": [], "verworfen": [], "fertig": False}
+    if import_id is not None:
+        d["erledigt"] = [*d["erledigt"], import_id]
+    if verworfen is not None:
+        d["verworfen"] = [*d["verworfen"], verworfen]
+    naechste = naechste_vorschau(db, bezug)
+    d["fertig"] = naechste is None
+    request.session[DURCHGANG] = d
+    if naechste is not None:
+        meldung(request, "Weiter mit der nächsten Datei.")
+        return weiter(f"/import/{naechste}")
+    return weiter("/import#abschluss")
+
+
+def _abschluss(request: Request, db: Session) -> dict | None:
+    """Daten für den Abschlusskasten nach dem letzten Durchgang (oder None)."""
+    d = _durchgang(request)
+    if not d["fertig"] or not (d["erledigt"] or d["verworfen"]):
+        return None
+    importe = db.scalars(select(Import).where(Import.id.in_(d["erledigt"]),
+                                              Import.status == ImportStatus.abgeschlossen)
+                         .order_by(Import.id)).all()
+    ids = [i.id for i in importe]
+    anzahl, kwh, kosten = db.execute(
+        select(func.count(), func.coalesce(func.sum(Ladevorgang.kwh), 0),
+               func.coalesce(func.sum(Ladevorgang.kosten_netto), 0))
+        .where(Ladevorgang.import_id.in_(ids))).one() if ids else (0, 0, 0)
+    gebuehren = db.scalar(select(func.coalesce(func.sum(Gebuehr.betrag_netto), 0))
+                          .where(Gebuehr.import_id.in_(ids))) if ids else 0
+    spaeter = db.scalar(select(func.count()).select_from(Ladevorgang)
+                        .where(Ladevorgang.import_id.in_(ids), *ohne_fahrzeug_bedingungen())) if ids else 0
+    # Karten aus diesen Importen ohne jede Zuordnung (meist gerade neu angelegt): direkt zum Zuordnen verlinken
+    ohne_zuordnung = db.execute(
+        select(Ladekarte, func.min(Ladevorgang.start)).join(Ladevorgang, Ladevorgang.ladekarte_id == Ladekarte.id)
+        .where(Ladevorgang.import_id.in_(ids), Ladekarte.ist_gastkarte.is_(False),
+               ~select(ZuordnungKarte.id).where(ZuordnungKarte.ladekarte_id == Ladekarte.id).exists())
+        .group_by(Ladekarte.id).order_by(Ladekarte.kennung)).all() if ids else []
+    return {"importe": importe, "verworfen": d["verworfen"], "anzahl": anzahl, "kwh": Decimal(kwh),
+            "kosten": Decimal(kosten), "gebuehren": Decimal(gebuehren), "spaeter_zuordnen": spaeter,
+            "karten_ohne_zuordnung": ohne_zuordnung}
+
+
+def _laden(db: Session, import_id: int) -> Import:
+    imp = db.get(Import, import_id)
+    if imp is None:
+        raise HTTPException(404, "Import nicht gefunden")
+    return imp
+
+
+def _liste(request: Request, db: Session, fehler: str | None = None, status_code: int = 200,
+           pauschalen_jahr: str = ""):
+    summen = (select(Ladevorgang.import_id, func.count().label("anzahl"), func.sum(Ladevorgang.kwh).label("kwh"),
+                     func.sum(Ladevorgang.kosten_netto).label("kosten"))
+              .group_by(Ladevorgang.import_id).subquery())
+    gebuehren = (select(Gebuehr.import_id, func.sum(Gebuehr.betrag_netto).label("gebuehren"))
+                 .group_by(Gebuehr.import_id).subquery())
+    zeilen = db.execute(
+        select(Import, summen.c.anzahl, summen.c.kwh, summen.c.kosten, gebuehren.c.gebuehren)
+        .outerjoin(summen, summen.c.import_id == Import.id)
+        .outerjoin(gebuehren, gebuehren.c.import_id == Import.id)
+        .order_by(Import.id.desc())).all()
+    vorschauen = [imp for imp, *_ in zeilen if imp.status == ImportStatus.vorschau]
+    vorschauen.sort(key=lambda imp: imp.id)
+    abschluss = None if vorschauen else _abschluss(request, db)
+    if abschluss:  # nur einmal zeigen – beim Neuladen ist er weg
+        request.session.pop(DURCHGANG, None)
+    schritt = 2 if vorschauen else 3 if abschluss else 1
+    return render(request, "importe/liste.html", {
+        "zeilen": zeilen, "fehler": fehler, "vorschauen": vorschauen, "abschluss": abschluss, "schritt": schritt,
+        "formate": parser_verwaltung.formate(db),  # aus den installierten Parsern – die Oberfläche kennt keine Anbieter
+        "neu_importiert": {i.id for i in abschluss["importe"]} if abschluss else set(),
+        **pauschalen.uebersicht(db, pauschalen_jahr)}, status_code)
+
+
+@router.get("")
+def liste(request: Request, pauschalen_jahr: str = "", abschluss: str = "", db: Session = Depends(get_db)):
+    """`pauschalen_jahr`: Jahr im Abschnitt „Pauschalen“. `abschluss=aus`: Abschlusskasten ausblenden."""
+    if abschluss == "aus":
+        request.session.pop(DURCHGANG, None)
+        return RedirectResponse("/import", status_code=303)
+    return _liste(request, db, pauschalen_jahr=pauschalen_jahr)
+
+
+@router.post("")
+async def hochladen_route(request: Request, db: Session = Depends(get_db)):
+    """Eine oder mehrere Dateien hochladen; je Datei entsteht eine Vorschau, die einzeln bearbeitet wird."""
+    formular = await request.form()
+    # leeres Dateifeld kommt als Text an – nur echte Dateien übernehmen
+    dateien = [(d.filename, await d.read()) for d in formular.getlist("datei_upload")
+               if isinstance(d, StarletteUploadFile) and d.filename]
+    if not dateien:
+        return _liste(request, db, "Bitte mindestens eine Datei auswählen.", 422)
+    _durchgang_neu(request)
+    schon_offen = set(offene_vorschauen(db))
+    ergebnisse = []  # (Dateiname, Import oder None, Fehlermeldung oder None)
+    for name, inhalt in dateien:
+        try:
+            imp = hochladen(db, name, inhalt)
+            db.commit()
+            ergebnisse.append((name, imp, None))
+        except ImportFehler as e:
+            db.rollback()
+            ergebnisse.append((name, None, str(e)))
+
+    if len(dateien) == 1:  # wie bisher: direkt zur Vorschau bzw. Fehler auf der Import-Seite
+        _, imp, fehler = ergebnisse[0]
+        return _liste(request, db, fehler, 422) if fehler else weiter(f"/import/{imp.id}")
+
+    gesehen = set()
+    for name, imp, fehler in ergebnisse:
+        if fehler:
+            meldung(request, f"{name}: {fehler}", "fehler")
+        elif imp.id in schon_offen or imp.id in gesehen:
+            meldung(request, f"{name}: liegt bereits als offene Vorschau vor.", "warnung")
+        elif imp.parser_key is None:
+            passend = parser_verwaltung.passende(db, datei(imp))
+            grund = (f"Format nicht eindeutig (passt zu {', '.join(PARSER[k].name for k in passend)})"
+                     if len(passend) > 1 else "Format nicht erkannt")
+            meldung(request, f"{name}: Vorschau angelegt – {grund}, bitte Format wählen.", "warnung")
+        else:
+            meldung(request, f"{name}: Vorschau angelegt ({PARSER[imp.parser_key].name}).")
+        if imp:
+            gesehen.add(imp.id)
+    return weiter("/import")
+
+
+def _vorschau_seite(request: Request, db: Session, imp: Import, fehler: str | None = None, status_code: int = 200):
+    offen = offene_vorschauen(db)
+    pos = offen.index(imp.id) if imp.id in offen else 0
+    d = _durchgang(request)
+    schon = 0 if d["fertig"] else len(d["erledigt"]) + len(d["verworfen"])  # im Durchgang bereits erledigt
+    navigation = {"nr": schon + pos + 1, "anzahl": schon + len(offen), "offen": len(offen),
+                  "zurueck": offen[pos - 1] if pos > 0 else None,
+                  "vor": offen[pos + 1] if pos + 1 < len(offen) else None}
+    return render(request, "importe/vorschau.html", {
+        "imp": imp, "vs": vorschau_berechnen(db, imp), "fehler": fehler, "navigation": navigation,
+        "parser": [(p.key, p.name) for p in parser_verwaltung.aktive(db).values()],
+        "msps": [(m.id, m.name) for m in db.scalars(select(Msp).order_by(Msp.name))],
+        "ladearten": [(a.value, a.label) for a in Ladeart]}, status_code)
+
+
+@router.get("/{import_id}")
+def anzeigen(request: Request, import_id: int, db: Session = Depends(get_db)):
+    imp = _laden(db, import_id)
+    if imp.status == ImportStatus.vorschau:
+        return _vorschau_seite(request, db, imp)
+    vorgaenge = db.scalars(select(Ladevorgang).where(Ladevorgang.import_id == imp.id)
+                           .order_by(Ladevorgang.ende)).all()
+    gebuehren = db.scalars(select(Gebuehr).where(Gebuehr.import_id == imp.id).order_by(Gebuehr.id)).all()
+    return render(request, "importe/detail.html", {
+        "imp": imp, "vorgaenge": vorgaenge, "gebuehren": gebuehren,
+        "_karten": kartenanzeige.fuer_vorgaenge(db, vorgaenge, stichtag_art(db)),
+        "summe_kwh": sum((v.kwh for v in vorgaenge), Decimal(0)),
+        "summe_kosten": sum((v.kosten_netto for v in vorgaenge), Decimal(0)),
+        "summe_gebuehren": sum((g.betrag_netto for g in gebuehren), Decimal(0)),
+        "ohne_fahrzeug": sum(1 for v in vorgaenge if v.fahrzeug_id is None),
+        "ohne_stromart": sum(1 for v in vorgaenge if v.stromart is None and v.stromart_quelle is None)})
+
+
+@router.post("/{import_id}/einstellungen")
+def einstellungen_speichern(request: Request, import_id: int, parser_key: str = Form(""), msp_id: str = Form(""),
+                            ladeart: str = Form(""), strompreis: str = Form(""), db: Session = Depends(get_db)):
+    imp = _laden(db, import_id)
+    if imp.status != ImportStatus.vorschau:
+        raise HTTPException(409, "Import ist bereits abgeschlossen")
+    try:
+        preis = decimal_lesen(strompreis)
+        if preis is not None and preis < 0:
+            raise ValueError("Der Strompreis darf nicht negativ sein.")
+    except ValueError as e:
+        return _vorschau_seite(request, db, imp, str(e), 422)
+    imp.parser_key = parser_key if parser_key in parser_verwaltung.aktive(db) else None
+    imp.msp_id = int(msp_id) if msp_id.isdigit() and db.get(Msp, int(msp_id)) else None
+    if ladeart in Ladeart.__members__:
+        imp.ladeart = Ladeart(ladeart)
+    imp.strompreis_netto_kwh = preis
+    db.commit()
+    return weiter(f"/import/{imp.id}")
+
+
+@router.post("/{import_id}/bestaetigen")
+async def bestaetigen_route(request: Request, import_id: int, db: Session = Depends(get_db)):
+    imp = _laden(db, import_id)
+    formular = await request.form()
+    # Je unbekannter Karte: karte_<n>_kennung, karte_<n>_aktion (anlegen|ignorieren), _bezeichnung, _gast
+    entscheidungen = {}
+    for schluessel, kennung in formular.items():
+        if schluessel.startswith("karte_") and schluessel.endswith("_kennung"):
+            n = schluessel[len("karte_"):-len("_kennung")]
+            entscheidungen[str(kennung)] = KartenEntscheidung(
+                anlegen=formular.get(f"karte_{n}_aktion") != "ignorieren",
+                bezeichnung=str(formular.get(f"karte_{n}_bezeichnung", "")).strip() or None,
+                gast=formular.get(f"karte_{n}_gast") is not None)
+    try:
+        vs = bestaetigen(db, imp, entscheidungen, stromart.wert(str(formular.get("stromart_vorgabe", ""))))
+    except ImportFehler as e:
+        db.rollback()
+        return _vorschau_seite(request, db, imp, str(e), 422)
+    db.commit()
+    neue_karten = sum(1 for e in entscheidungen.values() if e.anlegen)
+    meldung(request, f"{imp.dateiname} übernommen: {len(vs.neue)} Ladevorgänge, "
+                     f"{len(vs.gebuehren)} Gebühren" + (f", {neue_karten} neue Ladekarten" if neue_karten else "") + ".")
+    return _vorschau_erledigt(request, db, imp.id, import_id=imp.id)
+
+
+@router.post("/{import_id}/loeschen")
+def loeschen_route(request: Request, import_id: int, db: Session = Depends(get_db)):
+    imp = _laden(db, import_id)
+    war_vorschau, import_id, dateiname = imp.status == ImportStatus.vorschau, imp.id, imp.dateiname
+    pfad = loeschen(db, imp)
+    db.commit()
+    if pfad is not None:
+        pfad.unlink(missing_ok=True)
+    if not war_vorschau:
+        meldung(request, "Import gelöscht – zugehörige Ladevorgänge und Gebühren wurden entfernt.")
+        return weiter("/import")
+    meldung(request, f"{dateiname} verworfen.")
+    return _vorschau_erledigt(request, db, import_id, verworfen=dateiname)
+
+
+@router.get("/{import_id}/datei")
+def originaldatei(import_id: int, anzeigen: str = "", db: Session = Depends(get_db)):
+    """Originaldatei herunterladen; `anzeigen=1`: im Browser öffnen (z. B. PDF in neuem Tab)."""
+    imp = _laden(db, import_id)
+    pfad = datei(imp)
+    if not pfad.exists():
+        raise HTTPException(404, "Originaldatei nicht mehr vorhanden")
+    medientyp = mimetypes.guess_type(imp.dateiname)[0] or "application/octet-stream"
+    return FileResponse(pfad, filename=imp.dateiname, media_type=medientyp,
+                        content_disposition_type="inline" if anzeigen else "attachment")

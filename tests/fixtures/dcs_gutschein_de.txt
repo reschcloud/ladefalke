@@ -1,0 +1,69 @@
+DocInfo>>AT-1010-INV_BAT00000002-0-0<<DocInfo
+Digital Charging Solutions GmbH Mies-van-der-Rohe-Straße 6 D-80807 München
+Zahlungsreferenz: 1000000000002
+Rechnungsübersicht
+Datum 30.09.2026
+Österreich BAT00000002 11,27 EUR 11,27 EUR
+Deutschland BDE00000002 7,72 EUR 7,72 EUR
+DocInfo>>AT-1010-INV_BAT00000002-0-0<<DocInfo
+Rechnungsnummer
+BAT00000002
+Ihre Rechnung für Österreich
+Datum 30.09.2026
+für die Nutzung von BMW Charging berechnen wir Ihnen folgendes im Zeitraum vom 01.09.2026 - 30.09.2026:
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*2 AT-B-1000002-2 BMW Active Vertrag Erika Beispiel
+Leistungsposition (je Ladesäulenbetreiber) Anzahl Einheit Betrag Betrag
+EUR
+IONITY Plus vom 01.09.2026 - 30.09.2026 4,99 EUR 4,99 EUR
+Monatliche Grundgebühr vom 01.09.2026 - 4,16 EUR 4,16 EUR
+30.09.2026
+Verrechnete Gutscheine vom 01.09.2026 - -4,16 EUR -4,16 EUR
+30.09.2026
+Verrechnete Gutscheine vom 01.09.2026 - -4,99 EUR -4,99 EUR
+30.09.2026
+Summe Ladevorgänge vom 01.09.2026 - 30.09.2026 2 27,610 kWh 11,27 EUR 11,27 EUR
+(DC)
+Gesamtbetrag* 11,27 EUR 11,27 EUR
+Gesamtbetrag 11,27 EUR 11,27 EUR
+DocInfo>>AT-1010-INV_BAT00000002-0-0<<DocInfo
+Übersicht der Ladevorgänge
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*2 AT-B-1000002-2 BMW Active Vertrag Erika Beispiel
+Ladevorgang Adresse Menge Produkt Grundbetrag Summe Gesamtbetrag **
+Datum/Uhrzeit (UTC) Dauer Zusatzbetrag* Umrechnungskurs
+Ladestation
+CPO
+17.09.2026 09:52h Teststraße 116| 12,340 kWh DC 5,0388 EUR 5,0388 EUR 5,0388 EUR
+AT * TST * EABCD 5020|Salzburg 0:09 hh:mm (kWh) 0,0000 EUR
+Test Betreiber
+25.09.2026 13:04h Teststraße 142| 15,270 kWh DC 6,2352 EUR 6,2352 EUR 6,2352 EUR
+AT * TST * EABCD 5020|Salzburg 0:13 hh:mm (kWh) 0,0000 EUR
+Test Betreiber
+DocInfo>>AT-1010-INV_BDE00000002-0-0<<DocInfo
+Rechnungsnummer
+BDE00000002
+Ihre Rechnung für Deutschland
+Datum 30.09.2026
+für die Nutzung von BMW Charging berechnen wir Ihnen folgendes im Zeitraum vom 01.09.2026 - 30.09.2026:
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*2 BMW Active IR Vertrag Erika Beispiel
+Leistungsposition (je Ladesäulenbetreiber) Anzahl Einheit Betrag Betrag
+EUR
+Summe Ladevorgänge vom 01.09.2026 - 30.09.2026 1 15.757 kWh 6,49 EUR 6,49 EUR
+(DC)
+Gesamtbetrag (19% MwSt. DE) 6,49 EUR 6,49 EUR
++ 19% MwSt. DE 1,23 EUR 1,23 EUR
+Gesamtbetrag 7,72 EUR 7,72 EUR
+DocInfo>>AT-1010-INV_BDE00000002-0-0<<DocInfo
+Übersicht der Ladevorgänge
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*2 BMW Active IR Vertrag Erika Beispiel
+Ladevorgang Adresse Menge Produkt Grundbetrag Summe Gesamtbetrag **
+Datum/Uhrzeit (UTC) Dauer Zusatzbetrag* Umrechnungskurs
+Ladestation
+CPO
+18.09.2026 15:21h Probeweg 4| 15.757 kWh DC 6,4882 EUR 6,4882 EUR 6,4882 EUR
+DE * TST * E0AB001 * 02 * 99999|Probedorf am See 0:09 hh:mm (kWh) 0,0000 EUR
+05
+Test Pulse

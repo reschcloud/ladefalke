@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Zuordnung bearbeiten{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a></p>
+<h1>Fahrzeug-Zuordnung bearbeiten</h1>
+<p><a href="/stammdaten/fahrer/{{ z.fahrer.id }}">{{ z.fahrer.name }}</a> fährt
+  <a href="/stammdaten/fahrzeuge/{{ z.fahrzeug.id }}">{{ z.fahrzeug.kennzeichen }}</a> · {{ m.zeitraum_zelle(z) }}</p>
+<form method="post" class="formular" action="{{ request.url.path }}?zurueck={{ zurueck | urlencode }}">
+  {% if fehler %}<p class="meldung meldung-fehler" role="alert">{{ fehler }}</p>{% endif %}
+  {{ m.auswahl("fahrzeug_id", "Fahrzeug", fahrzeuge | optionen("id", "kennzeichen"), werte, {}, pflicht=true) }}
+  <div class="grid">
+    {{ m.feld("ab", "Gültig ab", werte, {}, typ="date", pflicht=true) }}
+    {{ m.feld("bis", "Gültig bis (leer = offen)", werte, {}, typ="date") }}
+  </div>
+  {{ m.leasing_knoepfe(leasing_daten(fahrzeuge), "fahrzeug_id") }}
+  {{ m.neu_zuordnen_haken(werte, vorsatz="Beim Speichern:") }}
+  <button type="submit">Speichern</button>
+</form>
+{{ m.zuordnung_loeschen(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode)) }}
+{% endblock %}

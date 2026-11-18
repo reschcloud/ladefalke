@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titel %}Benutzer:innen{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Benutzer:innen</h1>
+  <a href="/benutzer/neu" role="button">Neue:r Benutzer:in</a>
+</div>
+<p><small>{% for rolle, text in rollen.items() %}<strong>{{ text }}</strong>: {{ rollen_text[rolle] }}{{ " · " if not loop.last }}{% endfor %}.
+  Löschen geht erst nach dem Deaktivieren.</small></p>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Name</th><th>Benutzername</th><th>Rolle</th><th>Letzte Anmeldung</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for b in benutzer %}
+    <tr>
+      <td><a href="/benutzer/{{ b.id }}">{{ b.name }}</a>{% if b.id == request.state.benutzer.id %} <small>(du)</small>{% endif %}</td>
+      <td>{{ b.benutzername }}</td>
+      <td><span class="marker rolle-{{ b.rolle }}">{{ rollen[b.rolle] }}</span></td>
+      <td>{{ b.letzte_anmeldung | datumzeit if b.letzte_anmeldung else "noch nie" }}</td>
+      <td>{% if b.aktiv %}<span class="marker">aktiv</span>{% else %}<span class="marker inaktiv">deaktiviert</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

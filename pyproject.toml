@@ -1,0 +1,10 @@
+[project]
+name = "ladefalke"
+version = "1.0.0"
+license = "GPL-3.0-only"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"

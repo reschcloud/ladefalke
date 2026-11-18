@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Import {{ imp.bezeichnung }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="/import" role="button" class="outline secondary klein nav-knopf">← Alle Importe</a></p>
+<h1>{{ imp.bezeichnung }}</h1>{% if imp.bezeichnung != imp.dateiname %}<p><small>Datei: {{ imp.dateiname }}</small></p>{% endif %}
+
+<div class="grid detail-daten">
+  <dl>
+    <dt>{{ MSP }}</dt><dd>{{ imp.msp.name if imp.msp else "–" }} · {{ imp.ladeart.label }}</dd>
+    <dt>Rechnung</dt><dd>{{ imp.rechnungsnummer or "–" }}{% if imp.rechnungsdatum %} vom {{ imp.rechnungsdatum | datum }}{% endif %}</dd>
+    <dt>Zeitraum</dt><dd>{% if imp.abrechnungszeitraum_von %}{{ imp.abrechnungszeitraum_von | datum }} – {{ imp.abrechnungszeitraum_bis | datum }}{% else %}–{% endif %}</dd>
+  </dl>
+  <dl>
+    <dt>Importiert</dt><dd>{{ imp.importiert_am | datum }}</dd>
+    {% if imp.strompreis_netto_kwh is not none %}<dt>Strompreis netto</dt><dd>{{ imp.strompreis_netto_kwh | zahl(4) }} €/kWh</dd>{% endif %}
+    <dt>Originaldatei</dt><dd>{{ imp.dateiname }}
+      <a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button"
+         class="outline klein maps-link" title="Originaldatei in neuem Tab öffnen">Originaldatei öffnen ↗</a></dd>
+  </dl>
+</div>
+
+<div class="kacheln">
+  <a class="kachel" href="/ladevorgaenge?import_id={{ imp.id }}"><span class="kachel-zahl">{{ vorgaenge | length }}</span><span>Ladevorgänge</span></a>
+  <div class="kachel"><span class="kachel-zahl">{{ summe_kwh | zahl(0) }}</span><span>kWh</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ summe_kosten | geld }}</span><span>Ladekosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ summe_gebuehren | geld }}</span><span>Gebühren netto
+    {%- if imp.rechnungssumme_netto is not none %} <small>(Rechnung gesamt: {{ imp.rechnungssumme_netto | geld }})</small>{% endif %}</span></div>
+  {% if ohne_fahrzeug %}<a class="kachel" href="/aufgaben#ohne-fahrzeug" title="Unter „Aufgaben“ zuordnen">{% else %}<div class="kachel">{% endif %}
+    <span class="kachel-zahl">{{ ohne_fahrzeug }}</span><span>ohne Fahrzeug</span>{% if ohne_fahrzeug %}</a>{% else %}</div>{% endif %}
+</div>
+{% if ohne_stromart %}
+<p class="aktionszeile"><span>{{ ohne_stromart }} Ladevorgänge dieses Imports haben keine AC/DC-Angabe.</span>
+  <a href="/aufgaben{% if imp.msp_id %}?stromart_msp={{ imp.msp_id }}{% endif %}#stromart" role="button" class="outline klein nav-knopf">In den Aufgaben setzen →</a></p>
+{% endif %}
+
+{% for w in imp.warnungen %}<p class="meldung meldung-warnung">{{ w }}</p>{% endfor %}
+
+<h2>Ladevorgänge</h2>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr>{{ m.zeit_kopf(request.state.stichtag) }}<th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
+             <th class="rechts">Kosten netto</th><th>Fahrzeug</th></tr></thead>
+  <tbody>
+  {% for v in vorgaenge %}
+    <tr>
+      {{ m.zeit_zellen(v, request.state.stichtag) }}
+      <td>{{ m.karte_vorgang(v, msp=false) }}</td>
+      <td>{{ v.standort or "" }}</td>
+      <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
+      <td class="rechts">{{ v.kosten_netto | geld }}</td>
+      <td>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% elif v.ladekarte and v.ladekarte.ist_gastkarte %}Gäste{% else %}–{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if gebuehren %}
+<h2>Gebühren</h2>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Bezeichnung</th><th>Karte</th><th class="rechts">Netto</th></tr></thead>
+  <tbody>
+  {% for g in gebuehren %}
+    <tr>
+      <td>{{ g.bezeichnung }}</td>
+      <td>{% if g.ladekarte %}<a href="/stammdaten/ladekarten/{{ g.ladekarte.id }}">{{ g.ladekarte.kennung }}</a>{% else %}{{ g.roh_kartenkennung or "–" }} <small>(nicht zuordenbar)</small>{% endif %}</td>
+      <td class="rechts">{{ g.betrag_netto | geld }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{{ m.loeschen_knopf("/import/%d/loeschen" % imp.id,
+   "Import löschen? Alle %d Ladevorgänge und Gebühren dieses Imports werden entfernt." % (vorgaenge | length),
+   "Import löschen") }}
+{% endblock %}

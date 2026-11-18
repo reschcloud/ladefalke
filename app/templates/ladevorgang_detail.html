@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Ladevorgang {{ v.id }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="{{ liste_url }}" role="button" class="outline secondary klein nav-knopf">← Ladevorgänge</a>
+  {%- if von_aufgaben %} <a href="/aufgaben" role="button" class="outline secondary klein nav-knopf">← Aufgaben</a>{% endif %}</p>
+<h1>Ladevorgang {{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</h1>
+
+{# Die wichtigsten Werte als kleine Kacheln (wie im Dashboard); was hier steht, steht nicht noch einmal in der Liste #}
+{% set stromart_quelle = {"manuell": "manuell gesetzt (Rechnung: " ~ (v.rohdaten.get("stromart_rechnung") or "keine Angabe") ~ ")",
+                          "vorgabe": "Vorgabe des MSP – die Rechnung nennt keine Stromart",
+                          "rechnung": "laut Rechnung"}.get(v.stromart_quelle or "", "keine Angabe") %}
+<div class="kacheln kacheln-klein">
+  <div class="kachel"><span class="kachel-zahl">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>{% endif %}{{ v.kwh | zahl(3) }}</span><span>kWh{% if v.kwh_geschaetzt %} · geschätzt{% endif %}</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ v.kosten_netto | geld }}</span><span>Kosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</span><span>€/kWh</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ v.start | dauer(v.ende) }}</span><span>Dauer (angesteckt)</span></div>
+  <div class="kachel" title="AC/DC: {{ stromart_quelle }}"><span class="kachel-zahl">{{ leistung | zahl(1) if leistung is not none else "–" }}
+    {{ m.stromart(v.stromart) }}</span><span>Ø kW <small>({{ stromart_quelle }})</small></span></div>
+</div>
+
+<div class="grid detail-daten">
+  <dl>
+    <dt>Zeitraum</dt><dd>{{ v.start | datumzeit }} – {{ v.ende | datumzeit }}</dd>
+    <dt>{{ MSP }} / Ladeart</dt><dd>{{ v.msp.name }} · {{ v.ladeart.label }}</dd>
+    <dt>Ladekarte</dt>
+    <dd>{% if v.ladekarte %}{{ m.karte(v.karte_anzeige, v.ladekarte, msp=false) }}<br><small>{{ v.ladekarte.kennung }}</small>
+        {% else %}{{ v.roh_kartenkennung or "–" }} <small>(keine Ladekarte)</small>{% endif %}</dd>
+    <dt>Standort</dt><dd>{{ v.standort or "–" }}
+      {%- if v.standort or v.ladeort %} {{ m.maps_link(v.ladeort.adresse if v.ladeort else v.standort, v.land) }}{% endif %}
+      {%- if v.ladeort %}<br><small>Ladeort: {{ v.ladeort.plz_wirksam or "PLZ ?" }} {{ v.ladeort.ort or "" }}
+        {%- if v.ladeort.plz_manuell %} (PLZ manuell){% endif %} · {{ verortung(v.ladeort) }}
+        {%- if v.ladeort.lat is not none %} ({{ v.ladeort.lat | zahl(4) }}, {{ v.ladeort.lon | zahl(4) }}){% endif %}</small>{% endif %}</dd>
+    <dt>Land</dt><dd>{% if v.land %}{{ v.land | flagge }} {{ v.land | landname }}{% else %}unbekannt{% endif %}
+      {%- if "land_ermittelt" in v.rohdaten %} <small>(manuell korrigiert, ermittelt:
+        {{ v.rohdaten["land_ermittelt"] | landname if v.rohdaten["land_ermittelt"] else "unbekannt" }})</small>{% endif %}</dd>
+    <dt>EVSE-ID</dt><dd>{% if v.evse_id %}<code>{{ v.evse_id }}</code> <small>({{ CPO }} {{ v.betreiber_id }})</small>
+      {%- elif v.betreiber_id and v.betreiber_quelle == "vorgabe" %}– <small>({{ CPO }} {{ v.betreiber_id }}: Vorgabe des {{ MSP }}
+        {%- if v.ladepunkt %}; Ladepunkt laut Datei: {{ v.ladepunkt }}{% endif %})</small>
+      {%- elif v.betreiber_id %}– <small>({{ CPO }} {{ v.betreiber_id }}{% if v.ladepunkt %}; Ladepunkt laut Rechnung: {{ v.ladepunkt }}{% endif %})</small>
+      {%- elif v.ladepunkt %}– <small>(Ladepunkt laut Datei: {{ v.ladepunkt }})</small>{% else %}–{% endif %}</dd>
+  </dl>
+  <dl>
+    <dt>Import</dt><dd><a href="/import/{{ v.import_id }}">{{ v.import_.bezeichnung }}</a>{% if v.externe_id %} · ID {{ v.externe_id }}{% endif %}
+      <a href="/import/{{ v.import_id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false"
+         role="button" class="outline klein maps-link" title="Rechnung bzw. Datei, aus der dieser Ladevorgang stammt (neuer Tab)">Originaldokument ↗</a></dd>
+    <dt>Fahrzeug</dt>
+    <dd>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}
+        <small>({{ {"automatisch": "automatisch ermittelt", "manuell": "manuell gesetzt", "keine": "nicht ermittelbar"}[v.zuordnung_quelle.value] }})</small></dd>
+    <dt>Fahrer:in beim Laden</dt>
+    <dd>{{ m.person(personen) }}{% if personen and personen | length > 1 %} <small>({{ personen | map(attribute="name") | join(", ") }})</small>{% endif %}
+        <small>(laut Zuordnungen)</small></dd>
+  </dl>
+</div>
+
+{% if grund and not v.profil_ausgenommen %}
+<p class="meldung meldung-warnung" role="alert">⚠ Unplausibel: {{ grund }}. Der Vorgang zählt nicht für das
+  Ladeprofil, bis die Stromart korrigiert oder er ausdrücklich ausgenommen ist (Prüfen: Originaldokument oben).</p>
+{% endif %}
+<article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
+  <header><strong>Fahrzeug ändern</strong></header>
+  <form method="post" action="/ladevorgaenge/{{ v.id }}">
+    <select name="fahrzeug_id" required aria-label="Fahrzeug">
+      <option value="auto" {% if v.zuordnung_quelle.value != "manuell" %}selected{% endif %}>automatisch ermitteln (über Karte und Zuordnungen)</option>
+      {% for fz in fahrzeuge %}
+        <option value="{{ fz.id }}" {% if v.zuordnung_quelle.value == "manuell" and v.fahrzeug_id == fz.id %}selected{% endif %}>manuell: {{ fz.kennzeichen }}{% if fz.modell %} ({{ fz.modell }}){% endif %}</option>
+      {% endfor %}
+    </select>
+    <small>Manuell gesetzt bleibt es auch bei „neu zuordnen“ {{ m.hilfe("Geschätzte kWh werden mit den Werten des Fahrzeugs neu berechnet; die Kosten bleiben wie in der Rechnung.") }}</small>
+    <button type="submit">Speichern</button>
+  </form>
+</article>
+<article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
+  <header><strong>Land und Ladeort</strong> <small>(für Auswertung nach Land und die Karten)</small></header>
+  <form method="post" action="/ladevorgaenge/{{ v.id }}/land" class="filterzeile">
+    <label>Land
+      <select name="land" aria-describedby="land-hinweis">
+        {% for code, name in laender %}<option value="{{ code }}" {% if v.land == code %}selected{% endif %}>{{ name }}</option>{% endfor %}
+        <option value="" {% if not v.land %}selected{% endif %}>unbekannt</option>
+      </select>
+    </label>
+    <button type="submit" class="outline" data-bestaetigen="Land dieses Ladevorgangs ändern? Der Ladeort wird dabei neu zugeordnet.">Land speichern</button>
+  </form>
+  <small id="land-hinweis">Aus EVSE-ID bzw. Rechnung – nur ändern, wenn das nicht stimmt {{ m.hilfe("Zum Beispiel ein ausländischer Betreiber an einem Ladepunkt in Österreich.") }}</small>
+{% if v.ladeort %}
+  <form method="post" action="/ladevorgaenge/{{ v.id }}/ladeort" class="filterzeile">
+    <label>PLZ
+      <input type="text" name="plz" value="{{ v.ladeort.plz_wirksam or '' }}" maxlength="12" size="8"
+             placeholder="{{ v.ladeort.plz or '' }}" aria-describedby="ladeort-hinweis">
+    </label>
+    <label>oder Ort
+      <input type="text" name="ort" value="{{ v.ladeort.ort_manuell or '' }}" maxlength="120"
+             placeholder="{{ v.ladeort.ort or '' }}" aria-describedby="ladeort-hinweis">
+    </label>
+    <button type="submit" class="outline">Speichern</button>
+  </form>
+  {% if v.ladeort.genauigkeit == "verzichtet" %}<p><small>Derzeit bewusst ohne Verortung – Speichern mit PLZ oder Ort
+    verortet ihn wieder.</small></p>{% endif %}
+  <small id="ladeort-hinweis">Erkannt: {{ v.ladeort.plz or "keine PLZ" }}{% if v.ladeort.ort %}, „{{ v.ladeort.ort }}“{% endif %}.
+    Eingetragenes gilt für alle Ladevorgänge an dieser Adresse; leer = wieder das Erkannte
+    {{ m.hilfe("Adresse: " ~ v.ladeort.adresse ~ ". Eingetragene PLZ bzw. Ort haben Vorrang vor den erkannten. Den Ort so schreiben wie im Postleitzahlen-Verzeichnis (z. B. „Bregenz am Bodensee“).") }}</small>
+{% endif %}
+</article>
+{# AC/DC immer setzbar – auch für Vorgänge ohne Angabe #}
+<article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
+  <header><strong>AC/DC und Ladeprofil</strong></header>
+  <div class="aktionszeile">
+    <form method="post" action="/ladevorgaenge/{{ v.id }}/stromart" class="filterzeile">
+      <label>Stromart setzen
+        <select name="stromart">
+          {% for wert, text in [("AC", "AC"), ("DC", "DC"), ("", "keine Angabe")] %}
+            <option value="{{ wert }}" {% if (v.stromart or "") == wert %}selected{% endif %}>{{ text }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="outline" data-bestaetigen="Stromart dieses Ladevorgangs auf {wert} setzen?">Speichern</button>
+    </form>
+    <form method="post" action="/ladevorgaenge/{{ v.id }}/profil" class="filterzeile">
+      <input type="hidden" name="ausnehmen" value="{{ '0' if v.profil_ausgenommen else '1' }}">
+      <button type="submit" class="outline secondary">
+        {{ "Wieder ins Ladeprofil aufnehmen" if v.profil_ausgenommen else "Aus dem Ladeprofil ausnehmen" }}</button>
+    </form>
+  </div>
+  <small>Betrifft nur das Ladeprofil des Fahrzeugs (Ø kWh, Ø Ladeleistung) – Kosten und kWh zählen weiter überall.
+    Grenzen: <a href="/einstellungen#datenqualitaet">Einstellungen</a>.</small>
+</article>
+
+
+
+<details>
+  <summary>Rohdaten aus der Datei</summary>
+  <pre><code>{{ rohdaten }}</code></pre>
+</details>
+{{ m.verlauf_abschnitt(verlauf) }}
+{% endblock %}

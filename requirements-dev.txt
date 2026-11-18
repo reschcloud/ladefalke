@@ -1,0 +1,4 @@
+# Zusätzlich für Entwicklung und Tests (Image mit DEV=1, compose.dev.yaml)
+-r requirements.txt
+pytest>=8
+httpx>=0.27

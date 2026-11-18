@@ -1,0 +1,18 @@
+{# Auswahl Fahrer:in ODER Fahrzeug als Zuordnungsziel; Wert „fahrer:ID“ bzw. „fahrzeug:ID“ #}
+<label>Zuordnen an *
+  <select name="ziel" required>
+    <option value="">– bitte wählen –</option>
+    <optgroup label="Fahrzeuge (fahrzeuggebundene Karte)">
+      {% for fz in fahrzeug_liste %}
+        {% set wert = "fahrzeug:%d" % fz.id %}
+        <option value="{{ wert }}" {% if werte.get("ziel") == wert %}selected{% endif %}>🚗 {{ fz.kennzeichen }}{% if fz.modell %} ({{ fz.modell }}){% endif %}</option>
+      {% endfor %}
+    </optgroup>
+    <optgroup label="Fahrer:innen (personengebundene Karte)">
+      {% for f in fahrer_liste %}
+        {% set wert = "fahrer:%d" % f.id %}
+        <option value="{{ wert }}" {% if werte.get("ziel") == wert %}selected{% endif %}>👤 {{ f.name }}</option>
+      {% endfor %}
+    </optgroup>
+  </select>
+</label>

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Zuordnungen{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Zuordnungen</h1>
+  <a href="/stammdaten/zuordnungen/zeitleiste" role="button" class="outline secondary klein nav-knopf">Als Zeitleiste anzeigen</a>
+</div>
+<p>Wer wann welche Ladekarte und welches Fahrzeug hatte – daraus ermittelt die App für jeden Ladevorgang Fahrzeug und
+  Person am Ladetag. Neue Zuordnungen legt man bei der Ladekarte, dem Fahrzeug oder der Person an.</p>
+<form method="get" action="/stammdaten/zuordnungen" class="filterzeile sofort">
+  <label>Gültig am
+    <input type="date" name="stichtag" value="{{ stichtag.isoformat() if stichtag else '' }}"
+           {% if fehler %}aria-invalid="true"{% endif %}>
+    {% if fehler %}<small>{{ fehler }}</small>{% endif %}
+  </label>
+  <noscript><button type="submit" class="outline">Filtern</button></noscript>
+  {% if stichtag %}<a href="/stammdaten/zuordnungen" role="button" class="outline secondary klein">alle Zeiträume anzeigen</a>{% endif %}
+</form>
+{% if stichtag %}<p>Zuordnungen, die am <strong>{{ stichtag | datum }}</strong> gültig sind.</p>{% endif %}
+
+<h2>Ladekarten</h2>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Ladekarte</th><th>{{ MSP }}</th><th>Zugeordnet an</th><th>Zeitraum</th><th></th></tr></thead>
+  <tbody>
+  {% for z in karten_zuordnungen %}
+    <tr>
+      <td><a href="/stammdaten/ladekarten/{{ z.ladekarte.id }}">{{ z.ladekarte.kennung }}</a>
+        {%- if z.ladekarte.bezeichnung %}<br><small>{{ z.ladekarte.bezeichnung }}</small>{% endif %}</td>
+      <td>{{ z.ladekarte.msp.name }}</td>
+      <td>{{ m.karten_ziel(z) }}</td>
+      <td>{{ m.zeitraum_zelle(z) }}</td>
+      <td class="rechts"><a href="/stammdaten/zuordnungen/karte/{{ z.id }}" role="button" data-schreiben class="outline klein">bearbeiten</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Keine Zuordnungen.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2>Fahrer:innen → Fahrzeuge</h2>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>Fahrer:in</th><th>Fahrzeug</th><th>Zeitraum</th><th></th></tr></thead>
+  <tbody>
+  {% for z in fahrer_zuordnungen %}
+    <tr>
+      <td><a href="/stammdaten/fahrer/{{ z.fahrer.id }}">{{ z.fahrer.name }}</a></td>
+      <td><a href="/stammdaten/fahrzeuge/{{ z.fahrzeug.id }}">{{ z.fahrzeug.kennzeichen }}</a></td>
+      <td>{{ m.zeitraum_zelle(z) }}</td>
+      <td class="rechts"><a href="/stammdaten/zuordnungen/fahrer/{{ z.id }}" role="button" data-schreiben class="outline klein">bearbeiten</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">Keine Zuordnungen.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

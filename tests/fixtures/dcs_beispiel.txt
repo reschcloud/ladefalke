@@ -1,0 +1,81 @@
+DocInfo>>AT-1010-INV_BAT00000001-0-0<<DocInfo
+Digital Charging Solutions GmbH Mies-van-der-Rohe-Straße 6 D-80807 München
+Rechnungsempfänger Digital Charging Solutions GmbH
+Test GmbH
+Zahlungsreferenz: 1000000000001
+Seite 1 / 1
+Rechnungsübersicht
+Datum 30.06.2026
+Inländische Nutzung: Rechnungsnummer Gesamtbetrag Betrag EUR
+Österreich BAT00000001 30,00 EUR 30,00 EUR
+Ungarn BHU00000001 4000,00 HUF 11,20 EUR
+Summe Zahlbetrag: 41,20 EUR
+DocInfo>>AT-1010-INV_BAT00000001-0-0<<DocInfo
+Digital Charging Solutions GmbH Mies-van-der-Rohe-Straße 6 D-80807 München
+Rechnungsempfänger Digital Charging Solutions GmbH
+USt-IdNr. ATU00000000 Rechnungsnummer
+BAT00000001
+Seite 1 / 3
+Ihre Rechnung für Österreich
+Datum 30.06.2026
+für die Nutzung von BMW Charging berechnen wir Ihnen folgendes im Zeitraum vom 01.06.2026 - 30.06.2026:
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*1 AT-B-1000001-1 BMW Active Vertrag Max Muster
+Leistungsposition (je Ladesäulenbetreiber) Anzahl Einheit Betrag Betrag
+EUR
+IONITY Plus vom 01.06.2026 - 30.06.2026 4,99 EUR 4,99 EUR
+Monatliche Grundgebühr vom 01.06.2026 - 4,16 EUR 4,16 EUR
+30.06.2026
+Summe Ladevorgänge vom 01.06.2026 - 30.06.2026 2 41,000 kWh 20,85 EUR 20,85 EUR
+(DC)
+Gesamtbetrag* 30,00 EUR 30,00 EUR
+Gesamtbetrag 30,00 EUR 30,00 EUR
+*Steuerschuldnerschaft des Leistungsempfängers.
+DocInfo>>AT-1010-INV_BAT00000001-0-0<<DocInfo
+Rechnungsnummer
+BAT00000001
+Seite 3 / 3
+Übersicht der Ladevorgänge
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*1 AT-B-1000001-1 BMW Active Vertrag Max Muster
+Datum/Uhrzeit (UTC) Adresse Menge Produkt Grundbetrag Summe Gesamtbetrag **
+Ladestation Dauer Zusatzbetrag* Umrechnungskurs
+CPO
+09.06.2026 16:12h Teststraße 1|1010| 11,000 kWh DC 6,4481 EUR 6,4481 EUR 6,4481 EUR
+AT * OMV * Teststadt am See 0:06 hh:mm (kWh) 0,0000 EUR
+EA0000DC0001
+Test Betreiber GmbH
+30.06.2026 23:10h Probeweg 2|5020| 30,000 kWh DC 14,4044 EUR 14,4044 EUR 14,4044 EUR
+AT * MER * E000002 * 02 Salzburg 1:05 hh:mm (kWh) 0,0000 EUR
+Test Betreiber
+*Der Zusatzbetrag bildet den durch ggf. anfallende "fair use fee" (Standgebühren) ab.
+**Bei allen aufgeführten Preisen handelt es sich um Nettowerte.
+DocInfo>>AT-1010-INV_BHU00000001-0-0<<DocInfo
+Rechnungsnummer
+BHU00000001
+Seite 1 / 3
+Ihre Rechnung für Ungarn
+Datum 30.06.2026
+für die Nutzung von BMW Charging berechnen wir Ihnen folgendes im Zeitraum vom 01.06.2026 - 30.06.2026:
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*1 BMW Active IR Vertrag Max Muster
+Leistungsposition (je Ladesäulenbetreiber) Anzahl Einheit Betrag Betrag
+HUF
+Summe Ladevorgänge vom 01.06.2026 - 30.06.2026 1 20,000 kWh 3150,00 HUF 8,82 EUR
+(AC)
+Gesamtbetrag (27% MwSt. HU) 3150,00 HUF 8,82 EUR
++ 27% MwSt. HU 850,00 HUF 2,38 EUR
+Gesamtbetrag 4000,00 HUF 11,20 EUR
+DocInfo>>AT-1010-INV_BHU00000001-0-0<<DocInfo
+Rechnungsnummer
+BHU00000001
+Seite 3 / 3
+Übersicht der Ladevorgänge
+Vertragsnummer Kartennummer Tarif Vertragsname
+AT*DCS*000TST*1 BMW Active IR Vertrag Max Muster
+Datum/Uhrzeit (UTC) Adresse Menge Produkt Summe Gesamtbetrag **
+Ladestation Dauer Umrechnungskurs
+CPO
+05.06.2026 05:41h Próba utca |1133|Budapest 20,000 kWh AC 3150,3000 HUF 8,8208 EUR
+HUTEST00001 * 1 2:49 hh:mm (kWh) 0,00280
+Test Mobiliti

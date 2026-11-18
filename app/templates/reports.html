@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% import "auswertungen/_bausteine.html" as b %}
+{% import "_makros.html" as m %}
+{% block titel %}Reports {{ a.zeitraum.label }}{% endblock %}
+{% block inhalt %}
+{# Versand per Mail: je Report ein Knopf „Per Mail senden …“ (ausgegraut mit Grund, solange die Mail-Einstellungen
+   fehlen); er öffnet einen Dialog mit Empfänger:innen, freien Adressen (nicht bei Fahrer:innen-Reports) und Senden.
+   Skript „Versanddialog“ in base.html. #}
+{% macro mail_knopf(dialog, nur=none, text="Per Mail senden …", klasse="outline download-knopf", grund=none) -%}
+{% set grund = mail_fehlt or grund %}
+<button type="button" class="{{ klasse }}{{ ' ausgegraut' if grund }}" data-dialog="{{ dialog }}" data-schreiben
+        {%- if nur %} data-nur="{{ nur }}"{% endif %}{% if grund %} aria-disabled="true" title="{{ grund }}"{% endif %}>{{ text }}</button>
+{%- endmacro %}
+{% macro tlp_hinweis() %}{% if tlp %}
+<p class="meldung meldung-warnung tlp-hinweis">Der Report ist als <strong>TLP:{{ tlp }}</strong> gekennzeichnet –
+  {{ tlp_bedeutung }}. Nur an Berechtigte weitergeben.</p>{% endif %}{% endmacro %}
+{# Kopf und Fuß als direkte Kinder von <article> (so gestaltet Pico den Dialog); die Knöpfe hängen am Formular #}
+{% macro dialog_kopf(titel) %}
+<header><button type="button" aria-label="Schließen" rel="prev" data-dialog-zu></button>
+  <p><strong>{{ titel }}</strong></p></header>
+{% endmacro %}
+{% macro dialog_fuss(form_id) %}
+<footer>
+  <small class="versand-anzahl" data-anzahl></small>
+  <button type="button" class="outline secondary" data-dialog-zu>Abbrechen</button>
+  <button type="submit" form="{{ form_id }}" data-senden>Senden</button>
+</footer>
+{% endmacro %}
+{# Dialog für Reports an Benutzer:innen und freie Adressen; abo: Vorauswahl (Feld am Benutzer), bilder: Haken JPG #}
+{% macro versand_dialog(report, titel, abo=none, bilder=false, mit_tlp=true, zusatz="", stichtag=false) %}
+<dialog id="dialog-{{ report }}" class="versand-dialog">
+<article>
+{{ dialog_kopf(titel ~ " per Mail senden") }}
+<form method="post" action="/reports/{{ report }}/senden?{{ p }}" id="form-{{ report }}" data-versand>
+  {% if stichtag %}<label class="versand-titel versand-stichtag">Stichtag
+    <input type="date" name="stichtag" value="{{ heute_datum().isoformat() }}" required></label>{% endif %}
+  <p class="versand-titel">Benutzer:innen</p>
+  <ul class="empfaenger">
+  {% for bn in benutzer %}{% set z = zuletzt_je.get(report, {}).get(bn.id) %}
+    <li><label class="empfaenger-zeile"><input type="checkbox" name="benutzer_id" value="{{ bn.id }}"
+          {% if abo and bn[abo] and bn.email %}checked{% endif %}{% if not bn.email %} disabled title="Keine E-Mail-Adresse"{% endif %}>
+      <span><span class="name">{{ bn.name }}</span>
+        <small>{{ bn.email or "keine E-Mail-Adresse" }}{% if abo and bn[abo] %} · Abo{% endif %}
+        {%- if z %} · zuletzt {{ z.gesendet_am.strftime("%d.%m.%Y") }}{% endif %}</small></span></label></li>
+  {% endfor %}
+  </ul>
+  <label class="versand-titel" for="adressen-{{ report }}">Weitere Adressen</label>
+  <textarea id="adressen-{{ report }}" name="adressen" rows="2" spellcheck="false"
+            placeholder="name@example.com, weitere@example.org"></textarea>
+  <small class="versand-hilfe">Mehrere mit Komma oder Zeilenumbruch trennen.</small>
+  {% if zuletzt_adressen %}<p class="vorschlaege"><small>Zuletzt verwendet:</small>
+    {% for adr in zuletzt_adressen %}<button type="button" class="outline secondary klein" data-adresse="{{ adr }}">{{ adr }}</button>{% endfor %}</p>{% endif %}
+  {% if bilder %}<label class="haken"><input type="checkbox" name="bilder"> Beide Seiten zusätzlich als Bild (JPG, 4K) anhängen</label>
+  <small class="haken-hinweis">Die Mail wird dann mehrere MB groß.</small>{% endif %}
+  {% if mit_tlp %}{{ tlp_hinweis() }}{% endif %}
+  <p class="versand-hinweis"><small>Einmaliger Versand, je Adresse eine eigene Mail{% if abo %}; vorausgewählt sind alle mit Abo – ändert kein Abo{% endif %}.{% if zusatz %} {{ zusatz }}{% endif %}</small></p>
+</form>
+{{ dialog_fuss("form-" ~ report) }}
+</article>
+</dialog>
+{% endmacro %}
+{% set p = parameter %}
+<h1>Reports</h1>
+{{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre,
+                  versteckt=[("fahrer", hervor)] if hervor else []) }}
+<p><small>PDF-Reports für {{ a.zeitraum.label }} ({{ a.zeitraum.von | datum }} – {{ a.zeitraum.bis | datum }}),
+  berechnet wie Dashboard und Auswertungen. Alle Beträge netto.
+  Kennzeichnung: {% if tlp %}<span class="tlp tlp-{{ tlp | lower | replace('+', '-') }}" title="{{ tlp_bedeutung }}">TLP:{{ tlp }}</span>
+  {%- else %}keine{% endif %} <a href="/einstellungen#reports">(Einstellungen)</a></small></p>
+{% if mail_fehlt %}<p class="meldung meldung-warnung">Versand per Mail noch nicht möglich: {{ mail_fehlt }}
+  <a href="/einstellungen#email">Einstellungen → E-Mail</a></p>{% endif %}
+
+<section class="abschnitt-karte report-karte" id="zusammenfassung">
+  <div class="kopf"><h2>Zusammenfassung</h2>
+    <span class="knopfgruppe">{{ mail_knopf("dialog-zusammenfassung") }}
+    <a href="/reports/zusammenfassung.pdf?{{ p }}" role="button" class="outline download-knopf" hx-boost="false"
+       title="Zusammenfassung {{ a.zeitraum.label }} als PDF herunterladen">PDF herunterladen ↓</a></span></div>
+  <p>Der ganze Zeitraum auf einen Blick: Kennzahlen mit Vorperioden, Vollständigkeit, Verteilung, Karte und Toplisten
+    {{ m.hilfe("Inhalt: Kennzahlen mit Vergleich zu den Vorperioden und Ø pro Monat und Auto, Vollständigkeit der Rechnungsdaten, Verteilung auf Fahrer:innen, MSP und CPO (bei mehreren Monaten mit Säulen je Monat), Karte des öffentlichen Ladens, Toplisten, Gesamt sowie pro Fahrer:in, Fahrzeug, CPO, MSP, Land und Ladekarte.") }}.</p>
+  {{ versand_dialog("zusammenfassung", "Zusammenfassung " ~ a.zeitraum.label, abo="zusammenfassung_abo") }}
+</section>
+
+<section class="abschnitt-karte report-karte" id="karten-cpo">
+  <div class="kopf"><h2>Karten und Preise je {{ CPO }}</h2>
+    <span class="knopfgruppe">{{ mail_knopf("dialog-karten_cpo") }}
+    <a href="/reports/karten-cpo.pdf?{{ p }}" role="button" class="outline download-knopf" hx-boost="false"
+       title="Karten und Preise je CPO {{ a.zeitraum.label }} als PDF herunterladen">PDF herunterladen ↓</a></span></div>
+  <p>Wer mit welcher Karte bei welchem {{ CPO }} welchen Preis erzielt hat und wo eine andere Karte günstiger gewesen
+    wäre. Im Zeitraum
+    {% if a.ersparnis_gesamt %}<strong>{{ a.ersparnis_gesamt | geld }}</strong> Sparpotenzial{% else %}kein Sparpotenzial{% endif %}
+    (<a href="/auswertungen?{{ p }}#cpo">je {{ CPO }} in den Auswertungen</a>).</p>
+  {{ versand_dialog("karten_cpo", "Karten und Preise je CPO " ~ a.zeitraum.label, abo="karten_cpo_abo") }}
+</section>
+
+<section class="abschnitt-karte report-karte" id="flottenbilanz">
+  <div class="kopf"><h2>Flottenbilanz</h2>
+    <span class="knopfgruppe">{{ mail_knopf("dialog-flottenbilanz") }}
+    <a href="/reports/flottenbilanz-1.jpg?{{ p }}" role="button" class="outline download-knopf" hx-boost="false"
+       title="Seite 1 (Flottenzahlen und Heatmap) als Bild in 4K (3840 × 2160)">Seite 1 als JPG ↓</a>
+    <a href="/reports/flottenbilanz-2.jpg?{{ p }}" role="button" class="outline download-knopf" hx-boost="false"
+       title="Seite 2 (Siegertreppchen) als Bild in 4K (3840 × 2160)">Seite 2 als JPG ↓</a>
+    <a href="/reports/flottenbilanz.pdf?{{ p }}" role="button" class="outline download-knopf" hx-boost="false"
+       title="Flottenbilanz {{ a.zeitraum.label }} als PDF herunterladen">PDF herunterladen ↓</a></span></div>
+  <p>Zum Weitergeben nach außen, im Format 16:9 (jede Seite auch als Bild verwendbar): Seite 1 Flottenzahlen und die
+    Heatmap des öffentlichen Ladens, Seite 2 die drei günstigsten Öffentlich-Lader:innen auf dem Siegertreppchen
+    <strong>mit Namen</strong>. Keine Kennzeichen, Ladekarten, Adressen oder Kostensummen, ohne TLP-Kennzeichnung.</p>
+  {{ versand_dialog("flottenbilanz", "Flottenbilanz " ~ a.zeitraum.label, abo="flottenbilanz_abo", bilder=true, mit_tlp=false,
+                    zusatz="Seite 2 nennt die drei günstigsten Öffentlich-Lader:innen mit Namen.") }}
+</section>
+
+<section class="abschnitt-karte report-karte" id="zuordnungen">
+  <div class="kopf"><h2>Zuordnungen am Stichtag</h2>
+    <span class="knopfgruppe">{{ mail_knopf("dialog-zuordnungen") }}
+    <button type="submit" form="zuordnungen-pdf" class="outline download-knopf"
+            title="Zuordnungen am gewählten Stichtag als PDF herunterladen">PDF herunterladen ↓</button></span></div>
+  <form method="get" action="/reports/zuordnungen.pdf" id="zuordnungen-pdf" class="filterzeile stichtag-wahl" hx-boost="false">
+    <label>Stichtag <input type="date" name="stichtag" value="{{ heute_datum().isoformat() }}" required></label>
+  </form>
+  <p>Wer an einem Tag welche Ladekarten und welches Fahrzeug hatte – je Fahrer:in eine Zeile, je {{ MSP }} eine Spalte
+    (A4 quer), dazu Fahrzeuge ohne Fahrer:in und Karten ohne Zuordnung. Unabhängig vom gewählten Zeitraum.</p>
+  {% set auto_z %}Automatischer Versand: {{ zuordnungen_zeitplan or "aus" }} (<a href="/einstellungen#reports">Einstellungen → Reports</a>).{% endset %}
+  {{ versand_dialog("zuordnungen", "Zuordnungen am Stichtag", abo="zuordnungen_abo", zusatz=auto_z, stichtag=true) }}
+</section>
+
+<section class="abschnitt-karte report-karte" id="offene-aufgaben">
+  <div class="kopf"><h2>Offene Aufgaben</h2>
+    <span class="knopfgruppe">{{ mail_knopf("dialog-aufgaben") }}
+    <a href="/reports/offene-aufgaben.pdf" role="button" class="outline download-knopf" hx-boost="false"
+       title="Offene Aufgaben (Stand heute) als PDF herunterladen">PDF herunterladen ↓</a></span></div>
+  <p>Alles, was unter <a href="/aufgaben">Aufgaben</a> offen ist, dazu Lücken in der Zuordnung und offene
+    Import-Vorschauen – Stand heute, unabhängig vom gewählten Zeitraum.
+    {% set zo = request.state.offen %}{% if zo %}Derzeit <strong>{{ zo.zu_klaeren + zo.vorschauen }}</strong> offene Punkte.{% endif %}</p>
+  {% set auto %}Automatischer Versand: {{ aufgaben_zeitplan or "aus" }} (<a href="/einstellungen#reports">Einstellungen → Reports</a>).{% endset %}
+  {{ versand_dialog("aufgaben", "Offene Aufgaben (Stand heute)", abo="aufgaben_abo", zusatz=auto) }}
+</section>
+
+<section class="abschnitt-karte report-karte" id="fahrerinnen">
+  {% set mit_adresse = personen | selectattr("fahrer.email") | list | length %}
+  <div class="kopf"><h2>Fahrer:innen-Reports</h2>
+    <span class="knopfgruppe">
+    {% if personen %}<a href="/reports/fahrer.zip?{{ p }}" role="button" class="outline download-knopf" hx-boost="false"
+       title="Reports aller {{ personen | length }} Fahrer:innen mit Ladungen im Zeitraum als ZIP">Alle als ZIP ↓</a>
+    {{ mail_knopf("dialog-fahrer", grund="Niemand mit Ladungen im Zeitraum hat eine E-Mail-Adresse" if not mit_adresse else none) }}{% endif %}
+    </span></div>
+  <p><small>„Dein Ladereport“ je Person: nur die eigenen Summen, dazu der Flottenschnitt und der eigene Platz in der
+    Topliste der günstigsten Öffentlich-Lader:innen – keine Namen oder Werte anderer Personen.
+    Gezählt wird, wer zum Ladezeitpunkt gefahren ist {{ m.zurechnung() }}. Versendet wird an die E-Mail-Adresse der Person.</small></p>
+  {% if ohne %}<p class="meldung meldung-info">{{ ohne.name }} hat im Zeitraum {{ a.zeitraum.label }} keine Ladungen –
+    <a href="/reports/fahrer/{{ ohne.id }}.pdf?{{ p }}" role="button" class="outline klein download-knopf" hx-boost="false">Report trotzdem herunterladen ↓</a></p>{% endif %}
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Fahrer:in</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th>
+      <th class="rechts">Ø €/kWh</th><th>E-Mail</th><th>Versendet</th><th></th></tr></thead>
+    <tbody>
+    {% for zl in personen %}{% set f = zl.fahrer %}{% set z = zuletzt.get(("fahrer", f.id)) %}
+      <tr id="fahrer-{{ f.id }}"{% if f.id == hervor %} class="hervorgehoben"{% endif %}>
+        <td><a href="/auswertungen/fahrer/{{ f.id }}?{{ p }}">{{ f.name }}</a></td>
+        <td class="rechts">{{ zl.summe.anzahl }}</td><td class="rechts">{{ zl.summe.kwh | zahl(0) }}</td>
+        <td class="rechts">{{ zl.summe.kosten | geld }}</td>
+        <td class="rechts">{{ zl.summe.preis | zahl(2) if zl.summe.preis is not none else "–" }}</td>
+        <td>{% if f.email %}<span title="{{ f.email }}">✉</span>{% else %}<a href="/stammdaten/fahrer/{{ f.id }}" title="Keine E-Mail-Adresse. Bitte bei der Person eintragen."><small>fehlt</small></a>{% endif %}</td>
+        <td>{% if z %}<small title="{{ 'automatisch' if z.ausgeloest == 'automatisch' else 'manuell' }} an {{ z.an }}">{{ z.gesendet_am.strftime("%d.%m.%Y") }}</small>{% else %}<small>–</small>{% endif %}</td>
+        <td class="rechts nowrap">
+          <a href="/reports/fahrer/{{ f.id }}.pdf?{{ p }}" role="button" class="outline klein download-knopf" hx-boost="false"
+             title="Ladereport von {{ f.name }} für {{ a.zeitraum.label }} als PDF">PDF ↓</a>
+          {{ mail_knopf("dialog-fahrer", nur=f.id, text="Senden …", klasse="outline klein",
+                        grund="Keine E-Mail-Adresse. Bitte bei der Person eintragen." if not f.email else none) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8">Keine Fahrer:innen mit Ladungen im Zeitraum.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if personen %}
+  <dialog id="dialog-fahrer" class="versand-dialog">
+  <article>
+  {{ dialog_kopf("Ladereports " ~ a.zeitraum.label ~ " per Mail senden") }}
+  <form method="post" action="/reports/fahrer/senden?{{ p }}" id="form-fahrer" data-versand>
+    <p class="versand-titel">Fahrer:innen mit Ladungen im Zeitraum</p>
+    <ul class="empfaenger">
+    {% for zl in personen %}{% set f = zl.fahrer %}{% set z = zuletzt.get(("fahrer", f.id)) %}
+      <li><label class="empfaenger-zeile"><input type="checkbox" name="fahrer_id" value="{{ f.id }}"
+            {% if f.email %}checked{% else %}disabled title="Keine E-Mail-Adresse. Bitte bei der Person eintragen."{% endif %}>
+        <span><span class="name">{{ f.name }}</span>
+          <small>{{ f.email or "keine E-Mail-Adresse" }}{% if z %} · zuletzt {{ z.gesendet_am.strftime("%d.%m.%Y") }}{% endif %}</small></span></label></li>
+    {% endfor %}
+    </ul>
+    {% set ich = request.state.benutzer %}
+    <label class="haken"><input type="checkbox" name="kopie"{% if not ich.email %} disabled{% endif %}>
+      <span>Kopie an mich{% if ich.email %} <small class="nowrap">({{ ich.email }})</small>{% endif %}</span></label>
+    {% if not ich.email %}<small class="haken-hinweis">Dafür unter „Mein Konto“ eine E-Mail-Adresse eintragen.</small>{% endif %}
+    {{ tlp_hinweis() }}
+    <p class="versand-hinweis"><small>Jede Person bekommt nur ihren eigenen Report an ihre eigene Adresse – persönliche
+      Daten, daher keine weiteren Adressen.</small></p>
+  </form>
+  {{ dialog_fuss("form-fahrer") }}
+  </article>
+  </dialog>
+  {% endif %}
+</section>
+
+{% if protokoll %}
+<section class="abschnitt-karte report-karte" id="protokoll">
+  <div class="kopf"><h2>Versandprotokoll</h2></div>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Gesendet</th><th>Report</th><th>Empfänger:in</th><th>Ergebnis</th></tr></thead>
+    <tbody>
+    {% for e in protokoll %}
+      <tr><td>{{ e.gesendet_am.strftime("%d.%m.%Y %H:%M") }} <small>{{ e.ausgeloest }}</small></td>
+        <td>{{ {"fahrer": "Ladereport", "zusammenfassung": "Zusammenfassung", "aufgaben": "Offene Aufgaben",
+                "karten_cpo": "Karten und Preise je CPO", "flottenbilanz": "Flottenbilanz",
+                "zuordnungen": "Zuordnungen"}[e.art] }} {{ e.zeitraum_label }}</td>
+        <td>{{ e.empfaenger_name }} <small>{{ e.an }}</small></td>
+        <td>{% if e.erfolg %}<span class="ok-text">✓ gesendet</span>{% else %}<span class="fehler-text" title="{{ e.fehler }}">⚠ {{ e.fehler | truncate(70) }}</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p><small>Die letzten 30 Versendungen.</small></p>
+</section>
+{% endif %}
+
+{% endblock %}

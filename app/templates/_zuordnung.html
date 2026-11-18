@@ -1,0 +1,76 @@
+{% import "_makros.html" as m %}
+{# Zuordnungs-Abschnitt der Detailseiten: Mini-Zeitleiste und chronologische Tabelle (services/mini_zeitleiste.py).
+   spalte: Kopf der Namensspalte; zusatz: Kopf einer Zusatzspalte (z. B. MSP) oder none; formular: id des Formulars
+   „Neue Zuordnung“ auf der Seite – dann füllt „Lücke schließen“ es mit dem Zeitraum der Lücke. #}
+{% macro abschnitt(mini, spalte, zusatz=none, formular=none, leer="Keine Zuordnungen.") %}
+{% set luecke_text = "⚠ Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
+<div class="abschnitt-karte">
+{% if mini.abschnitte or mini.luecken %}
+<div class="mini-zl" style="--spuren: {{ mini.spuren }}" aria-hidden="true">
+  <div class="mini-zl-achse">{% for text, links in mini.achse %}<span style="left: {{ links }}%">{{ text }}</span>{% endfor %}</div>
+  <div class="mini-zl-band">
+    {% for links, breite in mini.ausserhalb %}<span class="mini-zl-ausserhalb" style="left: {{ links }}%; width: {{ breite }}%"
+      title="außerhalb des Leasings"></span>{% endfor %}
+    {% for l in mini.luecken %}<span class="mini-zl-luecke {{ mini.luecken_art }}" style="left: {{ l.links }}%; width: {{ l.breite }}%"
+      title="{{ luecke_text }}: {{ l.von | datum }} – {{ (l.bis | datum) if l.bis else 'heute' }}"></span>{% endfor %}
+    {% for a in mini.abschnitte %}
+      <a class="mini-zl-balken{{ ' offen' if not a.bis }}" href="{{ a.eintrag.bearbeiten or a.eintrag.link or '#' }}"
+         style="left: {{ a.links }}%; width: {{ a.breite }}%; --spur: {{ a.spur }}" title="{{ a.eintrag.name }}: {{ a.eintrag.zeitraum }}"
+         tabindex="-1"><span>{{ a.eintrag.name }}</span></a>
+    {% endfor %}
+    {% if mini.leasing_beginn is not none %}<span class="mini-zl-leasing beginn" style="left: {{ mini.leasing_beginn }}%"
+      title="Leasingbeginn {{ mini.leasing_beginn_datum | datum }}"></span>{% endif %}
+    {% if mini.leasing_ende is not none %}<span class="mini-zl-leasing ende" style="left: {{ mini.leasing_ende }}%"
+      title="Leasing-Ende {{ mini.leasing_ende_datum | datum }}"></span>{% endif %}
+    {% if mini.heute is not none %}<span class="mini-zl-heute" style="left: {{ mini.heute }}%" title="heute"></span>{% endif %}
+  </div>
+  {# Enden der Leiste: was der linke und rechte Rand bedeuten; Leasing-Markierungen dazwischen beschriftet #}
+  <div class="mini-zl-enden">
+    <span class="links">◂ {{ mini.ende_links }}</span>
+    {% if mini.leasing_beginn is not none and mini.leasing_beginn >= 4 %}<span class="leasing" style="left: {{ mini.leasing_beginn }}%">▲ Leasingbeginn {{ mini.leasing_beginn_datum | datum }}</span>{% endif %}
+    {% if mini.leasing_ende is not none and mini.leasing_ende <= 96 %}<span class="leasing ende" style="left: {{ mini.leasing_ende }}%">Leasing-Ende {{ mini.leasing_ende_datum | datum }} ▲</span>{% endif %}
+    <span class="rechts">{{ mini.ende_rechts }} ▸</span>
+  </div>
+</div>
+{% endif %}
+<div class="tabelle">
+<table class="zuordnungs-tabelle">
+  <thead><tr><th>{{ spalte }}</th>{% if zusatz %}<th>{{ zusatz }}</th>{% endif %}<th>Zeitraum</th><th></th></tr></thead>
+  <tbody>
+  {% for z in mini.zeilen %}
+    {% if z.eintrag %}{% set e = z.eintrag %}
+    <tr>
+      <td>{% if e.art %}{{ m.symbol(e.art, {"auto": "Fahrzeug", "person": "Person", "karte": "Ladekarte"}[e.art]) }} {% endif -%}
+        {% if e.link %}<a href="{{ e.link }}">{{ e.name }}</a>{% else %}{{ e.name }}{% endif %}</td>
+      {% if zusatz %}<td>{{ e.zusatz }}</td>{% endif %}
+      <td>{{ e.zeitraum }}{% if e.ab <= heute_datum() and (e.bis is none or e.bis >= heute_datum()) %} <span class="marker">aktuell</span>{% endif %}</td>
+      <td class="rechts">{% if e.bearbeiten %}<a href="{{ e.bearbeiten }}" role="button" data-schreiben class="outline klein">bearbeiten</a>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr class="luecken-zeile {{ mini.luecken_art }}">
+      <td>{{ luecke_text }}</td>{% if zusatz %}<td></td>{% endif %}
+      <td>{{ z.zeitraum }}</td>
+      <td class="rechts">{% if formular %}<button type="button" class="outline klein" data-schreiben data-luecke-fuellen="{{ formular }}"
+        data-von="{{ z.ab.isoformat() }}" data-bis="{{ z.bis.isoformat() if z.bis else '' }}">{{ "Lücke schließen" if mini.luecken_art == "warnung" else "zuordnen" }}</button>{% endif %}</td>
+    </tr>
+    {% endif %}
+  {% else %}
+    <tr><td colspan="{{ 4 if zusatz else 3 }}">{{ leer }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endmacro %}
+
+{# „Karte zuordnen →“ (Fahrzeug- bzw. Personenseite): öffnet die gewählte Karte mit vorbelegtem Ziel, danach zurück #}
+{% macro karte_zuordnen(karten, ziel, zurueck) %}
+<form method="get" action="/stammdaten/ladekarten/zuordnen" class="filterzeile karte-zuordnen" data-schreiben>
+  <input type="hidden" name="ziel" value="{{ ziel }}"><input type="hidden" name="zurueck" value="{{ zurueck }}">
+  <select name="karte_id" required aria-label="Ladekarte">
+    <option value="">– Ladekarte wählen –</option>
+    {% for k in karten %}<option value="{{ k.id }}">{{ k.bezeichnung or k.kennung }}{% if k.bezeichnung %} ({{ k.kennung }}){% endif %} · {{ k.msp.name }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="outline klein">Karte zuordnen →</button>
+</form>
+{% endmacro %}

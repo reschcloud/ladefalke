@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% import "auswertungen/_bausteine.html" as b %}
+{% import "_makros.html" as m %}
+{# Öffentliche Ladungen bei einem CPO: Fahrer:innen nach Kosten mit ihren Ladekarten, dazu MSP im Preisvergleich.
+   d: services.auswertung.CpoDetail; code: CPO aus der URL („-“ = unbekannt). #}
+{% set name = d.code or "unbekannt" %}
+{% set land = d.code | cpo_land %}
+{% block titel %}{{ name }} {{ a.zeitraum.label }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="/auswertungen?{{ parameter }}#cpo" role="button" class="outline secondary klein nav-knopf">← Auswertungen {{ a.zeitraum.label }}</a></p>
+<h1>{% if land %}<code>{{ name }}</code>{% else %}{{ name }}{% endif %}
+  {% if land %}<small class="titel-zusatz">{{ land | flagge }} {{ land | landname }}</small>{% endif %}</h1>
+{{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
+
+{# Link auf die Ladevorgänge dieses CPO im Zeitraum (nur öffentlich), optional je Person/Karte #}
+{% macro vorgaenge_link(person=none, karte=none) -%}
+{%- if d.code and (person is none or person.art != "pool") -%}
+<a class="vorgaenge-link" href="/ladevorgaenge?betreiber={{ d.code | urlencode }}&amp;ladeart=oeffentlich&amp;{{ parameter }}
+  {%- if person %}&amp;fahrer={{ person.fahrer.id if person.fahrer else person.art }}{% endif %}
+  {%- if karte %}&amp;ladekarte_id={{ karte.id }}{% endif %}" title="Ladevorgänge anzeigen">→</a>
+{%- endif -%}
+{%- endmacro %}
+
+{# Sparpotenzial einer Karte: Betrag, im Tooltip je Stromart eigener Preis gegen den günstigsten MSP #}
+{% macro ersparnis_zelle(betrag, posten) -%}
+{%- set teile = [] -%}
+{%- for x in posten if x.massstab -%}
+  {%- set _ = teile.append((STROMART_TEXT[x.stromart] ~ ": " ~ (x.summe.preis | zahl(2) if x.summe.preis is not none else "–")
+       ~ " €/kWh, günstigster " ~ x.massstab[0] ~ " " ~ (x.massstab[1] | zahl(2)) ~ " €/kWh"
+       ~ (" → " ~ (x.ersparnis | geld) if x.ersparnis > 0 else (" (selbst der günstigste)" if x.msp == x.massstab[0] else " (nicht über dem günstigsten)")))) -%}
+{%- endfor -%}
+<span class="ersparnis{{ ' hat' if betrag > 0 }}"{% if teile %} title="{{ teile | join('\n') }}"{% endif %}>
+  {%- if betrag > 0 %}{{ betrag | geld }}{% elif teile %}–{% else %}<small title="Kein Vergleich: kein anderer {{ 'MSP' }} mit mindestens {{ mindest | zahl(0) }} kWh bei dieser Stromart">k. V.</small>{% endif %}</span>
+{%- endmacro %}
+
+{% set s = d.summe %}
+{% if s.leer %}
+<p class="meldung meldung-info">Keine öffentlichen Ladungen bei {{ name }} im Zeitraum {{ a.zeitraum.label }}. Mit ◀ ▶
+  oder Quartal/Jahr lassen sich andere Zeiträume ansehen.</p>
+{% else %}
+{# Kennzahlen laut SPEC §6 (Kosten, kWh, Ø €/kWh, Ladevorgänge), Reihenfolge wie im Dashboard; dazu Sparpotenzial #}
+<div class="kacheln">
+  <div class="kachel"><span class="kachel-zahl">{{ s.anzahl }}</span><span>Ladevorgänge</span>
+    {%- set pro_tag = a.zeitraum.pro_tag(s.anzahl) %}
+    {% if pro_tag is not none %}<small class="pro-tag" title="Ø Ladevorgänge je Tag über {{ a.zeitraum.tage_bisher }} Tage">Ø {{ pro_tag | zahl(1) }} pro Tag</small>{% endif %}
+    {% if d.code %}<small>{{ vorgaenge_link() }} alle anzeigen</small>{% endif %}</div>
+  <div class="kachel"><span class="kachel-zahl">{{ b.geschaetzt_hinweis(s) }}{{ s.kwh | zahl(0) }}</span><span>kWh</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ s.kosten | geld }}</span><span>Kosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span>Ø €/kWh</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ d.ersparnis | geld }}</span><span>Sparpotenzial
+    {{ m.hilfe("Was dieselben kWh mit dem günstigsten " ~ "MSP bei " ~ name ~ " weniger gekostet hätten – getrennt nach AC und DC; Maßstab nur, wenn dieser MSP hier mindestens " ~ (mindest | zahl(0)) ~ " kWh der Stromart hat.") }}</span></div>
+</div>
+
+<section>
+  <div class="kopf"><h2>Fahrer:innen und Ladekarten</h2>
+    {{ m.export_knoepfe("/auswertungen/export/cpo_personen", parameter ~ "&cpo=" ~ (code | urlencode)) }}</div>
+  <div class="tabelle">
+  <table class="cpo-personen">
+    <thead><tr><th>Fahrer:in / Ladekarte</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
+      <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th>
+      <th class="rechts">Sparpotenzial {{ m.hilfe("Mit dem günstigsten " ~ "MSP bei " ~ name ~ " (je Stromart) wäre es um diesen Betrag billiger gewesen. Details im Tooltip.") }}</th><th></th></tr></thead>
+    {% for p in d.personen %}
+    <tbody class="{{ 'sammel' if p.art != 'person' }}">
+      <tr class="person">
+        <td>{% if p.fahrer %}{{ m.symbol("person", "Person") }}
+          <a href="/auswertungen/fahrer/{{ p.fahrer.id }}?{{ parameter }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</td>
+        <td class="rechts">{{ p.summe.anzahl }}</td>
+        <td class="rechts">{{ b.geschaetzt_hinweis(p.summe) }}{{ p.summe.kwh | zahl(0) }}</td>
+        <td class="rechts"><strong>{{ p.summe.kosten | geld }}</strong></td>
+        <td class="rechts">{{ p.summe.preis | zahl(2) if p.summe.preis is not none else "–" }}</td>
+        <td class="rechts">{% if p.ersparnis > 0 %}<strong class="ersparnis hat">{{ p.ersparnis | geld }}</strong>{% else %}–{% endif %}</td>
+        <td class="rechts">{{ vorgaenge_link(p) }}</td>
+      </tr>
+      {% for k, ks in p.karten_liste %}
+      <tr class="karte-zeile">
+        <td>{{ m.symbol("karte", "Ladekarte") }}
+          {{ m.karte(a.karte(k), k, fahrer_id=p.fahrer.id if p.fahrer else none) }}</td>
+        <td class="rechts">{{ ks.anzahl }}</td>
+        <td class="rechts">{{ b.geschaetzt_hinweis(ks) }}{{ ks.kwh | zahl(0) }}</td>
+        <td class="rechts">{{ ks.kosten | geld }}</td>
+        <td class="rechts">{{ ks.preis | zahl(2) if ks.preis is not none else "–" }}</td>
+        <td class="rechts">{{ ersparnis_zelle(p.ersparnis_karte(k), p.posten_karte(k)) }}</td>
+        <td class="rechts">{{ vorgaenge_link(p, k) if k }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% endfor %}
+  </table>
+  </div>
+  <p><small>Nur öffentliche Ladungen bei {{ name }}, nur Ladekosten (ohne Grundgebühren), je Person zum
+    Ladezeitpunkt {{ m.zurechnung() }}.</small></p>
+</section>
+
+{% if d.msp | length > 1 %}
+<section>
+  <div class="kopf"><h2>{{ MSP }} im Vergleich</h2></div>
+  <div class="tabelle">
+  <table class="striped msp-vergleich">
+    <thead><tr><th>Stromart</th><th>{{ MSP }}</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
+      <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+    {% for art, liste in d.msp_stromart.items() %}
+    <tbody>
+    {% for msp_name, ms in liste %}
+      {% set ist_massstab = liste | length > 1 and d.massstab.get(art) and d.massstab[art][0] == msp_name %}
+      <tr><td>{% if loop.first %}{{ STROMART_TEXT[art] }}{% endif %}</td>
+        <td>{{ msp_name }}{% if ist_massstab %} <span class="marker">günstigster</span>{% endif %}
+          {%- if ms.kwh < mindest %} <small title="Unter {{ mindest | zahl(0) }} kWh – zählt nicht als Maßstab">wenig Daten</small>{% endif %}</td>
+        <td class="rechts">{{ ms.anzahl }}</td><td class="rechts">{{ ms.kwh | zahl(0) }}</td>
+        <td class="rechts">{{ ms.kosten | geld }}</td>
+        <td class="rechts">{{ ms.preis | zahl(2) if ms.preis is not none else "–" }}</td></tr>
+    {% endfor %}
+    </tbody>
+    {% endfor %}
+  </table>
+  </div>
+  <p><small>Dieselben Ladestationen, abgerechnet über verschiedene {{ MSP }}, getrennt nach AC und DC (DC kostet fast
+    immer mehr). „Günstigster“ ist der Maßstab für das Sparpotenzial – nur mit mindestens {{ mindest | zahl(0) }} kWh
+    der Stromart bei {{ name }}.</small></p>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

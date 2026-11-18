@@ -1,0 +1,35 @@
+EnBW
+Energie Baden-Württemberg AG
+EnBW Energie Baden-Württemberg AG · Durlacher Allee 93 · 76131 Karlsruhe
+Test GmbH
+Ihre EnBW mobility+ Rechnung 3. November 2026
+für Österreich im Oktober 2026
+Guten Tag,
+vielen Dank für Ihr Vertrauen in EnBW mobility+. Nachfolgend finden Sie Ihre Rechnungs-Nr.
+Rechnung und eine detaillierte Übersicht der Einzelladevorgänge. 180 000 000 001
+Nettobetrag Umsatzsteuer Bruttobetrag (Bitte bei Überweisung angeben)
+Ladeenergie 22,00 € 4,40 € (20%) 26,40 €
+Grundgebühr je Nutzer*in 11,76 € 2,35 € (20%) 14,11 €
+Kartenbestellung 5,00 € 1,00 € (20%) 6,00 €
+Summe 1 38,76 € 7,75 € 46,51 € Land der Lieferung
+Österreich
+Rechnungsendbetrag 46,51 €
+Übersicht Monatliche Grundgebühr pro Nutzer*in
+Nr Beschreibung Nettobetrag Bruttobetrag
+1 Ladekarte / App (T100-AAAA-BBBB-0001) / (Test GmbH) 11,76 € 14,11 €
+Ihre Einzelladevorgänge im Detail
+Nr Datum Adresse Ladeart Kostenart Menge Einheit Nettobetrag Bruttobetrag
+1 28.10.2026 Teststraße 60 DC Energie 37,00 kWh 12,02 € 14,42 €
+4999 Testort Gesamt 12,02 € 14,42 €
+Ladestart: 28.10.2026 12:41:37 Ladepunkt-ID: AT*TST*E0001*1
+Ladeende: 28.10.2026 13:13:28 Transaktions-ID: TST-0001
+Ladedauer: 00:31:51 Ladevorgang über: Ladekarte (T100-AAAA-BBBB-0001)
+Details: Ladekosten für 37,003 kWh zu 39 ct/kWh = 1443 ct
+2 31.10.2026 Probeweg 2 AC Energie 20,00 kWh 7,98 € 9,58 €
+Zeit 30,00 min 2,00 € 2,40 €
+1010 Wien Gesamt 9,98 € 11,98 €
+Ladestart: 31.10.2026 08:00:00 Ladepunkt-ID: AT*TST*E0002*1
+Ladeende: 31.10.2026 10:30:00 Transaktions-ID: TST-0002
+Ladedauer: 02:30:00 Ladevorgang über: Ladekarte (T100-AAAA-BBBB-0001)
+Details: Ladekosten für 20,456 kWh zu 39 ct/kWh = 798 ct
+Details: Blockiergebühr für 30 min

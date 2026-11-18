@@ -1,0 +1,221 @@
+{# Gemeinsame Bausteine für Auswertungen und Dashboard #}
+{% import "_makros.html" as m %}
+
+{# versteckt: weitere Parameter [(name, wert), …], die die Auswahl von Monat/Jahr behält (z. B. Filter der Ladevorgänge) #}
+{% macro zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=none, jahre=[], versteckt=[]) %}
+{% set z = a.zeitraum %}
+<nav class="zeitraumwahl" aria-label="Zeitraum">
+  {% if z.art == "alles" %}
+  <strong class="zeitraum-label">{{ z.label }}</strong>
+  {% else %}
+  <a href="{{ zurueck }}" role="button" class="outline klein" aria-label="vorheriger Zeitraum">◀</a>
+  {% if z.art == "frei" %}
+  <strong class="zeitraum-label">{{ z.label }}</strong>
+  {% else %}
+  <form method="get" action="{{ basis }}" class="zeitraum-auswahl sofort">
+    <input type="hidden" name="art" value="{{ z.art }}">
+    {% for name, wert in versteckt %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+    {% if teile %}
+    <select name="nr" aria-label="{{ arten[z.art] }}">
+      {% for nr, text in teile.items() %}<option value="{{ nr }}" {% if nr == z.nr %}selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <select name="jahr" aria-label="Jahr">
+      {% for j in jahre %}<option value="{{ j }}" {% if j == z.jahr %}selected{% endif %}>{{ j }}</option>{% endfor %}
+    </select>
+    <noscript><button type="submit" class="outline klein">Anzeigen</button></noscript>
+  </form>
+  {% endif %}
+  <a href="{{ vor }}" role="button" class="outline klein" aria-label="nächster Zeitraum">▶</a>
+  {% endif %}
+  <span class="arten umschalter">
+    {% for art, link in arten_links.items() %}
+      <a href="{{ link }}" {% if a.zeitraum.art == art %}aria-current="true"{% endif %}>{{ arten[art] }}</a>
+    {% endfor %}
+  </span>
+</nav>
+{% endmacro %}
+
+{% macro geschaetzt_hinweis(s) %}
+{%- if s.kwh_geschaetzt -%}
+  <abbr class="geschaetzt" title="{{ s.anteil_geschaetzt | prozent }} der kWh sind geschätzt">≈</abbr>&nbsp;
+{%- endif -%}
+{% endmacro %}
+
+{# Abweichung vom Ø der Vorperioden; teurer_ist_schlecht färbt Anstiege rot, Rückgänge grün #}
+{% macro abweichung(wert, tooltip, pp=false, teurer_ist_schlecht=false) %}
+{%- if wert is not none -%}
+{%- set klasse = ("mehr" if wert > 0 else "weniger" if wert < 0 else "") if teurer_ist_schlecht else "" -%}
+<small class="abweichung {{ klasse }}" title="{{ tooltip }}">
+  {{- "▲" if wert > 0 else "▼" if wert < 0 else "＝" }} {{ "+" if wert > 0 -}}
+  {%- if pp %}{{ wert | zahl(1) }} Pp.{% else %}{{ (wert * 100) | zahl(0) }} %{% endif %}</small>
+{%- endif -%}
+{% endmacro %}
+
+{# zeitraum: für „Ø pro Tag“ unter den Ladevorgängen (Tage bis heute) #}
+{# schnitt: services.auswertung.Schnitt („Ø … pro Monat und Auto“ bzw. „pro Monat“) oder none #}
+{# dc: services.kennzahlen.LadedauerDc (Ø Ladedauer DC) oder none #}
+{% macro kennzahlen(g, vergleich=none, zeitraum=none, schnitt=none, dc=none) %}
+{% set v = vergleich %}
+{% set sn = schnitt %}
+<div class="kacheln">
+  <div class="kachel"><span class="kachel-zahl">{{ g.anzahl }}</span><span>Ladevorgänge</span>
+    {%- set pro_tag = zeitraum.pro_tag(g.anzahl) if zeitraum else none %}
+    {% if pro_tag is not none %}<small class="pro-tag" title="Ø Ladevorgänge je Tag über {{ zeitraum.tage_bisher }} Tage
+      {%- if zeitraum.bis > heute_datum() %} (bis heute){% endif %}">Ø {{ pro_tag | zahl(1) }} pro Tag</small>{% endif %}
+    {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.anzahl | zahl(1) }} {{ sn.text }}</small>{% endif %}
+    {% if v %}{{ abweichung(v.anzahl, "Ø %s: %s Ladevorgänge" % (v.basis, v.anzahl_schnitt | zahl(1))) }}{% endif %}</div>
+  <div class="kachel"><span class="kachel-zahl">{{ geschaetzt_hinweis(g) }}{{ g.kwh | zahl(0) }}</span><span>kWh</span>
+    {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kwh | zahl(0) }} kWh {{ sn.text }}</small>{% endif %}
+    {% if v %}{{ abweichung(v.kwh, "Ø %s: %s kWh" % (v.basis, v.kwh_schnitt | zahl(0))) }}{% endif %}</div>
+  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld }}</span><span>Kosten netto</span>
+    {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kosten | geld }} {{ sn.text }}</small>{% endif %}
+    {% if v %}{{ abweichung(v.kosten, "Ø %s: %s" % (v.basis, v.kosten_schnitt | geld)) }}{% endif %}</div>
+  <div class="kachel"><span class="kachel-zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span>
+    {% if v %}{{ abweichung(v.preis, "Ø %s: %s €/kWh" % (v.basis, v.referenz.preis | zahl(2)), teurer_ist_schlecht=true) }}{% endif %}</div>
+  {% if dc %}
+  <div class="kachel"><span class="kachel-zahl">{{ minuten(dc.eigen) if dc.eigen is not none else "–" }}</span>
+    <span>Ø Ladedauer DC {{ m.hilfe("Angesteckte Zeit (Ladestart bis -ende) der DC-Ladungen mit kWh-Angabe – ohne Ladungen ohne AC/DC-Angabe.") }}</span>
+    <small class="pro-tag">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}
+      {%- if dc.flotte is not none %} · Flotte {{ minuten(dc.flotte) }}{% endif %}</small>
+    {% if dc.vorher is not none and dc.eigen is not none %}<small class="abweichung" title="Ø {{ dc.vorher_text }}: {{ minuten(dc.vorher) }}">
+      {{- "▲" if dc.eigen > dc.vorher else "▼" if dc.eigen < dc.vorher else "＝" }} {{ "%+d" % (dc.eigen - dc.vorher) if dc.eigen != dc.vorher else "±0" }} min ggü. Ø {{ dc.vorher_text }}</small>{% endif %}</div>
+  {% endif %}
+  <div class="kachel"><span class="kachel-zahl">{{ g.anteil_oeffentlich_kwh | prozent }}</span><span>öffentlich (kWh)</span>
+    {% if v %}{{ abweichung(v.oeffentlich_pp, "Ø %s: %s" % (v.basis, v.referenz.anteil_oeffentlich_kwh | prozent), pp=true) }}{% endif %}</div>
+</div>
+{% if v %}<p><small>Vergleich mit dem Durchschnitt von {{ v.basis }}
+  ({{ v.perioden }} {{ "Zeitraum" if v.perioden == 1 else "Zeiträume" }} mit Daten); Ø €/kWh und Anteil öffentlich gewichtet.</small></p>{% endif %}
+{% endmacro %}
+
+{% macro oeffentlich_privat(g) %}
+<div class="tabelle">
+<table>
+  <thead><tr><th></th><th class="rechts">kWh</th><th class="rechts">Anteil kWh</th><th class="rechts">Kosten netto</th>
+             <th class="rechts">Anteil Kosten</th><th class="rechts">Ø €/kWh</th></tr></thead>
+  <tbody>
+    <tr><td>öffentlich</td><td class="rechts">{{ g.kwh_oeffentlich | zahl(0) }}</td>
+        <td class="rechts">{{ g.anteil_oeffentlich_kwh | prozent(1) }}</td>
+        <td class="rechts">{{ g.kosten_oeffentlich | geld }}</td>
+        <td class="rechts">{{ g.anteil_oeffentlich_kosten | prozent(1) }}</td>
+        <td class="rechts">{{ g.preis_oeffentlich | zahl(2) if g.preis_oeffentlich is not none else "–" }}</td></tr>
+    <tr><td>privat</td><td class="rechts">{{ g.kwh_privat | zahl(0) }}</td>
+        <td class="rechts">{{ (1 - g.anteil_oeffentlich_kwh) | prozent(1) if g.anteil_oeffentlich_kwh is not none else "–" }}</td>
+        <td class="rechts">{{ g.kosten_privat | geld }}</td>
+        <td class="rechts">{{ (1 - g.anteil_oeffentlich_kosten) | prozent(1) if g.anteil_oeffentlich_kosten is not none else "–" }}</td>
+        <td class="rechts">{{ g.preis_privat | zahl(2) if g.preis_privat is not none else "–" }}</td></tr>
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{% macro topliste(t, parameter, oeffentlich=false) %}
+{% if not t.teilnehmer %}
+  <p>Keine Fahrer:innen mit mindestens {{ t.mindestmenge | zahl(0) }} kWh {{ "öffentlich geladen " if oeffentlich }}im Zeitraum.</p>
+{% else %}
+<div class="grid">
+  {% for titel, eintraege in [("Günstigste", t.guenstigste), ("Teuerste", t.teuerste)] %}
+  <div>
+    <h3>{{ titel }}</h3>
+    {% if eintraege %}
+    <div class="tabelle">
+    <table>
+      <thead><tr><th>Fahrer:in</th><th class="rechts">kWh</th><th class="rechts">Ø €/kWh</th>
+                 <th class="rechts">Score {{ m.hilfe("Score = (Kosten + m × Ø-Preis aller) / (kWh + m)
+
+Zu den eigenen Ladungen werden m kWh zum Schnittpreis aller Fahrer:innen dazugerechnet. Wer wenig lädt, wird Richtung Schnitt gezogen – ein einzelner günstiger Ladevorgang führt so nicht an die Spitze. Bei viel kWh zählt fast nur der eigene Preis. Sortiert wird nach dem Score; die Werte für Schnitt und m stehen unter der Liste.") }}</th></tr></thead>
+      <tbody>
+      {% for e in eintraege %}
+        <tr>
+          <td><a href="/auswertungen/fahrer/{{ e.fahrer.id }}?{{ parameter }}">{{ e.fahrer.name }}</a></td>
+          <td class="rechts">{% if e.anteil_geschaetzt %}<abbr class="geschaetzt" title="{{ e.anteil_geschaetzt | prozent }} geschätzt">≈</abbr>&nbsp;{% endif %}{{ e.kwh | zahl(0) }}</td>
+          <td class="rechts">{{ e.preis | zahl(2) }}</td>
+          <td class="rechts">{{ e.score | zahl(2) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p><small>Zu wenige Fahrer:innen für eine zweite Liste.</small></p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+<p><small>{% if oeffentlich %}Nur öffentliche Ladungen (Schnitt, Gewichtung und Mindestmenge ebenso). {% endif %}Schnitt aller Fahrer:innen {{ t.p_flotte | zahl(2) }} €/kWh · Gewichtung m = {{ t.m | zahl(0) }} kWh
+  ({{ "Einstellung" if t.m_aus_einstellung else "Median der kWh je Fahrer:in" }}) · {{ t.teilnehmer }} Fahrer:innen ab
+  {{ t.mindestmenge | zahl(0) }} kWh. Nur Ladekosten ohne
+  Gebühren, je Person zum Ladezeitpunkt {{ m.zurechnung() }}.</small></p>
+{% endif %}
+{% if t.nicht_eindeutig.kwh %}
+<p><small>Nicht enthalten: {{ t.nicht_eindeutig.anzahl }} Ladevorgänge ({{ t.nicht_eindeutig.kwh | zahl(0) }} kWh) mit
+  Fahrzeugkarte an Poolfahrzeugen mit mehreren Fahrer:innen – keiner Person eindeutig zuzurechnen.</small></p>
+{% endif %}
+{% endmacro %}
+
+{# Summen je Gruppe (Fahrzeug- und Personenauswertung: nach MSP, nach Standort) #}
+{% macro summen_tabelle(titel, spalte, eintraege) %}
+<h2>{{ titel }}</h2>
+<div class="tabelle">
+<table class="striped">
+  <thead><tr><th>{{ spalte }}</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
+             <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+  <tbody>
+  {% for name, s in eintraege %}
+    <tr><td>{{ name }}</td><td class="rechts">{{ s.anzahl }}</td>
+        <td class="rechts">{{ geschaetzt_hinweis(s) }}{{ s.kwh | zahl(0) }}</td>
+        <td class="rechts">{{ s.kosten | geld }}</td>
+        <td class="rechts">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{# Histogramm (diagramme.Histogramm): eine Reihe, eine Farbe; Tooltip je Säule, Zahlen in der Tabelle darunter #}
+{% macro histogramm(h, titel, zusatz, achse) %}
+{% set teilstriche, saeulen = h.geometrie() %}
+<figure class="diagramm">
+  <figcaption><strong>{{ titel }}</strong> <small>{{ zusatz }}</small></figcaption>
+  <svg viewBox="0 0 {{ h.breite }} {{ h.hoehe + 14 }}" class="saeulen histogramm" role="img" aria-label="{{ titel }}: Anzahl Ladevorgänge {{ achse }}">
+    {% for y, w in teilstriche %}
+      <line x1="{{ h.links }}" x2="{{ h.breite }}" y1="{{ y }}" y2="{{ y }}" class="{{ 'achse' if loop.first else 'gitter' }}"/>
+      <text x="{{ h.links - 8 }}" y="{{ y + 4 }}" class="achsentext" text-anchor="end">{{ w | zahl(0) }}</text>
+    {% endfor %}
+    {% for kurz, text, n, x, y, breite, hoehe in saeulen %}
+      <g><title>{{ text }}: {{ n }} {{ "Ladevorgang" if n == 1 else "Ladevorgänge" }}{% if h.anzahl %} ({{ (n / h.anzahl) | prozent }}){% endif %}</title>
+        <rect x="{{ x }}" y="{{ h.oben }}" width="{{ breite }}" height="{{ h.hoehe - h.oben - h.unten }}" class="trefferflaeche"/>
+        {% if n %}<rect x="{{ x }}" y="{{ y }}" width="{{ breite }}" height="{{ hoehe }}" class="slot-1"/>{% endif %}
+      </g>
+      {% if kurz %}<text x="{{ x + breite / 2 }}" y="{{ h.hoehe - 8 }}" class="achsentext" text-anchor="middle">{{ kurz }}</text>{% endif %}
+    {% endfor %}
+    <text x="{{ h.breite }}" y="{{ h.hoehe + 10 }}" class="achsentext" text-anchor="end">{{ achse }}</text>
+  </svg>
+</figure>
+{% endmacro %}
+
+{# Öffentliches DC-Laden: Dauer des Ladevorgangs und Uhrzeit des Ladebeginns (diagramme.dc_oeffentlich) #}
+{% macro dc_oeffentlich(d) %}
+{% if d.dauer.anzahl %}
+<div class="diagramme">
+  {{ histogramm(d.dauer, "Dauer des Ladevorgangs", "Median " ~ d.median_minuten ~ " min · " ~ d.dauer.anzahl ~ " Ladevorgänge", "Minuten angesteckt") }}
+  {{ histogramm(d.stunde, "Uhrzeit des Ladebeginns", d.stunde.anzahl ~ " Ladevorgänge"
+      ~ (" · " ~ d.ohne_uhrzeit ~ " ohne Uhrzeit nicht enthalten" if d.ohne_uhrzeit else ""), "Uhr") }}
+</div>
+<details class="diagramm-tabelle">
+  <summary>Als Tabelle</summary>
+  <div class="grid">
+  {% for h, kopf in ((d.dauer, "Dauer des Ladevorgangs"), (d.stunde, "Ladebeginn")) %}
+    <div class="tabelle">
+    <table class="striped">
+      <thead><tr><th>{{ kopf }}</th><th class="rechts">Ladevorgänge</th><th class="rechts">Anteil</th></tr></thead>
+      <tbody>
+      {% for _, text, n in h.klassen %}<tr><td>{{ text }}</td><td class="rechts">{{ n }}</td><td class="rechts">{{ (n / h.anzahl) | prozent if h.anzahl else "–" }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endfor %}
+  </div>
+</details>
+{% else %}
+<p>Im Zeitraum gibt es keine öffentlichen DC-Ladungen.</p>
+{% endif %}
+{% endmacro %}

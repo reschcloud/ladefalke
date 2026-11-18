@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Protokoll{% endblock %}
+{% block inhalt %}
+<div class="kopf">
+  <h1>Protokoll</h1>
+  <small>Wer hat was wann geändert · Aufbewahrung und Syslog unter <a href="/einstellungen#protokoll">Einstellungen</a></small>
+</div>
+<form method="get" action="/protokoll" class="filterleiste protokoll-filter sofort">
+  <label>von <input type="date" name="von" value="{{ filter.von }}"></label>
+  <label>bis <input type="date" name="bis" value="{{ filter.bis }}"></label>
+  <label>Benutzer:in
+    <select name="benutzer">
+      <option value="">alle</option>
+      <option value="system" {% if filter.benutzer == "system" %}selected{% endif %}>System</option>
+      {% for b in benutzer_liste %}<option value="{{ b.id }}" {% if filter.benutzer == b.id | string %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+    </select></label>
+  <label>Objektart
+    <select name="typ">
+      <option value="">alle</option>
+      {% for wert, text in typen %}<option value="{{ wert }}" {% if filter.typ == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select></label>
+  <label class="suche">Suche <input type="search" name="q" value="{{ filter.q }}" placeholder="Name, Wert, Import …"></label>
+  <noscript><button type="submit" class="outline">Filtern</button></noscript>
+  <button type="submit" class="unsichtbar" tabindex="-1">Filtern</button>{# für Enter im Suchfeld #}
+  {% if filter.values() | select | list %}<a href="/protokoll" role="button" class="outline secondary klein">Filter zurücksetzen</a>{% endif %}
+</form>
+<p><small>{{ anzahl | zahl(0) }} {{ "Eintrag" if anzahl == 1 else "Einträge" }}{% if seiten > 1 %} · Seite {{ seite }} von {{ seiten }}{% endif %}</small></p>
+{{ m.protokoll_tabelle(eintraege) }}
+{% if seiten > 1 %}
+{% set basis = "/protokoll?" ~ (filter | urlencode) %}
+<nav class="blaettern" aria-label="Seiten">
+  {% if seite > 1 %}<a href="{{ basis }}&seite={{ seite - 1 }}" role="button" class="outline secondary klein nav-knopf">← neuer</a>{% endif %}
+  {% if seite < seiten %}<a href="{{ basis }}&seite={{ seite + 1 }}" role="button" class="outline secondary klein nav-knopf">älter →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

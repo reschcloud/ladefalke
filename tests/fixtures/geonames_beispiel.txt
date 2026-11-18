@@ -1,0 +1,14 @@
+AT	1010	Wien	Wien	09	Wien	900			48.2077	16.3705	4
+AT	1010	Wien, Innere Stadt	Wien	09	Wien	900			48.2093	16.3713	4
+AT	4020	Linz	Oberösterreich	04	Linz	401			48.3069	14.2858	4
+AT	5020	Salzburg	Salzburg	05	Salzburg	501			47.7994	13.0440	4
+AT	3100	St. Pölten	Niederösterreich	03	Sankt Pölten	302			48.2047	15.6256	4
+AT	9999	Testdorf	Kärnten	02	Testbezirk	299			46.6000	14.3000	4
+DE	80331	München	Bayern	BY	Oberbayern	091			48.1374	11.5755	4
+DE	86899	Teststadt	Bayern	BY	Oberbayern	091			48.0400	10.8700	4
+SE	123 45	Teststad	Stockholm	26					59.3000	18.0000	4
+US	10001	New York	New York	NY					40.75	-73.99	4
+AT	5201	Testkirchen am See	Salzburg	05	Testbezirk	503			47.9000	13.1300	4
+AT	5202	Testkirchen am See	Salzburg	05	Testbezirk	503			47.9100	13.1400	4
+AT	5203	Testmarkt an der Ache	Salzburg	05	Testbezirk	503			47.9500	13.2200	4
+AT	8401	Testmarkt im Tal	Steiermark	06	Testbezirk	610			47.0500	15.6000	4

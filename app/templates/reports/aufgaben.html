@@ -1,0 +1,151 @@
+{% extends "reports/_basis.html" %}
+{% import "reports/_basis.html" as r with context %}
+{# Report „Offene Aufgaben“ (services/offen.fuer_report): Stand heute, Abschnitte nur, wenn dort etwas offen ist.
+   Lange Listen werden nach max_zeilen gekürzt (Hinweis auf die Seite „Aufgaben“). #}
+{% block titel %}Ladefalke – Offene Aufgaben {{ stand | datum }}{% endblock %}
+{% block kopf %}Offene Aufgaben{% endblock %}
+{% block kopf_rechts %}Stand {{ stand | datum }}{% endblock %}
+{% block inhalt %}
+{% set zn = zahlen %}
+{% macro tage(n) %}{{ n }} Tag{{ "en" if n != 1 }}{% endmacro %}{# nur nach „in“ verwendet #}
+{% macro gekuerzt(liste) %}{% if liste | length > max_zeilen %}<p class="klein">… und {{ liste | length - max_zeilen }} weitere –
+  vollständig unter „Aufgaben“ in der App.</p>{% endif %}{% endmacro %}
+<h1>Offene Aufgaben</h1>
+<p class="untertitel">Stand {{ stand | datum }} · alles, was unter „Aufgaben“ zu klären ist · Beträge netto</p>
+
+{% set gesamt = zn.zu_klaeren + zn.vorschauen + (luecken | length) %}
+<div class="kacheln drei">
+  <div class="kachel"><span class="zahl">{{ fristen | length }}</span><span class="text">Fristen</span>
+    <span class="vgl">{{ fristen | selectattr("ueberfaellig") | list | length }} überfällig bzw. fehlend</span></div>
+  <div class="kachel"><span class="zahl">{{ zn.ohne_fahrzeug }}</span><span class="text">Ladevorgänge ohne Fahrzeug</span>
+    <span class="vgl">{{ gruppen | length }} Karte{{ "n" if gruppen | length != 1 }} bzw. Kennungen</span></div>
+  <div class="kachel"><span class="zahl">{{ luecken | length }}</span><span class="text">Lücken in der Zuordnung</span>
+    <span class="vgl">{{ luecken | selectattr("offen") | list | length }} aktuell ohne Fahrer:in</span></div>
+  <div class="kachel"><span class="zahl">{{ zn.unplausibel + zn.ohne_stromart }}</span><span class="text">AC/DC zu prüfen</span>
+    <span class="vgl">{{ zn.unplausibel }} unplausibel, {{ zn.ohne_stromart }} ohne Angabe</span></div>
+  <div class="kachel"><span class="zahl">{{ zn.gebuehren_ohne_karte }}</span><span class="text">Gebühren ohne Karte</span></div>
+  <div class="kachel"><span class="zahl">{{ zn.ladeorte + zn.vorschauen }}</span><span class="text">Sonstiges</span>
+    <span class="vgl">{{ zn.ladeorte }} Ladeorte ohne Verortung, {{ zn.vorschauen }} offene Import-Vorschau{{ "en" if zn.vorschauen != 1 }}</span></div>
+</div>
+{% if not gesamt %}<div class="vollstaendig"><strong>✓ Alles erledigt</strong> – nichts zu klären.</div>{% endif %}
+
+{% if fristen %}
+<h2>Fristen</h2>
+<table>
+  <thead><tr><th>Art</th><th>Fahrzeug / Fahrer:in</th><th>Stand</th><th class="r">Datum</th></tr></thead>
+  <tbody>
+  {% for f in fristen %}
+    {% set art = {"leasing": "Leasing", "fuehrerschein": "Führerscheinkontrolle", "vignette": "Vignette",
+                  "streckenmaut": "Streckenmaut FLEX"}[f.art] %}
+    <tr><td>{{ art }}</td><td>{{ f.name }}</td>
+      <td>{% if f.art in ("vignette", "streckenmaut") %}
+            {%- if f.zustand == "fehlt" %}<span class="warnung">Gültigkeit fehlt</span>
+            {%- elif f.zustand == "noch_nicht" %}<span class="warnung">noch nicht gültig</span>
+            {%- elif f.zustand == "abgelaufen" %}<span class="warnung">abgelaufen</span>
+            {%- else %}läuft in {{ tage(f.tage) }} ab{% endif %}
+          {%- elif f.faellig is none %}<span class="warnung">keine Kontrolle eingetragen</span>
+          {%- elif f.ueberfaellig %}<span class="warnung">{{ "abgelaufen" if f.art == "leasing" else "überfällig" }}</span>
+          {%- else %}in {{ tage(f.tage) }}{% endif %}</td>
+      <td class="r">{% if f.zustand == "noch_nicht" %}ab {{ f.ab | datum }}{% elif f.faellig %}{{ f.faellig | datum }}{% else %}–{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if luecken %}
+<h2>Lücken in der Fahrer:innen-Zuordnung</h2>
+<table>
+  <thead><tr><th>Fahrzeug</th><th>Zeitraum ohne Fahrer:in</th><th class="r">Tage</th><th class="r">Ladevorgänge ohne Fahrer:in</th></tr></thead>
+  <tbody>
+  {% for l in luecken %}
+    <tr><td>{{ l.fahrzeug.kennzeichen }}</td>
+      <td>{% if l.offen %}seit {{ l.von | datum }} <span class="warnung">(aktuell)</span>{% else %}{{ l.von | datum }} – {{ l.bis | datum }}{% endif %}</td>
+      <td class="r">{{ l.tage }}</td><td class="r">{{ l.ladevorgaenge or "" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if gruppen %}
+<h2>Ladevorgänge ohne Fahrzeug</h2>
+<table>
+  <thead><tr><th>Karte bzw. Kennung</th><th>MSP</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th>Zeitraum</th></tr></thead>
+  <tbody>
+  {% for karte_id, roh, msp_name, anzahl, kwh, kosten, von, bis in gruppen[:max_zeilen] %}
+    {% set k = karten.get(karte_id) %}
+    <tr><td>{% if k %}{{ k.bezeichnung or k.kennung }}{% if k.bezeichnung %} <span class="klein">{{ k.kennung }}</span>{% endif %}
+          {%- else %}{{ roh or "ohne Kennung" }} <span class="klein">(keine Ladekarte)</span>{% endif %}</td>
+      <td>{{ msp_name }}</td><td class="r">{{ anzahl }}</td><td class="r">{{ kwh | zahl(0) }}</td>
+      <td class="r">{{ kosten | geld }}</td><td>{{ von | datum }}{% if bis.date() != von.date() %} – {{ bis | datum }}{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{{ gekuerzt(gruppen) }}
+<p class="klein">Meist fehlt eine Zuordnung der Karte zu einer Person oder einem Fahrzeug (Stammdaten → Ladekarten) oder
+  die Person hatte am Ladetag kein Fahrzeug. Gastkarten zählen nicht.</p>
+{% endif %}
+
+{% if gebuehren %}
+<h2>Gebühren ohne Karte</h2>
+<table>
+  <thead><tr><th>MSP</th><th>Bezeichnung</th><th>Zeitraum</th><th class="r">Betrag</th></tr></thead>
+  <tbody>
+  {% for g in gebuehren[:max_zeilen] %}
+    <tr><td>{{ g.import_.msp.name if g.import_.msp else "–" }}</td><td>{{ g.bezeichnung }}</td>
+      <td>{% if g.zeitraum_von %}{{ g.zeitraum_von | datum }} – {{ g.zeitraum_bis | datum }}{% endif %}</td>
+      <td class="r">{{ g.betrag_netto | geld }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{{ gekuerzt(gebuehren) }}
+{% endif %}
+
+{% if unplausibel %}
+<h2>Unplausible AC/DC-Angaben</h2>
+<table>
+  <thead><tr><th>{{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }}</th><th>Karte</th><th>Fahrzeug</th><th class="r">kWh</th><th>Grund</th></tr></thead>
+  <tbody>
+  {% for v, grund in unplausibel[:max_zeilen] %}
+    <tr><td>{{ (v.start if stichtag == "beginn" else v.ende) | datumzeit }}</td>
+      <td>{% if v.ladekarte and v.karte_anzeige %}{{ r.karte(v.karte_anzeige) }}{% elif v.ladekarte %}{{ v.ladekarte.kennung }}{% else %}{{ v.roh_kartenkennung or "–" }}{% endif %}</td>
+      <td>{{ v.fahrzeug.kennzeichen if v.fahrzeug else "–" }}</td><td class="r">{{ v.kwh | zahl(3) }}</td>
+      <td class="klein">{{ grund }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{{ gekuerzt(unplausibel) }}
+{% endif %}
+
+{% if ohne_stromart %}
+<h2>Ladevorgänge ohne AC/DC-Angabe</h2>
+<table>
+  <thead><tr><th>MSP</th><th class="r">Ladevorgänge</th></tr></thead>
+  <tbody>{% for name, anzahl in ohne_stromart %}<tr><td>{{ name }}</td><td class="r">{{ anzahl }}</td></tr>{% endfor %}</tbody>
+</table>
+<p class="klein">Unter „Aufgaben“ je MSP oder einzeln setzbar; eine Vorgabe je MSP setzt sie künftig automatisch.</p>
+{% endif %}
+
+{% if ladeorte %}
+<h2>Ladeorte ohne genaue Verortung</h2>
+<table>
+  <thead><tr><th>Adresse</th><th>Land</th><th>Verortung</th><th class="r">Ladevorgänge</th></tr></thead>
+  <tbody>
+  {% for o, anzahl in ladeorte[:max_zeilen] %}
+    <tr><td>{{ o.adresse }}</td><td>{{ o.land or "–" }}</td><td>{{ "nur Land" if o.genauigkeit == "land" else "keine" }}</td>
+      <td class="r">{{ anzahl }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{{ gekuerzt(ladeorte) }}
+{% endif %}
+
+{% if vorschauen %}
+<h2>Offene Import-Vorschauen</h2>
+<table>
+  <thead><tr><th>Datei</th><th>MSP</th><th>hochgeladen</th></tr></thead>
+  <tbody>{% for imp in vorschauen %}<tr><td>{{ imp.dateiname }}</td>
+    <td>{{ imp.msp.name if imp.msp else "–" }}</td><td>{{ imp.hochgeladen_am | datum }}</td></tr>{% endfor %}</tbody>
+</table>
+<p class="klein">Hochgeladen, aber noch nicht bestätigt oder verworfen – die Daten zählen erst nach dem Bestätigen.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "reports/_basis.html" %}
+{% import "reports/_basis.html" as r with context %}
+{# Report „Karten und Preise je CPO“: wer mit welcher Karte bei welchem CPO welchen Preis erzielt hat und wo eine
+   andere Karte Geld gespart hätte (services/auswertung.py: CpoPosten, Maßstab = günstigster MSP je Stromart). #}
+{% block titel %}Ladefalke – Karten und Preise je CPO {{ z.label }}{% endblock %}
+{% block kopf %}Karten und Preise je CPO {{ z.label }}{% endblock %}
+{% block inhalt %}
+{% macro karte(k, fahrer_id=none) -%}
+{%- set ka = a.karte(k) -%}
+{%- if ka %}{{ r.karte(ka, fahrer_id) }}{% elif k %}{{ k.bezeichnung or k.kennung }}{% else %}ohne Karte{% endif -%}
+{%- endmacro %}
+{% macro cpo_name(code) -%}
+{{ code or "unbekannt" }}{% set land = code | cpo_land %}{% if land %} <span class="klein">{{ land | landname }}</span>{% endif %}
+{%- endmacro %}
+<h1>Karten und Preise je CPO {{ z.label }}</h1>
+<p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · nur öffentliche Ladungen, nur Ladekosten netto (ohne
+  Grundgebühren) · Ladevorgänge nach {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }}</p>
+
+{% set oeff_kosten = details | sum(attribute="summe.kosten") %}
+{% set mit_potenzial = details | selectattr("ersparnis") | list %}
+<div class="kacheln">
+  <div class="kachel"><span class="zahl">{{ a.ersparnis_gesamt | geld }}</span><span class="text">Sparpotenzial im Zeitraum</span>
+    <span class="vgl">{% if oeff_kosten %}{{ (a.ersparnis_gesamt / oeff_kosten) | prozent(1) }} der öffentlichen Ladekosten{% endif %}</span></div>
+  <div class="kachel"><span class="zahl">{{ oeff_kosten | geld }}</span><span class="text">öffentliche Ladekosten</span>
+    <span class="vgl">bei {{ details | length }} CPO</span></div>
+  <div class="kachel"><span class="zahl">{{ mit_potenzial | length }}</span><span class="text">CPO mit Sparpotenzial</span>
+    <span class="vgl">{{ potenziale | length }} Posten (Person · Karte · Stromart)</span></div>
+</div>
+<p class="klein">So wird gerechnet: Bei jedem CPO ist je Stromart (AC, DC, ohne Angabe) der {{ MSP_TEXT }} mit dem niedrigsten
+  Ø €/kWh der Maßstab – aber nur, wenn über ihn dort mindestens {{ mindest | zahl(0) }} kWh dieser Stromart geladen wurden.
+  Sparpotenzial = Kosten − kWh × Ø €/kWh des Maßstabs, wenn eine andere Karte teurer war. Es ist eine Schätzung: Tarife
+  können sich im Zeitraum geändert haben, und nicht jede Karte ist für jede Person verfügbar.</p>
+
+<h2>Größte Sparpotenziale</h2>
+{% if potenziale %}
+<table>
+  <thead><tr><th>Fahrer:in</th><th>CPO</th><th>Karte</th><th>Art</th><th class="r">kWh</th><th class="r">€/kWh</th>
+    <th>günstigster</th><th class="r">€/kWh</th><th class="r">Sparpotenzial</th></tr></thead>
+  <tbody>
+  {% for d, p, x in potenziale[:20] %}
+    <tr><td>{{ p.name }}</td><td>{{ d.code or "unbekannt" }}</td><td>{{ karte(x.karte, p.fahrer.id if p.fahrer else none) }}</td>
+      <td>{{ STROMART_TEXT[x.stromart] }}</td><td class="r">{{ x.summe.kwh | zahl(0) }}</td>
+      <td class="r">{{ x.summe.preis | zahl(2) }}</td><td>{{ x.massstab[0] }}</td><td class="r">{{ x.massstab[1] | zahl(2) }}</td>
+      <td class="r"><strong>{{ x.ersparnis | geld }}</strong></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if potenziale | length > 20 %}<p class="klein">… und {{ potenziale | length - 20 }} weitere Posten (siehe je CPO).</p>{% endif %}
+{% else %}
+<p>Im Zeitraum kein Sparpotenzial: Bei keinem CPO war eine Karte teurer als der günstigste {{ MSP_TEXT }} mit genügend Daten.</p>
+{% endif %}
+
+{% if mit_potenzial %}<h2>CPO mit Sparpotenzial</h2>{% endif %}
+{% for d in mit_potenzial | sort(attribute="ersparnis", reverse=true) %}
+<div class="cpo-block">
+  <h3>{{ cpo_name(d.code) }} <span class="klein">· {{ d.summe.anzahl }} Ladungen, {{ d.summe.kwh | zahl(0) }} kWh,
+    {{ d.summe.kosten | geld }}{% if d.ersparnis %} · Sparpotenzial <strong class="warnung">{{ d.ersparnis | geld }}</strong>{% endif %}</span></h3>
+  <div class="spalten cpo-spalten">
+    <div class="breit">
+      <table>
+        <thead><tr><th>Fahrer:in / Karte</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">€/kWh</th><th class="r">Sparpot.</th></tr></thead>
+        <tbody>
+        {% for p in d.personen %}
+          <tr class="person"><td><strong>{{ p.name }}</strong></td><td class="r">{{ p.summe.kwh | zahl(0) }}</td>
+            <td class="r">{{ p.summe.kosten | geld }}</td><td class="r">{{ p.summe.preis | zahl(2) if p.summe.preis is not none else "–" }}</td>
+            <td class="r">{% if p.ersparnis %}<strong class="warnung">{{ p.ersparnis | geld }}</strong>{% endif %}</td></tr>
+          {% for k, ks in p.karten_liste %}
+          <tr><td class="eingerueckt">{{ karte(k, p.fahrer.id if p.fahrer else none) }}</td><td class="r">{{ ks.kwh | zahl(0) }}</td>
+            <td class="r">{{ ks.kosten | geld }}</td><td class="r">{{ ks.preis | zahl(2) if ks.preis is not none else "–" }}</td>
+            <td class="r">{% set e = p.ersparnis_karte(k) %}{{ e | geld if e else "" }}</td></tr>
+          {% endfor %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <table class="msp-art">
+        <thead><tr><th>Art</th><th>{{ MSP_TEXT }}</th><th class="r">kWh</th><th class="r">€/kWh</th></tr></thead>
+        <tbody>
+        {% for art, liste in d.msp_stromart.items() %}{% for name, ms in liste %}
+          {% set ist = liste | length > 1 and d.massstab.get(art) and d.massstab[art][0] == name %}
+          <tr{% if loop.first %} class="neue-art"{% endif %}><td>{% if loop.first %}{{ STROMART_TEXT[art] }}{% endif %}</td>
+            <td>{{ name }}{% if ist %} <span class="msp-etikett">günstigster</span>{% elif ms.kwh < mindest %} <span class="klein">wenig Daten</span>{% endif %}</td>
+            <td class="r">{{ ms.kwh | zahl(0) }}</td><td class="r">{{ ms.preis | zahl(2) if ms.preis is not none else "–" }}</td></tr>
+        {% endfor %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% set uebrige = details | rejectattr("ersparnis") | list %}
+{% if uebrige %}
+<h2>{{ "Weitere CPO" if mit_potenzial else "Alle CPO" }}</h2>
+<table>
+  <thead><tr><th>CPO</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th>
+    <th>genutzte {{ MSP_TEXT }}</th></tr></thead>
+  <tbody>
+  {% for d in uebrige %}
+    <tr><td>{{ cpo_name(d.code) }}</td><td class="r">{{ d.summe.anzahl }}</td><td class="r">{{ d.summe.kwh | zahl(0) }}</td>
+      <td class="r">{{ d.summe.kosten | geld }}</td><td class="r">{{ d.summe.preis | zahl(2) if d.summe.preis is not none else "–" }}</td>
+      <td>{{ d.msp | map(attribute=0) | join(", ") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="klein">Ohne Sparpotenzial: nur ein {{ MSP_TEXT }} genutzt, der günstigste selbst, oder kein Vergleich mit genügend Daten.</p>
+{% elif not details %}
+<p>Keine öffentlichen Ladungen im Zeitraum.</p>
+{% endif %}
+{% endblock %}

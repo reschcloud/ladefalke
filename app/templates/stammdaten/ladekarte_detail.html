@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% import "_zuordnung.html" as zo %}
+{% import "_ladevorgaenge.html" as lv %}
+{% block titel %}{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
+  {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/ladekarten' }}" role="button" class="outline secondary klein nav-knopf">← Alle Ladekarten</a>{{ m.blaettern(blaettern) }}</p>
+<h1>{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}</h1>
+{% if karte %}{{ m.offene_punkte(offen, "/stammdaten/ladekarten/%d" % karte.id) }}{% endif %}
+
+<form method="post" class="formular" action="{{ '/stammdaten/ladekarten/%d' % karte.id if karte else '/stammdaten/ladekarten/neu' }}">
+  <div class="grid">
+    {{ m.auswahl("msp_id", MSP, msp_optionen, werte, fehler, pflicht=true) }}
+    {{ m.auswahl("kennung_typ", "Art der Kennung", kennung_typen, werte, fehler, pflicht=true) }}
+  </div>
+  <div class="grid">
+    {{ m.feld("kennung", "Kennung", werte, fehler, pflicht=true, hilfe="Wie die Karte in der Rechnung steht: Vertrags- oder Kartennummer bzw. Kartenbezeichnung") }}
+    {{ m.feld("bezeichnung", "Bezeichnung", werte, fehler) }}
+  </div>
+  {{ m.feld("vertragsnummer", "Vertragsnummer", werte, fehler, hilfe="Optional – nur wenn die Rechnung Gebühren über eine Vertragsnummer abrechnet") }}
+  {{ m.textfeld("notiz", "Notiz", werte, fehler) }}
+  {{ m.haken("ist_gastkarte", "Gastkarte", werte, fehler) }}
+  <small class="haken-hinweis">Ladungen laufen in den Topf „Gäste“; die Karte bekommt keine Zuordnung.</small>
+  {{ m.aktiv_feld(werte) }}
+  <button type="submit">Speichern</button>
+</form>
+
+{% if karte %}
+{{ m.entfernen_knopf("/stammdaten/ladekarten/%d" % karte.id, "Ladekarte %s" % karte.kennung, karte.aktiv, referenziert) }}
+
+<h2>Zuordnungshistorie</h2>
+{% if karte.ist_gastkarte %}
+  <p>Gastkarte – Ladungen werden dem Topf <strong>„Gäste“</strong> zugerechnet und keinem Fahrzeug zugeordnet.</p>
+{% else %}
+{{ zo.abschnitt(mini, "Zugeordnet an", formular="neue-karten-zuordnung", leer="Noch keine Zuordnung.") }}
+
+<article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
+  <header><strong>Neue Zuordnung</strong></header>
+  <form method="post" action="/stammdaten/ladekarten/{{ karte.id }}/zuordnung" id="neue-karten-zuordnung">
+    {% if zuordnung_fehler %}<p class="meldung meldung-fehler" role="alert">{{ zuordnung_fehler }}</p>{% endif %}
+    {% if zurueck %}<input type="hidden" name="zurueck" value="{{ zurueck }}">{% endif %}
+    {% with werte = zuordnung_werte %}{% include "stammdaten/_ziel_auswahl.html" %}{% endwith %}
+    <div class="grid">
+      {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
+      {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
+    </div>
+    {{ m.leasing_knoepfe(leasing_daten(fahrzeug_liste, "fahrzeug:"), "ziel") }}
+    {{ m.neu_zuordnen_haken(zuordnung_werte) }}
+    <p class="zuordnung-hinweis"><small>Eine offene bisherige Zuordnung wird automatisch zum Vortag beendet.</small></p>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>
+  </form>
+</article>
+{% endif %}
+{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?ladekarte_id=%d" % karte.id, mit_fahrzeug=true, art=request.state.stichtag) }}
+{{ m.verlauf_abschnitt(verlauf) }}
+{% endif %}
+{% endblock %}

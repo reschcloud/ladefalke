@@ -1,0 +1,43 @@
+Salzburg AG für Energie, Verkehr & Telekommunikation, Bayerhamerstraße 16, 5020 Salzburg Dokument-Nr. 60000001
+Datum 31.10.2026
+Test GmbH Zeitraum 01.10.2026 - 31.10.2026
+Rechnungsübersicht
+Pos. Beschreibung Gesamte lokale Währung Währung der Gesamtrechnung
+1 Österreich / 60000002 EUR 33,00 EUR 33,00
+Gesamt: EUR 33,00
+Salzburg AG, Bayerhamerstraße 16, 5020 Salzburg Dokument-Nr. 60000002
+Datum 31.10.2026
+Test GmbH Zeitraum 01.10.2026 - 31.10.2026
+Seite AT 1 / 2
+Rechnung Österreich 60000002
+Pos. Beschreibung Anz. Einzelpreis Steuersatz Gesamtpreis
+1 K00001 / K00001
+1.1 Monatliche Grundgebühr im Leistungszeitraum 1,00 EUR 2,50 20,00% EUR 2,50
+Gesamte monatliche Gebühr für den Leistungszeitraum
+1.2 Gesamtkosten für Ihre Ladevorgänge (AT) 1,00 EUR 28,00 20,00% EUR 28,00
+Gesamtkosten für Ihre Ladevorgänge in dem angegebenen Leistungszeitraum.
+Zwischensumme: EUR 30,50
+2 K00002 / Dienstwagen 2
+2.1 Monatliche Grundgebühr im Leistungszeitraum 1,00 EUR 2,50 20,00% EUR 2,50
+Zwischensumme: EUR 2,50
+Nettobetrag: EUR 33,00
+Steuerbetrag: EUR 6,60
+Gesamtpreis: EUR 39,60
+Salzburg AG, Bayerhamerstraße 16, 5020 Salzburg Dokument-Nr. 60000002
+Datum 31.10.2026
+Test GmbH Zeitraum 01.10.2026 - 31.10.2026
+Seite AT 2 / 2
+Ladenachweis für Rechnung 60000002
+Pos. Start / Ende Ladepunkt Dauer Verbrauch Tarif Gesamt
+K00001 - K00001
+1 03.10.2026 11:37 Salzburg AG Hypercharger Testmarkt 00:33:39 28,25kWh Stromladen PREMIUM RFID EUR 9,89
+03.10.2026 12:11 rechts
+Teststraße 3, Testort
+EVSE-ID: AT*SZG*E000001
+# 100000001
+2 14.10.2026 09:02 Salzburg AG Hypercharger Probe 00:45:13 52,00kWh Stromladen PREMIUM RFID EUR 18,11
+14.10.2026 09:47 Süd - rechts
+Probeweg 113, Probe im
+Testtal
+EVSE-ID: AT*SZG*E000002
+# 100000002

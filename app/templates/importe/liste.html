@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% import "importe/_schritte.html" as s %}
+{% block titel %}Import{% endblock %}
+{% block inhalt %}
+<h1>Import</h1>
+{{ s.schritte(schritt, offen=vorschauen | length) }}
+
+{% if abschluss %}
+{% set a = abschluss %}
+<article id="abschluss" class="import-abschluss" role="status" data-ausblenden="20">
+  <header class="kopf">
+    <strong>✓ Import abgeschlossen</strong>
+    <a href="/import?abschluss=aus" class="filter-weg" title="Ausblenden" aria-label="Meldung ausblenden"><svg viewBox="0 0 10 10"
+      aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg></a>
+  </header>
+  <p>
+    {{ a.importe | length }} Datei{{ "en" if a.importe | length != 1 }} übernommen
+    {%- if a.verworfen %}, {{ a.verworfen | length }} verworfen <small>({{ a.verworfen | join(", ") }})</small>{% endif %}.
+    {% if a.importe %}<br><strong>{{ a.anzahl }}</strong> Ladevorgänge · <strong>{{ a.kwh | zahl(0) }}</strong> kWh ·
+      <strong>{{ a.kosten | geld }}</strong> Ladekosten{% if a.gebuehren %} · {{ a.gebuehren | geld }} Gebühren{% endif %} (netto){% endif %}
+  </p>
+  {% if a.importe %}
+  <ul class="abschluss-dateien">
+    {% for imp in a.importe %}<li><a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a>
+      <small>{{ imp.msp.name if imp.msp }}{% if imp.rechnungsnummer %} · Rechnung {{ imp.rechnungsnummer }}{% endif %}</small></li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if a.spaeter_zuordnen %}
+  <p class="abschluss-spaeter"><span><strong>{{ a.spaeter_zuordnen }} {{ "Ladevorgang" if a.spaeter_zuordnen == 1 else "Ladevorgänge" }}</strong>
+    noch ohne Fahrzeug – jetzt oder später zuordnen.</span>
+    <a href="/aufgaben#ohne-fahrzeug" role="button" class="outline klein">Jetzt zuordnen (Aufgaben)</a></p>
+  {% if a.karten_ohne_zuordnung %}
+  <p class="abschluss-karten"><small>Ladekarten ohne Zuordnung:</small>
+    {% for k, erster in a.karten_ohne_zuordnung %}<a href="/stammdaten/ladekarten/{{ k.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ erster.date().isoformat() }}#neue-karten-zuordnung"
+       role="button" data-schreiben class="outline klein" title="{{ k.kennung }} zuordnen">{{ k.bezeichnung or k.kennung }} zuordnen</a>{% endfor %}</p>
+  {% endif %}
+  {% elif a.importe %}
+  <p><small>Alle Ladevorgänge sind einem Fahrzeug zugeordnet.</small></p>
+  {% endif %}
+</article>
+{% endif %}
+{% if vorschauen %}
+<article class="offene-vorschauen">
+  <header class="kopf">
+    <strong>Offene Vorschauen ({{ vorschauen | length }})</strong>
+    <a href="/import/{{ vorschauen[0].id }}" role="button">Der Reihe nach prüfen →</a>
+  </header>
+  <ul>
+  {% for imp in vorschauen %}
+    <li><a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a>
+      <small>{{ imp.msp.name if imp.msp else "Format nicht erkannt" }} · hochgeladen {{ imp.hochgeladen_am | datumzeit_lokal }}</small></li>
+  {% endfor %}
+  </ul>
+  <small>Nach dem Bestätigen oder Verwerfen geht es automatisch mit der nächsten Datei weiter; nach der letzten
+    zurück hierher.</small>
+</article>
+{% endif %}
+
+
+<article>
+  <header><strong>Laderechnungen hochladen</strong></header>
+  {# Datei-Upload ohne htmx-Boost: normales Formular mit multipart #}
+  <form method="post" action="/import" enctype="multipart/form-data" hx-boost="false" class="upload">
+    {% if fehler %}<p class="meldung meldung-fehler" role="alert">{{ fehler }}</p>{% endif %}
+    <label for="datei-upload">Dateien hierher ziehen oder klicken zum Auswählen</label>
+    <input type="file" id="datei-upload" name="datei_upload" accept=".csv,.pdf" multiple required data-feldname="Datei"
+           aria-describedby="upload-hinweis">
+    <ul id="datei-liste" class="datei-liste" aria-live="polite" hidden></ul>
+    <small id="upload-hinweis" class="mit-tooltip" title="Unterstützte Formate: {{ formate }}. Jede Datei wird danach einzeln geprüft und bestätigt.">Format wird je Datei automatisch erkannt ⓘ</small>
+    <button type="submit">Hochladen und Vorschau anzeigen</button>
+  </form>
+</article>
+
+<article id="pauschalen">
+  <header class="kopf">
+    <strong>Pauschalen</strong>
+    <a href="/import/pauschalen/neu" role="button" data-schreiben class="outline klein">Neue Pauschale</a>
+  </header>
+  <p><small>Wallboxen mit monatlichem Fixbetrag (z. B. Wallbox-Tarife mit Monatspauschale), von Hand erfasst statt
+    hochgeladen. Pauschalen werden keinem Fahrzeug zugeordnet, fließen aber in Gesamt-kWh, Gesamtkosten und
+    Gesamt-Ø-Preis ein. Beträge netto.</small></p>
+  <nav class="umschalter" aria-label="Jahr der Pauschalen">
+    {%- for j in pauschalen_jahre %}
+    <a href="/import?pauschalen_jahr={{ j }}#pauschalen" {% if j == pauschalen_jahr %}aria-current="true"{% endif %}>{{ j }}</a>
+    {%- endfor %}
+  </nav>
+  <div class="tabelle">
+  <table class="striped">
+    <thead><tr><th>Monat</th><th>Bezeichnung</th><th>Ladeart</th><th class="rechts">kWh</th>
+               <th class="rechts">Betrag netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+    <tbody>
+    {% for p in pauschalen %}
+      <tr>
+        <td><a href="/import/pauschalen/{{ p.id }}">{{ p.monat | monat }}</a></td>
+        <td>{{ p.bezeichnung }}{% if p.notiz %}<br><small>{{ p.notiz }}</small>{% endif %}</td>
+        <td>{{ p.ladeart.label }}</td>
+        <td class="rechts">{{ p.kwh | zahl(3) }}</td>
+        <td class="rechts">{{ p.betrag_netto | geld }}</td>
+        <td class="rechts">{{ (p.betrag_netto / p.kwh) | zahl(2) if p.kwh else "–" }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6">Keine Pauschalen in {{ pauschalen_jahr }}.</td></tr>
+    {% endfor %}
+    </tbody>
+    {% if pauschalen %}
+    <tfoot>
+      <tr><th colspan="3">Summe {{ pauschalen_jahr }}</th><th class="rechts">{{ pauschalen_kwh | zahl(0) }}</th>
+          <th class="rechts">{{ pauschalen_betrag | geld }}</th>
+          <th class="rechts">{{ (pauschalen_betrag / pauschalen_kwh) | zahl(2) if pauschalen_kwh else "–" }}</th></tr>
+    </tfoot>
+    {% endif %}
+  </table>
+  </div>
+</article>
+
+
+<details class="importe-liste" id="importe"{% if neu_importiert %} open{% endif %}>
+<summary><h2>Importe</h2> <small>{{ zeilen | length }} {{ "Datei" if zeilen | length == 1 else "Dateien" }}{% if not neu_importiert %} – zum Anzeigen aufklappen{% endif %}</small></summary>
+<div class="tabelle">
+<table class="striped">
+  <thead>
+    <tr><th>Datei</th><th>{{ MSP }}</th><th>Rechnung</th><th>Zeitraum</th>
+        <th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+  {% for imp, anzahl, kwh, kosten, gebuehren in zeilen %}
+    <tr{% if imp.id in neu_importiert %} class="neu-importiert"{% endif %}>
+      <td><a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a></td>
+      <td>{{ imp.msp.name if imp.msp else "–" }}</td>
+      <td>{{ imp.rechnungsnummer or "" }}{% if imp.rechnungsdatum %}<br><small>{{ imp.rechnungsdatum | datum }}</small>{% endif %}</td>
+      <td>{% if imp.abrechnungszeitraum_von %}{{ imp.abrechnungszeitraum_von | datum }} – {{ imp.abrechnungszeitraum_bis | datum }}{% endif %}</td>
+      <td class="rechts">{{ anzahl or "" }}</td>
+      <td class="rechts">{{ kwh | zahl(0) if kwh is not none }}</td>
+      <td class="rechts">{% if kosten is not none or gebuehren is not none %}{{ ((kosten or 0) + (gebuehren or 0)) | geld }}{% endif %}</td>
+      <td>
+        {% if imp.status.value == "vorschau" %}<span class="marker inaktiv">Vorschau</span>
+        {% else %}<span class="marker">importiert</span> <small>{{ imp.importiert_am | datum }}</small>{% endif %}
+        {% if imp.warnungen %}<span title="{{ imp.warnungen | join(' · ') }}">⚠</span>{% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8">Noch keine Importe.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</details>
+{% endblock %}

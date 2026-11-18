@@ -1,0 +1,2 @@
+# Test-Fixtures byte-genau lassen (CRLF und BOM sind Teil des Tests)
+tests/fixtures/** -text

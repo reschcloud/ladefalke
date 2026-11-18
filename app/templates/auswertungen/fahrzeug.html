@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "auswertungen/_bausteine.html" as b %}
+{% import "_makros.html" as m %}
+{% block titel %}{{ z.fahrzeug.kennzeichen }} {{ a.zeitraum.label }}{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="/auswertungen?{{ parameter }}" role="button" class="outline secondary klein nav-knopf">← Auswertungen {{ a.zeitraum.label }}</a></p>
+<h1>{{ z.fahrzeug.kennzeichen }}{% if z.fahrzeug.modell %} <small>{{ z.fahrzeug.modell }}</small>{% endif %}</h1>
+{{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
+{{ m.querverweise("Siehe auch", [
+     ("/stammdaten/fahrzeuge/%d" % z.fahrzeug.id, "Stammdaten", "Stammdaten, Zuordnungen und letzte Ladevorgänge"),
+     ("/ladevorgaenge?fahrzeug_id=%d&%s" % (z.fahrzeug.id, parameter), "Ladevorgänge im Zeitraum", "")]) }}
+<p>Fahrer:innen im Zeitraum: {{ z.fahrer_im_zeitraum | join(", ") or "–" }} · aktuell: {{ z.fahrer_aktuell | join(", ") or "–" }}</p>
+
+{% if z.summe.leer %}
+<p class="meldung meldung-info">Keine Ladevorgänge im Zeitraum {{ a.zeitraum.label }}. Mit ◀ ▶ oder Quartal/Jahr
+  lassen sich andere Zeiträume ansehen.</p>
+{% else %}
+{{ b.kennzahlen(z.summe, zeitraum=a.zeitraum, schnitt=a.zeitraum.schnitt(z.summe), dc=dc) }}
+{% if z.summe.gebuehren %}<p><small>Kosten inkl. {{ z.summe.gebuehren | geld }} kartenbezogener Gebühren.</small></p>{% endif %}
+
+<h2>Öffentlich / privat</h2>
+{{ b.oeffentlich_privat(z.summe) }}
+
+{{ b.summen_tabelle("Nach MSP", MSP, msp) }}
+{{ b.summen_tabelle("Nach Standort", "Standort", standorte) }}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,378 @@
+{# Formularfelder mit Fehleranzeige (Pico: aria-invalid + small) #}
+
+{% macro feld(name, label, werte, fehler, typ="text", pflicht=false, hilfe=none) %}
+<label>{{ label }}{% if pflicht %} *{% endif %}{% if hilfe %} {{ hilfe_symbol(hilfe) }}{% endif %}
+  <input type="{{ typ }}" name="{{ name }}" value="{{ werte.get(name) or '' }}"
+         {% if pflicht %}required{% endif %}
+         {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
+  {% if fehler.get(name) %}<small id="{{ name }}-fehler">{{ fehler[name] }}</small>{% endif %}
+</label>
+{% endmacro %}
+
+{% macro textfeld(name, label, werte, fehler) %}
+<label>{{ label }}
+  <textarea name="{{ name }}" rows="2">{{ werte.get(name) or '' }}</textarea>
+</label>
+{% endmacro %}
+
+{% macro auswahl(name, label, optionen, werte, fehler, pflicht=false) %}
+{# optionen: Liste von (wert, text) #}
+<label>{{ label }}{% if pflicht %} *{% endif %}
+  <select name="{{ name }}" {% if pflicht %}required{% endif %}
+          {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
+    <option value="">– bitte wählen –</option>
+    {% for wert, text in optionen %}
+      <option value="{{ wert }}" {% if (werte.get(name) | string) == (wert | string) %}selected{% endif %}>{{ text }}</option>
+    {% endfor %}
+  </select>
+  {% if fehler.get(name) %}<small id="{{ name }}-fehler">{{ fehler[name] }}</small>{% endif %}
+</label>
+{% endmacro %}
+
+{% macro haken(name, label, werte, fehler={}) %}
+{# Hinweise stehen außerhalb des Labels – innerhalb würde Pico sie über die Beschriftung schieben #}
+<label class="haken">
+  <input type="checkbox" name="{{ name }}" {% if werte.get(name) %}checked{% endif %}
+         {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
+  {{ label }}
+</label>
+{% if fehler.get(name) %}<small id="{{ name }}-fehler" class="haken-hinweis fehler">{{ fehler[name] }}</small>{% endif %}
+{% endmacro %}
+
+{# `zusatz`: weitere Filterparameter, die beim Umschalten erhalten bleiben (z. B. {"modell": "ID.4"}) #}
+{% macro status_filter(status, basis, zusatz=[]) %}
+{# zusatz: weitere Parameter als Liste von (name, wert) – auch mehrfach derselbe Name #}
+<nav class="umschalter" aria-label="Status">
+  {%- for wert, text in [("aktiv", "Aktive"), ("inaktiv", "Inaktive"), ("alle", "Alle")] %}
+    <a href="{{ basis }}?{{ (zusatz + [("status", wert)]) | urlencode }}" {% if status == wert %}aria-current="true"{% endif %}>{{ text }}</a>
+  {%- endfor %}
+</nav>
+{% endmacro %}
+
+{% macro loeschen_knopf(aktion, frage, text="Löschen") %}
+<form method="post" action="{{ aktion }}" class="inline" hx-confirm="{{ frage }}">
+  <button type="submit" class="outline secondary klein gefahr">{{ text }}</button>
+</form>
+{% endmacro %}
+
+{# Stammdaten: Löschen nur ohne Daten; sonst Deaktivieren bzw. Wieder aktivieren (basis: URL des Eintrags) #}
+{% macro entfernen_knopf(basis, bezeichnung, aktiv, referenziert) %}
+{# Status nur über diese Knöpfe (kein Haken „aktiv“ im Formular, siehe aktiv_feld) #}
+<div class="entfernen-zeile">
+{% if not aktiv %}
+<span class="marker inaktiv">inaktiv</span>
+<form method="post" action="{{ basis }}/aktivieren" class="inline">
+  <button type="submit" class="outline klein">Wieder aktivieren</button>
+</form>
+{% endif %}
+{% if not referenziert %}
+  {{ loeschen_knopf(basis ~ "/loeschen", "%s endgültig löschen?" % bezeichnung) }}
+{% elif aktiv %}
+  {{ loeschen_knopf(basis ~ "/loeschen", "%s deaktivieren? Daten und Zuordnungen bleiben in allen Auswertungen erhalten; unter „Inaktive“ bleibt der Eintrag sichtbar." % bezeichnung, "Deaktivieren") }}
+  <small class="hinweis-knopf">Löschen ist nicht möglich, weil Zuordnungen oder Ladevorgänge daran hängen.</small>
+{% endif %}
+</div>
+{% endmacro %}
+
+{% macro aktiv_feld(werte) %}
+{# Stammdaten-Formulare: Status unverändert mitsenden (neu = aktiv); ändern nur per Deaktivieren/Wieder aktivieren #}
+{% if werte.get("aktiv", true) %}<input type="hidden" name="aktiv" value="on">{% endif %}
+{% endmacro %}
+
+{% macro aktiv_kennzeichen(aktiv) %}
+{% if aktiv %}<span class="marker">aktiv</span>{% else %}<span class="marker inaktiv">inaktiv</span>{% endif %}
+{% endmacro %}
+
+{% macro zeitraum_zelle(z) %}
+{% set heute = heute_datum() %}
+{{ zeitraum(z.gueltig_ab, z.gueltig_bis) }}
+{% if z.gueltig_ab <= heute and (z.gueltig_bis is none or z.gueltig_bis >= heute) %}
+  <span class="marker">aktuell</span>
+{% endif %}
+{% endmacro %}
+
+{% macro neu_zuordnen_haken(werte={}, hinweis_id="neu-zuordnen-hinweis", vorsatz="") %}
+<label class="haken">
+  <input type="checkbox" name="neu_zuordnen" {% if werte.get("neu_zuordnen") %}checked{% endif %}
+         aria-describedby="{{ hinweis_id }}">
+  {% if vorsatz %}<strong>{{ vorsatz }}</strong> b{% else %}B{% endif %}ereits importierte Ladevorgänge im Zeitraum neu zuordnen
+</label>
+<small id="{{ hinweis_id }}" class="haken-hinweis">Fahrzeug und geschätzte kWh werden neu ermittelt; manuell
+  zugeordnete Vorgänge bleiben unverändert.</small>
+{% endmacro %}
+
+{% macro zuordnung_loeschen(aktion) %}
+<article class="gefahrenzone">
+  <header><strong>Zuordnung löschen</strong></header>
+  <p><small>Zum Beenden einer Zuordnung besser oben „Gültig bis“ setzen – Löschen entfernt den Eintrag ganz aus der
+    Historie (nur für Fehleingaben).</small></p>
+  <form method="post" action="{{ aktion }}" hx-confirm="Diese Zuordnung löschen? Die Historie geht dabei verloren – zum Beenden besser ein Enddatum setzen.">
+    {{ neu_zuordnen_haken(hinweis_id="neu-zuordnen-hinweis-loeschen", vorsatz="Beim Löschen:") }}
+    <button type="submit" class="outline secondary klein gefahr">Zuordnung löschen</button>
+  </form>
+</article>
+{% endmacro %}
+
+{# Reine Navigation: kleiner, grau umrandeter Knopf (Downloads: Klasse download-knopf, umrandet, ohne hx-boost) #}
+{% macro nav_knopf(href, text, titel="") -%}
+<a href="{{ href }}" role="button" class="outline secondary klein nav-knopf"{% if titel %} title="{{ titel }}"{% endif %}>{{ text }}</a>
+{%- endmacro %}
+{# Blättern in Detailseiten (web.blaettern): ‹ 3 / 12 › rechts in der Navigationsleiste; am Rand ausgegraut #}
+{% macro blaettern(b) -%}
+{% if b and b.anzahl > 1 %}<span class="detail-blaettern">
+  {%- for schluessel, zeichen, wort, richtung in (("vorher", "‹", "Vorherige", "zurueck"), ("nachher", "›", "Nächste", "vor")) %}
+  {%- set ziel = b[schluessel] %}
+  {%- if loop.last %} <span class="detail-blaettern-position" title="Position in der Liste">{{ b.position }} / {{ b.anzahl }}</span>{% endif %}
+  {% if ziel %}<a href="{{ ziel.url }}" role="button" class="outline secondary klein nav-knopf" title="{{ wort }}: {{ ziel.text }}"
+     data-blaettern="{{ richtung }}"
+     aria-label="{{ wort }}: {{ ziel.text }}">{{ zeichen }}</a>
+  {%- else %}<a role="button" class="outline secondary klein nav-knopf" aria-disabled="true">{{ zeichen }}</a>{% endif %}
+  {%- endfor %}</span>{% endif %}
+{%- endmacro %}
+
+{# Offene Punkte auf einer Detailseite (dieselben Hinweise wie in der Liste, services/fahrzeug_hinweise.py);
+   Hinweise, die auf diese Seite selbst zeigen, sind keine Links #}
+{% macro offene_punkte(hinweise, seite) -%}
+{% if hinweise %}
+<p class="meldung {{ 'meldung-warnung' if hinweise | selectattr('stufe', 'ne', 'grau') | list else 'meldung-info' }} offene-punkte" role="status">
+  <span class="offene-punkte-titel">⚠ Offen:</span>
+  {%- for h in hinweise %} {% if h.link != seite %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>
+  {%- else %}<span class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</span>{% endif %}
+  {%- endfor %}</p>
+{% endif %}
+{%- endmacro %}
+
+{# Querverweise zwischen Stammdaten, Auswertung, Ladevorgängen und Reports: knoepfe = [(href, text, titel), …] #}
+{% macro querverweise(titel, knoepfe) -%}
+<p class="nav-leiste auswertung-links"><span class="nav-titel">{{ titel }}</span>
+  {%- for href, text, tipp in knoepfe %} {{ nav_knopf(href, text, tipp) }}{% endfor %}</p>
+{%- endmacro %}
+
+{# Fragezeichen mit Erklärung als Tooltip (Zeilenumbrüche im Text bleiben erhalten) #}
+{% macro hilfe(text) %}<abbr class="hilfe" tabindex="0" title="{{ text }}">?</abbr>{% endmacro %}
+{% macro hilfe_symbol(text) %}{{ hilfe(text) }}{% endmacro %}{# für Makros mit einem Parameter „hilfe“ #}
+{# Die eine Erklärung, wem eine Ladung zählt (Auswertungen pro Fahrer:in, Dashboard, Reports) #}
+{% macro zurechnung() %}{{ hilfe("Eine Ladung zählt für die Person, die zum Ladezeitpunkt (Stichtag laut Einstellungen) gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. Keiner Person zugerechnet: Poolfahrzeuge mit Fahrzeugkarte und mehreren Fahrer:innen, Gäste, Gebühren und Pauschalen.") }}{% endmacro %}
+
+{% macro mehrfach(name, label, optionen, gewaehlt) %}
+{# Mehrfachauswahl als aufklappbare Liste mit Haken (Pico-Dropdown); nichts gewählt = alle. Gesetzte Filter sind
+   hervorgehoben und haben ein „×“ zum Aufheben.
+   optionen: Liste von (wert, text); gewaehlt: Liste der gewählten Werte (Strings). Wirkt sofort (form.sofort),
+   die Liste bleibt nach dem Neuladen offen (base.html). #}
+{% set ns = namespace(texte=[]) %}
+{% for wert, text in optionen if (wert | string) in gewaehlt %}{% set ns.texte = ns.texte + [text] %}{% endfor %}
+<div class="mehrfach-feld{{ ' gesetzt' if ns.texte }}">
+  <span id="mf-{{ name }}">{{ label }}
+    {%- if ns.texte %} <button type="button" class="filter-weg" data-filter-weg title="Filter aufheben"
+      aria-label="Filter {{ label | striptags }} aufheben"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg></button>{% endif %}</span>
+  <details class="dropdown mehrfach" data-name="{{ name }}">
+    <summary aria-labelledby="mf-{{ name }}" title="{{ ns.texte | join(', ') if ns.texte else 'alle' }}">
+      <span class="mehrfach-text">
+      {%- if not ns.texte %}alle{% elif ns.texte | length <= 2 %}{{ ns.texte | join(", ") }}{% else %}{{ ns.texte | length }} ausgewählt{% endif -%}
+      </span></summary>
+    <ul>
+      <li><label><input type="checkbox" data-alle {% if not ns.texte %}checked{% endif %}> alle</label></li>
+      {% for wert, text in optionen %}
+      <li><label><input type="checkbox" name="{{ name }}" value="{{ wert }}" {% if (wert | string) in gewaehlt %}checked{% endif %}> {{ text }}</label></li>
+      {% endfor %}
+    </ul>
+  </details>
+</div>
+{% endmacro %}
+
+{% macro person(personen) %}
+{# Person beim Laden (aufloesung.personen_beim_laden): None = Gäste, mehrere = Poolfahrzeug #}
+{%- if personen is none %}Gäste
+{%- elif personen | length == 1 %}<a href="/stammdaten/fahrer/{{ personen[0].id }}">{{ personen[0].name }}</a>
+{%- elif personen %}<abbr title="Poolfahrzeug ohne personengebundene Karte: {{ personen | map(attribute='name') | join(', ') }}">Pool</abbr>
+{%- else %}–{% endif -%}
+{% endmacro %}
+
+{% macro stromart(wert, text=false, ohne="keine Angabe") %}
+{#- AC/DC als farbiger Marker, ohne Angabe grauer Marker „?“ (Farben in app.css); `text`: Erklärung daneben -#}
+{%- if wert in ("AC", "DC") %}<span class="marker stromart-{{ wert | lower }}">{{ wert }}</span>
+{%- else %}<span class="marker stromart-ohne" title="{{ ohne }}" aria-label="{{ ohne }}">?</span>{% if text %} {{ ohne }}{% endif %}{% endif -%}
+{% endmacro %}
+
+{# Zeit-Spalten einer Ladevorgangsliste nach dem Stichtag (art = request.state.stichtag): zuerst das Datum laut
+   Stichtag (verlinkt auf die Detailseite), dann das andere #}
+{# Zeitspalten der Ladevorgangslisten: vorne der Zeitpunkt laut Stichtag (verlinkt), daneben die Dauer (angesteckt)
+   mit der anderen Uhrzeit klein darunter (am selben Tag nur die Uhrzeit). #}
+{% macro zeit_kopf(art) -%}
+<th>{{ "Ladebeginn" if art == "beginn" else "Ladeende" }}</th><th>Dauer</th>
+{%- endmacro %}
+{% macro zeit_zellen(v, art) -%}
+{%- set erst, dann = (v.start, v.ende) if art == "beginn" else (v.ende, v.start) -%}
+<td><a href="/ladevorgaenge/{{ v.id }}">{{ erst | datumzeit }}</a></td>
+<td class="dauer">{{ v.start | dauer(v.ende) }}<br><small>{{ "bis" if art == "beginn" else "ab" }}
+  {{ dann.strftime("%H:%M") if dann.date() == erst.date() else dann | datumzeit }}</small></td>
+{%- endmacro %}
+
+{# Adresse in Google Maps bzw. Apple Maps suchen (neuer Tab, nur auf Klick – die App selbst ruft keine externen Dienste
+   auf). titel: Tooltip-Zusatz, z. B. wofür die Suche gut ist. #}
+{% macro maps_link(adresse, land=none, titel=none) -%}
+{%- set suche = (adresse ~ (', ' ~ (land | landname) if land else '')) | urlencode -%}
+<span class="maps-links">
+<a href="https://www.google.com/maps/search/?api=1&amp;query={{ suche }}"
+   target="_blank" rel="noopener noreferrer" hx-boost="false" role="button" class="outline klein maps-link"
+   title="Adresse in Google Maps suchen (neuer Tab){{ ' – ' ~ titel if titel }}">Google Maps ↗</a>
+<a href="https://maps.apple.com/?q={{ suche }}"
+   target="_blank" rel="noopener noreferrer" hx-boost="false" role="button" class="outline klein maps-link"
+   title="Adresse in Apple Maps suchen (neuer Tab){{ ' – ' ~ titel if titel }}">Apple Maps ↗</a>
+</span>
+{%- endmacro %}
+
+{# Zuordnungsformulare: „Gültig ab = Leasingbeginn“ / „Gültig bis = Leasing-Ende“ (Skript in base.html).
+   daten: Auswahlwert → [Beginn, Ende] (web.leasing_daten); feld: Name der Fahrzeug-Auswahl im Formular, oder none,
+   dann gilt der Eintrag „*“ (Fahrzeug fest). Ohne Leasingdaten für die Auswahl sind die Knöpfe ausgegraut. #}
+{% macro leasing_knoepfe(daten, feld=none) %}
+<p class="leasing-uebernehmen" data-leasing='{{ daten | tojson }}' data-leasing-feld="{{ feld or '' }}">
+  <button type="button" class="outline secondary klein" data-leasing-uebernehmen="beginn">„Gültig ab“ = Leasingbeginn</button>
+  <button type="button" class="outline secondary klein" data-leasing-uebernehmen="ende">„Gültig bis“ = Leasing-Ende</button>
+</p>
+{% endmacro %}
+
+{# Kleine Symbole (eigene Zeichnung, Strichstärke 2, Textfarbe): auto, person, karte, msp, zuordnung, zeitleiste.
+   In Auswahllisten (option) gehen keine Grafiken – dort 🚗 / 👤 (siehe stammdaten/_ziel_auswahl.html). #}
+{% macro symbol(name, titel="") -%}
+<svg class="symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+     stroke-linejoin="round"{% if titel %} role="img" aria-label="{{ titel }}"><title>{{ titel }}</title>{% else %} aria-hidden="true">{% endif %}
+{%- if name == "auto" %}<path d="M4 16v-4l2.2-5h11.6l2.2 5v4"/><path d="M4 12h16"/><path d="M3 16h18"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/>
+{%- elif name == "person" %}<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-3.8 3.8-6 7.5-6s6.7 2.2 7.5 6"/>
+{%- elif name == "karte" %}<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>
+{%- elif name == "msp" %}<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>
+{%- elif name == "zuordnung" %}<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>
+{%- elif name == "zeitleiste" %}<path d="M3 6h10"/><path d="M8 12h12"/><path d="M3 18h9"/>{% endif -%}
+</svg>
+{%- endmacro %}
+
+{# Ziel einer Karten-Zuordnung mit Symbol: Auto = fahrzeuggebundene Karte, Person = personengebundene Karte #}
+{% macro karten_ziel(z, link=true) -%}
+{%- if z.fahrer is not none %}{{ symbol("person", "Person") }} {% if link %}<a href="/stammdaten/fahrer/{{ z.fahrer.id }}">{{ z.fahrer.name }}</a>{% else %}{{ z.fahrer.name }}{% endif %}
+{%- elif z.fahrzeug is not none %}{{ symbol("auto", "Fahrzeug") }} {% if link %}<a href="/stammdaten/fahrzeuge/{{ z.fahrzeug.id }}">{{ z.fahrzeug.kennzeichen }}</a>{% else %}{{ z.fahrzeug.kennzeichen }}{% endif %}
+{%- else %}–{% endif -%}
+{%- endmacro %}
+
+{# Export-Knöpfe ohne Beschriftung „Export:“ – was sie tun, steht im Tooltip. url: Pfad ohne Endung, parameter: Abfrage #}
+{% macro export_knoepfe(url, parameter="", was="die Tabelle") -%}
+<span class="export">
+  <a href="{{ url }}.csv{{ '?' ~ parameter if parameter }}" hx-boost="false" role="button" class="outline klein"
+     title="{{ was[:1] | upper }}{{ was[1:] }} als CSV exportieren (Trennzeichen „;“, öffnet in Excel und LibreOffice)">CSV</a>
+  <a href="{{ url }}.xlsx{{ '?' ~ parameter if parameter }}" hx-boost="false" role="button" class="outline klein"
+     title="{{ was[:1] | upper }}{{ was[1:] }} als Excel-Datei (XLSX) exportieren">XLSX</a>
+</span>
+{%- endmacro %}
+
+{# Logo „Ladefalke“ (Falke mit Ladekarte, vektorisiert): Zeichnung einmal als Symbol #falke-zeichen in base.html,
+   hier nur der Verweis; Farbe aus dem Text. Eigenständig: static/ladefalke.svg, Favicon: static/favicon.svg. #}
+{% macro falke(klasse="falke", titel="") -%}
+<svg class="{{ klasse }}" viewBox="0 0 1399 905"{% if titel %} role="img" aria-label="{{ titel }}"{% else %} aria-hidden="true"{% endif %}>
+  {%- if titel %}<title>{{ titel }}</title>{% endif %}<use href="#falke-zeichen"/></svg>
+{%- endmacro %}
+
+{# Lade-Animation (base.html): E-Auto an der Ladesäule, Strom fließt durchs Kabel, der Blitz pulsiert (CSS .lade-auto);
+   links oben über dem Auto wacht der Falke. #}
+{% macro lade_auto() -%}
+<svg class="lade-auto" viewBox="0 -48 120 106" aria-hidden="true">
+  <g class="falke-wacht"><svg x="1" y="-45" width="76" height="49.2" viewBox="0 0 1399 905"><use href="#falke-zeichen"/></svg></g>
+  <path class="karosserie" d="M8 44V35Q8 31 13 30L25 28L34 20Q36 18.5 39 18.5H59Q63 18.5 65.5 21.5L72 28.5Q78 30 78 35V44H72A8 8 0 0 0 56 44H32A8 8 0 0 0 16 44Z"/>
+  <path class="fenster" d="M31 28L37.5 22H58Q60.5 22 62.5 24.5L65.5 28Z"/>
+  <circle class="rad" cx="24" cy="44" r="5.5"/><circle class="rad" cx="64" cy="44" r="5.5"/>
+  <path class="kabel" d="M96 38C92 50 82 49 78 36"/><path class="strom" d="M96 38C92 50 82 49 78 36"/>
+  <rect class="saeule" x="96" y="14" width="15" height="37.5" rx="2.5"/>
+  <path class="blitz" d="M105 21L100 32.5H104L102.5 43L108 30.5H104Z"/>
+</svg>
+{%- endmacro %}
+
+{# Änderungsprotokoll (Seite „Protokoll“ und Verlauf auf Detailseiten): je Eintrag Zeit, wer, was; die Felder alt → neu
+   aufklappbar. mit_objekt=false auf Detailseiten (das Objekt ist dort klar). #}
+{% macro protokoll_tabelle(eintraege, mit_objekt=true, leer="Keine Einträge.") %}
+{% set PROTOKOLL_LINKS = {"msp": "/stammdaten/msp/", "ladekarte": "/stammdaten/ladekarten/", "fahrer": "/stammdaten/fahrer/",
+   "fahrzeug": "/stammdaten/fahrzeuge/", "ladevorgang": "/ladevorgaenge/", "import": "/import/",
+   "pauschale": "/import/pauschalen/", "benutzer": "/benutzer/"} %}
+<div class="tabelle">
+<table class="protokoll-liste">
+  <thead><tr><th>Zeit</th><th>Benutzer:in</th>{% if mit_objekt %}<th>Objekt</th>{% endif %}<th>Aktion</th><th>Änderungen</th></tr></thead>
+  <tbody>
+  {% for e in eintraege %}
+    <tr{% if protokoll_warnung(e) %} class="protokoll-warnung"{% endif %}>
+      <td class="zeit">{{ e.zeitpunkt | datumzeit_lokal(true) }}</td>
+      <td>{% if e.benutzer_name == "System" and not e.benutzer_id %}<span class="system">System</span>{% else %}{{ e.benutzer_name }}{% endif %}</td>
+      {% if mit_objekt %}<td>{% if PROTOKOLL_TYPEN.get(e.objekt_typ) != e.bezeichnung %}<small class="objekt-typ">{{ PROTOKOLL_TYPEN.get(e.objekt_typ, e.objekt_typ) }}</small>{% endif %}
+        {%- set link = PROTOKOLL_LINKS.get(e.objekt_typ) %}
+        {%- if link and e.objekt_id and e.aktion != "geloescht" %}<a href="{{ link }}{{ e.objekt_id }}">{{ e.bezeichnung }}</a>{% else %}{{ e.bezeichnung }}{% endif %}</td>{% endif %}
+      <td>{% if protokoll_warnung(e) %}⚠ {% endif %}{{ PROTOKOLL_AKTIONEN.get(e.aktion, e.aktion) }}</td>
+      <td class="aenderungen">
+        {%- if e.felder %}
+        {%- set n = e.felder | length %}
+        <details{% if n <= 2 %} open{% endif %}><summary>{{ n }} {{ "Feld" if n == 1 else "Felder" }}</summary>
+          <dl>{% for feld, (alt, neu) in e.felder.items() %}<dt>{{ feld }}</dt><dd>
+            {%- if alt is none and neu is none %}<em>ohne Wert</em>
+            {%- elif e.aktion in ("angelegt", "importiert", "erstellt", "wiederhergestellt") or alt is none %}{{ neu }}
+            {%- elif e.aktion == "geloescht" or neu is none %}<del>{{ alt }}</del>{% if neu is none and e.aktion == "geaendert" %} → <em>leer</em>{% endif %}
+            {%- else %}<del>{{ alt }}</del> → {{ neu }}{% endif %}</dd>{% endfor %}</dl>
+        </details>
+        {%- endif %}
+        {%- if e.kontext %}<small class="kontext">{{ e.kontext }}</small>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="{{ 5 if mit_objekt else 4 }}">{{ leer }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{# Verlauf eines Objekts auf seiner Detailseite (nur Admins; `verlauf` kommt aus der Route) #}
+{% macro verlauf_abschnitt(verlauf) %}
+{% if verlauf is not none %}
+<details class="verlauf-abschnitt">
+  <summary><strong>Verlauf</strong> <small>({{ verlauf | length }}{% if verlauf | length >= 30 %}+{% endif %} Einträge im Änderungsprotokoll)</small></summary>
+  {{ protokoll_tabelle(verlauf, mit_objekt=false, leer="Noch keine Einträge – Änderungen werden seit Einführung des Protokolls festgehalten.") }}
+  {% if verlauf | length >= 30 %}<p><small>Ältere Einträge unter <a href="/protokoll">Protokoll</a>.</small></p>{% endif %}
+</details>
+{% endif %}
+{% endmacro %}
+
+{# Ladekarte als „Person bzw. Kennzeichen (Person)“ mit MSP-Etikett, Kennung im Tooltip (services/kartenanzeige.py).
+   a: Anzeige (oder none → Rückfall auf die Bezeichnung); k: die Karte (falls a none); fahrer_id: Sicht einer Person
+   („persönlich“ statt des eigenen Namens); msp: Etikett zeigen. #}
+{% macro karte(a, k=none, fahrer_id=none, link=true, msp=true) -%}
+{%- set k = a.karte if a else k -%}
+{%- if k is none %}<span class="karte-anzeige ohne">ohne Karte</span>
+{%- else -%}
+<span class="karte-anzeige" title="{{ a.tooltip if a else (k.msp.name ~ ': ' ~ k.kennung) }}">
+  {%- set name = (a.relativ(fahrer_id) if fahrer_id else a.name) if a else (k.bezeichnung or k.kennung) -%}
+  {%- if link %}<a href="/stammdaten/ladekarten/{{ k.id }}">{{ name }}</a>{% else %}<span>{{ name }}</span>{% endif -%}
+  {%- if a and a.zusatz %} <small class="karte-zusatz">…{{ a.zusatz }}</small>{% endif -%}
+  {%- if a and a.weitere %} <small class="karte-weitere">+{{ a.weitere | length }}</small>{% endif -%}
+  {%- if msp %} <span class="karte-msp">{{ k.msp.name }}</span>{% endif -%}
+  {%- if not k.aktiv %} <small class="karte-zusatz">inaktiv</small>{% endif -%}
+</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# Ladekarte eines Ladevorgangs (Zuordnung am Ladetag, `v.karte_anzeige` aus kartenanzeige.fuer_vorgaenge);
+   ohne erkannte Karte die Kennung aus der Datei mit dem MSP. #}
+{% macro karte_vorgang(v, msp=true) -%}
+{%- if v.ladekarte %}{{ karte(v.karte_anzeige, v.ladekarte, msp=msp) }}
+{%- else %}<span class="karte-anzeige ohne" title="Kennung aus der Datei – keine Ladekarte angelegt">{{ v.roh_kartenkennung or "ohne Kennung" }}
+  {%- if msp %} <span class="karte-msp">{{ v.msp.name }}</span>{% endif %}</span>{% endif -%}
+{%- endmacro %}
+
+{# Kennzahlen über den gesamten Zeitraum (services/kennzahlen.py) als kleine Kacheln – Fahrzeug und Fahrer:in #}
+{% macro gesamt_kacheln(g, wer) %}
+{% if g and g.anzahl %}
+<div class="kacheln kacheln-klein" title="Alle erfassten Ladevorgänge {{ wer }} – nur Ladekosten, ohne Gebühren und Pauschalen">
+  <div class="kachel"><span class="kachel-zahl">{{ g.anzahl | zahl(0) }}</span><span>Ladevorgänge
+    {%- if g.erste %} seit {{ g.erste | monat }}{% endif %}</span></div>
+  <div class="kachel"><span class="kachel-zahl">{% if g.geschaetzt %}<abbr class="geschaetzt" title="teilweise geschätzt">≈</abbr>{% endif %}{{ g.kwh | zahl(0) }}</span><span>kWh</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld }}</span><span>Kosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span></div>
+  <div class="kachel" title="{{ g.dc_anzahl }} DC-Ladung{{ 'en' if g.dc_anzahl != 1 }} mit kWh-Angabe"><span class="kachel-zahl">{{ minuten(g.dc_minuten) }}</span><span>Ø Ladedauer DC</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ g.anteil_oeffentlich | prozent }}</span><span>öffentlich (kWh)</span></div>
+</div>
+{% elif g %}
+<p><small>Noch keine Ladevorgänge {{ wer }}.</small></p>
+{% endif %}
+{% endmacro %}

@@ -1,0 +1,8 @@
+samples/
+data/
+.env
+__pycache__/
+.pytest_cache/
+*.dump
+# Lokale Einstellungen von Claude Code (enthalten lokale Pfade)
+.claude/
