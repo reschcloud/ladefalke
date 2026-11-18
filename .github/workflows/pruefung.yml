@@ -18,7 +18,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Testumgebung (.env aus der Vorlage, Image mit Testwerkzeugen)
         run: |
           cp .env.example .env
@@ -33,8 +33,8 @@ jobs:
   sicherheit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Bekannte Sicherheitslücken in den festen Versionen (pip-audit)
