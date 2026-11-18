@@ -172,6 +172,22 @@ class ZuordnungKarte(Base):
         return f"Fahrzeug {self.fahrzeug.kennzeichen}" if self.fahrzeug is not None else "–"
 
 
+class FahrzeugOhneFahrer(Base):
+    """Zeitraum, in dem ein Fahrzeug bewusst niemandem zugeordnet ist (Werkstatt, Reserve …) – zählt nicht als Lücke.
+    Je Fahrzeug keine Überlappung; darf sich nicht mit einer Fahrer:in-Zuordnung überschneiden (services/zuordnung)."""
+    __tablename__ = "fahrzeug_ohne_fahrer"
+    __table_args__ = (
+        CheckConstraint("gueltig_bis IS NULL OR gueltig_bis >= gueltig_ab", name="zeitraum"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fahrzeug_id: Mapped[int] = mapped_column(ForeignKey("fahrzeug.id", ondelete="CASCADE"), index=True)
+    gueltig_ab: Mapped[date] = mapped_column(Date)
+    gueltig_bis: Mapped[date | None] = mapped_column(Date)
+
+    fahrzeug: Mapped[Fahrzeug] = relationship()
+
+
 class ZuordnungFahrerFahrzeug(Base):
     """Fahrer:in → Fahrzeug für einen Zeitraum. Je Fahrer:in keine Überlappung; Poolfahrzeuge erlaubt."""
     __tablename__ = "zuordnung_fahrer_fahrzeug"

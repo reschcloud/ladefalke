@@ -12,7 +12,9 @@ Wird zu **v1.0.0**, dem ersten Release.
 - Import der Rechnungen und Ladelisten der unterstützten Anbieter (README „Unterstützte Rechnungsformate“) mit
   Vorschau, Vollständigkeitsprüfung und Pauschalen
 - Stammdaten: Fahrzeuge, Fahrer:innen, Ladekarten, MSP, Zuordnungen mit Zeitleiste; Detailseiten mit offenen
-  Punkten und Blättern
+  Punkten und Blättern; Zeiträume „ohne Fahrer:in“ (bewusst niemandem zugeordnet, keine Lücke); aneinandergrenzende
+  Zuordnungen werden zusammengefasst
+- Datumsfelder in Safari (macOS) als Texteingabe TT.MM.JJJJ
 - Ladevorgänge mit automatischer Zuordnung zu Fahrzeug und Person, Aufgaben für Offenes
 - Auswertungen je Zeitraum, Fahrzeug, Fahrer:in und CPO, Toplisten, Karte, Histogramme zum öffentlichen DC-Laden;
   Export als CSV/XLSX

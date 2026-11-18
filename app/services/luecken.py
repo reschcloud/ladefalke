@@ -3,7 +3,8 @@
 Geprüft wird je aktivem Fahrzeug der Zeitraum ab Leasingbeginn (ohne Leasingbeginn: ab der ersten Zuordnung) bis
 heute bzw. bis zum Leasing-Ende. Jeder Tag, an dem keine Fahrer:in zugeordnet ist, gehört zu einer Lücke – auch am
 Ende („seit … ohne Fahrer:in“). Überlappende Zuordnungen (Poolfahrzeuge) zählen gemeinsam. Ladevorgänge in einer
-Lücke bekommen keine Person (Auswertung pro Fahrer:in), daher wird ihre Anzahl mit angegeben.
+Lücke bekommen keine Person (Auswertung pro Fahrer:in), daher wird ihre Anzahl mit angegeben. Zeiträume „ohne
+Fahrer:in“ (FahrzeugOhneFahrer) gelten als abgedeckt – das Fahrzeug war bewusst niemandem zugeordnet.
 """
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -12,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import heute
-from app.models import Fahrzeug, Ladevorgang, ZuordnungFahrerFahrzeug
+from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
 from app.services.aufloesung import stichtag_art, stichtag_spalte
 
 
@@ -48,7 +49,7 @@ def ermitteln(db: Session, tag: date | None = None) -> list[Luecke]:
     tag = tag or heute()
     spalte = stichtag_spalte(stichtag_art(db))
     zuordnungen: dict[int, list[tuple[date, date | None]]] = {}
-    for z in db.scalars(select(ZuordnungFahrerFahrzeug)):
+    for z in [*db.scalars(select(ZuordnungFahrerFahrzeug)), *db.scalars(select(FahrzeugOhneFahrer))]:
         zuordnungen.setdefault(z.fahrzeug_id, []).append((z.gueltig_ab, z.gueltig_bis))
     ergebnis = []
     for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv).order_by(Fahrzeug.kennzeichen)):

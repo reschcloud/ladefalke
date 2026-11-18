@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.formatierung import datum
-from app.models import Fahrer, Fahrzeug, ZuordnungFahrerFahrzeug
+from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, ZuordnungFahrerFahrzeug
 from app.services.luecken import _zeitraeume as zeitraeume_ohne
 
 MONATSNAMEN = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -60,6 +60,7 @@ class Abschnitt:
     spur: int = 0
     zuordnung: ZuordnungFahrerFahrzeug | None = None
     gegenueber: Fahrer | Fahrzeug | None = None  # was der Balken zeigt (Person bzw. Fahrzeug)
+    ohne: FahrzeugOhneFahrer | None = None  # Zeitraum „ohne Fahrer:in“ (bewusst niemandem zugeordnet)
 
     @property
     def beschriftung(self) -> str:
@@ -71,6 +72,8 @@ class Abschnitt:
     @property
     def text(self) -> str:
         zeitraum = f"{datum(self.von)} – {datum(self.bis) if self.bis else 'offen'}"
+        if self.ohne is not None:
+            return f"ohne Fahrer:in: {zeitraum}"
         if self.zuordnung is None:
             return f"Lücke: {zeitraum}"
         return f"{self.beschriftung}: {zeitraum}"
@@ -81,6 +84,7 @@ class Zeile:
     objekt: Fahrer | Fahrzeug
     balken: list[Abschnitt] = field(default_factory=list)
     luecken: list[Abschnitt] = field(default_factory=list)
+    ohne: list[Abschnitt] = field(default_factory=list)  # Zeiträume „ohne Fahrer:in“ (nur Fahrzeug-Zeilen)
     spuren: int = 1
     nie_zugeordnet: bool = False
     # Fahrzeug-Zeilen: Leasing-Markierungen (Lage in %, None = nicht im Bereich) und Zeit außerhalb des Leasings
@@ -145,12 +149,22 @@ def berechnen(db: Session, von: date, bis: date, heute: date, status: str = "akt
                                  selectinload(ZuordnungFahrerFahrzeug.fahrzeug))
                         .order_by(ZuordnungFahrerFahrzeug.gueltig_ab)):
         zuordnungen.setdefault(z.fahrzeug_id if nach_fahrzeug else z.fahrer_id, []).append(z)
+    ohne_je: dict[int, list[FahrzeugOhneFahrer]] = {}
+    if nach_fahrzeug:
+        for o in db.scalars(select(FahrzeugOhneFahrer).order_by(FahrzeugOhneFahrer.gueltig_ab)):
+            ohne_je.setdefault(o.fahrzeug_id, []).append(o)
 
     zeilen = []
     for objekt in db.scalars(q):
         alle = zuordnungen.get(objekt.id, [])
+        ohne = ohne_je.get(objekt.id, [])
+        abgedeckt = [(z.gueltig_ab, z.gueltig_bis) for z in [*alle, *ohne]]  # Fahrer:innen und „ohne Fahrer:in“
         # Lücken nur bei Fahrzeugen ohne Fahrer:in – eine Person ohne Fahrzeug ist keine Lücke
-        zeile = Zeile(objekt, nie_zugeordnet=nach_fahrzeug and not alle)
+        zeile = Zeile(objekt, nie_zugeordnet=nach_fahrzeug and not abgedeckt)
+        for o in ohne:
+            a, b = max(o.gueltig_ab, von), min(o.gueltig_bis or bis, bis)
+            if a <= b:
+                zeile.ohne.append(Abschnitt(o.gueltig_ab, o.gueltig_bis, *lage(a, b), ohne=o))
         # Balken im Bereich, Spuren für gleichzeitige Zuordnungen
         spur_ende: list[date] = []
         for z in alle:
@@ -177,17 +191,17 @@ def berechnen(db: Session, von: date, bis: date, heute: date, status: str = "akt
                 zeile.ausserhalb.append(lage(von, min(lb - timedelta(days=1), bis)))
             if le and le < bis:
                 zeile.ausserhalb.append(lage(max(le + timedelta(days=1), von), bis))
-            start = max(von, lb or min((z.gueltig_ab for z in alle), default=von))
+            start = max(von, lb or min((ab for ab, _ in abgedeckt), default=von))
             ende = min(bis, le) if le else bis
             if start <= ende:
-                for a, b in zeitraeume_ohne(start, ende, [(z.gueltig_ab, z.gueltig_bis) for z in alle]):
+                for a, b in zeitraeume_ohne(start, ende, abgedeckt):
                     offen = b == bis and not le
                     zeile.luecken.append(Abschnitt(a, None if offen else b, *lage(a, b)))
             zeile.nie_zugeordnet = False  # mit Leasing zeigt die Lücke den Zeitraum genau
         # Lücken ohne Leasingdaten: nicht abgedeckte Tage ab der ersten Zuordnung
-        elif alle and nach_fahrzeug:
-            cursor = max(von, min(z.gueltig_ab for z in alle))
-            for a, b in sorted((max(z.gueltig_ab, von), min(z.gueltig_bis or bis, bis)) for z in alle):
+        elif abgedeckt and nach_fahrzeug:
+            cursor = max(von, min(ab for ab, _ in abgedeckt))
+            for a, b in sorted((max(ab, von), min(bis_ or bis, bis)) for ab, bis_ in abgedeckt):
                 if b < cursor:
                     continue
                 if a > cursor:

@@ -45,12 +45,18 @@
       {% if l.offen %}seit {{ l.von | datum }} ohne Fahrer:in
       {%- else %}{{ l.von | datum }} – {{ l.bis | datum }} ohne Fahrer:in{% endif %}
       <small>({{ l.tage }} Tag{{ "e" if l.tage != 1 }}
-        {%- if l.ladevorgaenge %}, <a href="/ladevorgaenge?fahrzeug_id={{ l.fahrzeug.id }}&amp;von={{ l.von.isoformat() }}&amp;bis={{ l.bis.isoformat() }}">{{ l.ladevorgaenge }} {{ "Ladevorgang" if l.ladevorgaenge == 1 else "Ladevorgänge" }}</a> ohne Fahrer:in{% endif %})</small></li>
+        {%- if l.ladevorgaenge %}, <a href="/ladevorgaenge?fahrzeug_id={{ l.fahrzeug.id }}&amp;von={{ l.von.isoformat() }}&amp;bis={{ l.bis.isoformat() }}">{{ l.ladevorgaenge }} {{ "Ladevorgang" if l.ladevorgaenge == 1 else "Ladevorgänge" }}</a> ohne Fahrer:in{% endif %})</small>
+      <form method="post" action="/stammdaten/fahrzeuge/{{ l.fahrzeug.id }}/ohne-fahrer" class="inline">
+        <input type="hidden" name="ab" value="{{ l.von.isoformat() }}"><input type="hidden" name="bis" value="{{ '' if l.offen else l.bis.isoformat() }}">
+        <input type="hidden" name="zurueck" value="/aufgaben">
+        <button type="submit" class="outline secondary klein" data-schreiben
+                title="Das Fahrzeug war in diesem Zeitraum bewusst niemandem zugeordnet – dann ist das keine Lücke">ohne Fahrer:in</button></form></li>
   {% endfor %}
   </ul>
   <small>Geprüft ab Leasingbeginn (sonst ab der ersten Zuordnung) bis heute bzw. Leasing-Ende. Ladevorgänge in einer
     Lücke zählen in keiner Auswertung pro Fahrer:in. Beheben: auf der Fahrzeugseite eine Fahrer:in für den Zeitraum
-    zuordnen (mit „neu zuordnen“) – oder ignorieren, wenn das Fahrzeug bewusst ohne Fahrer:in war. Überblick:
+    zuordnen (mit „neu zuordnen“) – oder mit „ohne Fahrer:in“ markieren, wenn das Fahrzeug bewusst niemandem
+    zugeordnet war (z. B. Werkstatt, Reserve). Überblick:
     <a href="/stammdaten/zuordnungen/zeitleiste?ansicht=alles">Zeitleiste (alles)</a>.</small>
 </section>
 {% endif %}

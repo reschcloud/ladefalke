@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import heute
 from app.db import get_db
-from app.models import Fahrer, Fahrzeug, Ladevorgang, ZuordnungFahrerFahrzeug, ZuordnungKarte
+from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug, ZuordnungKarte
 from app.services import app_einstellungen, fahrzeug_hinweise, mini_zeitleiste
 from app.services import kartenanzeige, kennzahlen, protokoll
 from app.services.kartenanzeige import kurz as kurz_kennung
@@ -15,11 +15,12 @@ from app.services.fristen import jahresvignette, leasing_ende_vorschlag
 from app.services.ladeprofil import ohne_angabe, schaetzgrundlage, unplausible_anzahl
 from app.services.ladevorgaenge import letzte_vorgaenge
 from app.services.schaetzung import MINDESTANZAHL
-from app.formatierung import datum_lesen
+from app.formatierung import datum_lesen, zeitraum
 from app.routers.ladevorgaenge import mehrfach_bedingung
 from app.services.aufloesung import neu_zuordnen_fahrer
-from app.services.zuordnung import (ZuordnungsFehler, bisherige_fahrer_austragen, fahrer_fahrzeug_zuordnen,
-                                    fahrer_von_fahrzeug_am)
+from app.services.zuordnung import (OHNE_FAHRER, ZuordnungsFehler, bisherige_fahrer_austragen,
+                                    fahrer_fahrzeug_zuordnen, fahrer_von_fahrzeug_am, gueltig_am,
+                                    ohne_fahrer_eintragen)
 from app.web import blaettern, liste_merken, meldung, render, weiter, zuordnung_vorbelegung
 
 router = APIRouter(prefix="/stammdaten/fahrzeuge")
@@ -123,10 +124,14 @@ def _detail(request, db, fz, werte, fehler=None, status_code=200, zuordnung_wert
             select(ZuordnungKarte).where(ZuordnungKarte.fahrzeug_id == fz.id)
             .order_by(ZuordnungKarte.gueltig_ab.desc())).all()
         zurueck = f"?zurueck=/stammdaten/fahrzeuge/{fz.id}"
+        ohne = db.scalars(select(FahrzeugOhneFahrer).where(FahrzeugOhneFahrer.fahrzeug_id == fz.id)).all()
         kontext["fahrer_mini"] = mini_zeitleiste.berechnen(
             [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.fahrer.name, f"/stammdaten/fahrer/{z.fahrer.id}",
                                      bearbeiten=f"/stammdaten/zuordnungen/fahrer/{z.id}{zurueck}", art="person")
-             for z in kontext["fahrer_historie"]], heute(), fz.leasing_beginn, fz.leasing_ende, "warnung")
+             for z in kontext["fahrer_historie"]]
+            + [mini_zeitleiste.Eintrag(o.gueltig_ab, o.gueltig_bis, "ohne Fahrer:in", stil="ohne",
+                                       bearbeiten=f"/stammdaten/zuordnungen/ohne/{o.id}{zurueck}") for o in ohne],
+            heute(), fz.leasing_beginn, fz.leasing_ende, "warnung")
         kontext["karten_auswahl"] = kartenanzeige.zuordenbare_karten(db)
         kontext["karten_mini"] = mini_zeitleiste.berechnen(
             [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.ladekarte.msp.name,
@@ -169,8 +174,9 @@ def liste(request: Request, status: str = "aktiv", modell: list[str] = Query([])
                          .order_by(Fahrzeug.modell)).all()
     stichtag = heute()
     zeilen = [(fz, fahrer_von_fahrzeug_am(db, fz.id, stichtag)) for fz in db.scalars(q)]
+    ohne_heute = set(db.scalars(select(FahrzeugOhneFahrer.fahrzeug_id).where(gueltig_am(FahrzeugOhneFahrer, stichtag))))
     return render(request, "stammdaten/fahrzeug_liste.html", {
-        "zeilen": zeilen, "status": status, "modell": modell, "modell_paare": [("modell", m) for m in modell],
+        "zeilen": zeilen, "status": status, "ohne_heute": ohne_heute, "modell": modell, "modell_paare": [("modell", m) for m in modell],
         "modell_optionen": [(x, x) for x in modelle] + [("-", "ohne Modell")],
         "hinweise": fahrzeug_hinweise.ermitteln(db, [fz for fz, _ in zeilen], app_einstellungen.laden(db))})
 
@@ -260,12 +266,23 @@ def fahrer_zuordnen(request: Request, fahrzeug_id: int, fahrer_id: str = Form(""
                        "bisherige_austragen": bisherige_austragen}
     try:
         fahrer = db.get(Fahrer, int(fahrer_id)) if fahrer_id.isdigit() else None
-        if fahrer is None:
+        if fahrer is None and fahrer_id != OHNE_FAHRER:
             raise ZuordnungsFehler("Bitte eine Fahrer:in wählen.")
         ab_datum = datum_lesen(ab)
         if ab_datum is None:
             raise ZuordnungsFehler("Bitte ein Beginndatum angeben.")
         bis_datum = datum_lesen(bis)
+        if fahrer is None:  # „ohne Fahrer:in“
+            ausgetragen, hinweise = ohne_fahrer_eintragen(db, fz, ab=ab_datum, bis=bis_datum,
+                                                          bisherige_austragen=bool(bisherige_austragen))
+            n = sum(neu_zuordnen_fahrer(db, fid, ab_datum, None) for fid in ausgetragen) if neu_zuordnen else 0
+            db.commit()
+            meldung(request, f"Fahrzeug {fz.kennzeichen} ist ab {ab_datum:%d.%m.%Y} ohne Fahrer:in.")
+            if n:
+                meldung(request, f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet.")
+            for h in hinweise:
+                meldung(request, h, "warnung")
+            return weiter(f"/stammdaten/fahrzeuge/{fz.id}")
         ausgetragen, hinweise = [], []
         if bisherige_austragen:
             ausgetragen, hinweise = bisherige_fahrer_austragen(db, fz, ab_datum, fahrer.id)
@@ -286,6 +303,29 @@ def fahrer_zuordnen(request: Request, fahrzeug_id: int, fahrer_id: str = Form(""
     for h in hinweise:
         meldung(request, h, "warnung")
     return weiter(f"/stammdaten/fahrzeuge/{fz.id}")
+
+
+@router.post("/{fahrzeug_id}/ohne-fahrer")
+def ohne_fahrer(request: Request, fahrzeug_id: int, ab: str = Form(""), bis: str = Form(""), zurueck: str = Form(""),
+                db: Session = Depends(get_db)):
+    """Lücke als „ohne Fahrer:in“ markieren (Knopf in Zuordnungs-Abschnitt und Aufgaben): bewusst niemandem
+    zugeordnet, dann keine Lücke mehr."""
+    fz = _laden(db, fahrzeug_id)
+    ziel = zurueck if zurueck.startswith("/") and not zurueck.startswith("//") else f"/stammdaten/fahrzeuge/{fz.id}"
+    try:
+        ab_datum = datum_lesen(ab)
+        if ab_datum is None:
+            raise ZuordnungsFehler("Unvollständige Angaben.")
+        _, hinweise = ohne_fahrer_eintragen(db, fz, ab=ab_datum, bis=datum_lesen(bis))
+    except ValueError as e:
+        db.rollback()
+        meldung(request, str(e), "fehler")
+        return weiter(ziel)
+    db.commit()
+    meldung(request, f"Fahrzeug {fz.kennzeichen} ist {zeitraum(ab_datum, datum_lesen(bis))} ohne Fahrer:in.")
+    for h in hinweise:
+        meldung(request, h)
+    return weiter(ziel)
 
 
 @router.post("/{fahrzeug_id}/aktivieren")

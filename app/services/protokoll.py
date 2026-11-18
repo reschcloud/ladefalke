@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, attributes, object_session
 
 from app import formatierung
 from app.models import (Aenderung, Benutzer, Einstellung, Fahrer, Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort,
-                        Ladevorgang, Msp, Pauschale, ZuordnungFahrerFahrzeug, ZuordnungKarte)
+                        FahrzeugOhneFahrer, Ladevorgang, Msp, Pauschale, ZuordnungFahrerFahrzeug, ZuordnungKarte)
 
 SYSTEM = "System"
 _WER, _STILL, _KONTEXT, _NEU = "protokoll_wer", "protokoll_still", "protokoll_kontext", "protokoll_neu"
@@ -35,6 +35,7 @@ TYPEN = {
     Fahrer: ("fahrer", "Fahrer:in", "Fahrer:innen"), Fahrzeug: ("fahrzeug", "Fahrzeug", "Fahrzeuge"),
     ZuordnungKarte: ("zuordnung_karte", "Zuordnung Ladekarte", "Zuordnungen Ladekarte"),
     ZuordnungFahrerFahrzeug: ("zuordnung_fahrer", "Zuordnung Fahrer:in", "Zuordnungen Fahrer:in"),
+    FahrzeugOhneFahrer: ("ohne_fahrer", "Ohne Fahrer:in", "Zeiträume ohne Fahrer:in"),
     Ladeort: ("ladeort", "Ladeort", "Ladeorte"), Pauschale: ("pauschale", "Pauschale", "Pauschalen"),
     Benutzer: ("benutzer", "Benutzer:in", "Benutzer:innen"), Einstellung: ("einstellung", "Einstellungen", "Einstellungen"),
     Ladevorgang: ("ladevorgang", "Ladevorgang", "Ladevorgänge"), Gebuehr: ("gebuehr", "Gebühr", "Gebühren"),
@@ -168,6 +169,9 @@ def bezeichnung(obj) -> str:
                         f"{formatierung.zeitraum(obj.gueltig_ab, obj.gueltig_bis)}")
             case ZuordnungFahrerFahrzeug():
                 return (f"{_bezug(obj, 'fahrer').name} → {_bezug(obj, 'fahrzeug').kennzeichen}, "
+                        f"{formatierung.zeitraum(obj.gueltig_ab, obj.gueltig_bis)}")
+            case FahrzeugOhneFahrer():
+                return (f"{_bezug(obj, 'fahrzeug').kennzeichen} ohne Fahrer:in, "
                         f"{formatierung.zeitraum(obj.gueltig_ab, obj.gueltig_bis)}")
             case Ladeort():
                 return obj.adresse + (f" ({obj.land})" if obj.land else "")

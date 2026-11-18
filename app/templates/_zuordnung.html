@@ -1,8 +1,9 @@
 {% import "_makros.html" as m %}
 {# Zuordnungs-Abschnitt der Detailseiten: Mini-Zeitleiste und chronologische Tabelle (services/mini_zeitleiste.py).
    spalte: Kopf der Namensspalte; zusatz: Kopf einer Zusatzspalte (z. B. MSP) oder none; formular: id des Formulars
-   „Neue Zuordnung“ auf der Seite – dann füllt „Lücke schließen“ es mit dem Zeitraum der Lücke. #}
-{% macro abschnitt(mini, spalte, zusatz=none, formular=none, leer="Keine Zuordnungen.") %}
+   „Neue Zuordnung“ auf der Seite – dann füllt „Lücke schließen“ es mit dem Zeitraum der Lücke; ohne_fahrer: Adresse,
+   unter der eine Lücke als „ohne Fahrer:in“ markiert wird (Fahrzeugseite). #}
+{% macro abschnitt(mini, spalte, zusatz=none, formular=none, leer="Keine Zuordnungen.", ohne_fahrer=none) %}
 {% set luecke_text = "⚠ Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
 <div class="abschnitt-karte">
 {% if mini.abschnitte or mini.luecken %}
@@ -14,7 +15,7 @@
     {% for l in mini.luecken %}<span class="mini-zl-luecke {{ mini.luecken_art }}" style="left: {{ l.links }}%; width: {{ l.breite }}%"
       title="{{ luecke_text }}: {{ l.von | datum }} – {{ (l.bis | datum) if l.bis else 'heute' }}"></span>{% endfor %}
     {% for a in mini.abschnitte %}
-      <a class="mini-zl-balken{{ ' offen' if not a.bis }}" href="{{ a.eintrag.bearbeiten or a.eintrag.link or '#' }}"
+      <a class="mini-zl-balken{{ ' offen' if not a.bis }}{{ ' ' ~ a.eintrag.stil if a.eintrag.stil }}" href="{{ a.eintrag.bearbeiten or a.eintrag.link or '#' }}"
          style="left: {{ a.links }}%; width: {{ a.breite }}%; --spur: {{ a.spur }}" title="{{ a.eintrag.name }}: {{ a.eintrag.zeitraum }}"
          tabindex="-1"><span>{{ a.eintrag.name }}</span></a>
     {% endfor %}
@@ -39,7 +40,7 @@
   <tbody>
   {% for z in mini.zeilen %}
     {% if z.eintrag %}{% set e = z.eintrag %}
-    <tr>
+    <tr{% if e.stil %} class="{{ e.stil }}"{% endif %}>
       <td>{% if e.art %}{{ m.symbol(e.art, {"auto": "Fahrzeug", "person": "Person", "karte": "Ladekarte"}[e.art]) }} {% endif -%}
         {% if e.link %}<a href="{{ e.link }}">{{ e.name }}</a>{% else %}{{ e.name }}{% endif %}</td>
       {% if zusatz %}<td>{{ e.zusatz }}</td>{% endif %}
@@ -50,7 +51,11 @@
     <tr class="luecken-zeile {{ mini.luecken_art }}">
       <td>{{ luecke_text }}</td>{% if zusatz %}<td></td>{% endif %}
       <td>{{ z.zeitraum }}</td>
-      <td class="rechts">{% if formular %}<button type="button" class="outline klein" data-schreiben data-luecke-fuellen="{{ formular }}"
+      <td class="rechts">{% if ohne_fahrer %}<form method="post" action="{{ ohne_fahrer }}" class="inline">
+        <input type="hidden" name="ab" value="{{ z.ab.isoformat() }}"><input type="hidden" name="bis" value="{{ z.bis.isoformat() if z.bis else '' }}">
+        <button type="submit" class="outline secondary klein" data-schreiben
+                title="Das Fahrzeug war in diesem Zeitraum bewusst niemandem zugeordnet">ohne Fahrer:in</button></form>{% endif %}
+        {%- if formular %} <button type="button" class="outline klein" data-schreiben data-luecke-fuellen="{{ formular }}"
         data-von="{{ z.ab.isoformat() }}" data-bis="{{ z.bis.isoformat() if z.bis else '' }}">{{ "Lücke schließen" if mini.luecken_art == "warnung" else "zuordnen" }}</button>{% endif %}</td>
     </tr>
     {% endif %}

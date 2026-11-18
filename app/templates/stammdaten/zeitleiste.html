@@ -36,7 +36,8 @@
 <p class="zeitleiste-legende">
   <span class="legende-balken"></span> Zuordnung ({{ "Name" if nach_fahrzeug else "Kennzeichen · Modell" }} im Balken; Maus darüber hebt
   {{ "die Person" if nach_fahrzeug else "das Fahrzeug" }} überall hervor, Klick zum Bearbeiten)
-  {% if nach_fahrzeug %}<span class="legende-luecke"></span> ⚠ Lücke ohne Fahrer:in{% endif %}
+  {% if nach_fahrzeug %}<span class="legende-ohne"></span> ohne Fahrer:in (bewusst)
+  <span class="legende-luecke"></span> ⚠ Lücke ohne Fahrer:in{% endif %}
   <span class="legende-heute"></span> heute
   {% if nach_fahrzeug %}<span class="legende-leasing"></span> Leasingbeginn/-ende
   <span class="legende-ausserhalb"></span> außerhalb des Leasings{% endif %}
@@ -83,6 +84,11 @@
         <a class="zl-luecke" href="{{ zeile.link }}?ab={{ l.von.isoformat() }}{% if l.bis %}&bis={{ l.bis.isoformat() }}{% endif %}#{{ 'neue-fahrer-zuordnung' if nach_fahrzeug else 'neue-fahrzeug-zuordnung' }}"
            style="left: {{ l.links }}%; width: {{ l.breite }}%; --hoehe: {{ zeile.spuren }}" title="{{ l.text }}">
           <span>⚠ Lücke</span></a>
+      {% endfor %}
+      {% for o in zeile.ohne %}
+        <a class="zl-ohne" href="/stammdaten/zuordnungen/ohne/{{ o.ohne.id }}?zurueck={{ url() | urlencode }}"
+           style="left: {{ o.links }}%; width: {{ o.breite }}%; --hoehe: {{ zeile.spuren }}" title="{{ o.text }}">
+          <span>ohne Fahrer:in</span></a>
       {% endfor %}
       {% for b in zeile.balken %}
         <a class="zl-balken" data-id="{{ b.gegenueber.id }}"

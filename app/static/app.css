@@ -163,6 +163,14 @@ a.unplausibel { color: #c98a00; font-weight: bold; text-decoration: none; }
 .legende-balken { background: var(--zl-balken); }
 .legende-luecke { border: 1px solid var(--zl-luecke); background-color: color-mix(in srgb, var(--zl-luecke) 18%, transparent);
   background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 8px); }
+.zl-ohne { position: absolute; top: .25rem; height: calc(var(--hoehe, 1) * var(--spur-hoehe) - .3rem); border-radius: 4px;
+  font-size: .78rem; line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
+  text-decoration: none; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--pico-muted-color) 45%, transparent);
+  z-index: 1; }
+.zl-ohne span { padding: 0 .35rem; display: block; overflow: hidden; text-overflow: ellipsis; color: var(--pico-muted-color); }
+.legende-ohne { border: 1px solid color-mix(in srgb, var(--pico-muted-color) 45%, transparent);
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--pico-muted-color) 30%, transparent) 0 2px,
+              color-mix(in srgb, var(--pico-muted-color) 12%, transparent) 2px 7px); }
 .legende-heute { width: 0 !important; height: 1rem !important; border-left: 2px dashed var(--zl-heute); border-radius: 0 !important; }
 .zl-luecke span { display: inline-block; background: color-mix(in srgb, var(--zl-flaeche) 85%, transparent);
   border-radius: 3px; margin-left: .15rem; line-height: 1.3; }
@@ -627,6 +635,11 @@ a.hinweis:hover { filter: brightness(.85); }
 .mini-zl-balken span { display: block; padding: 0 .3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mini-zl-balken:hover { filter: brightness(1.12); }
 .mini-zl-balken.offen { border-radius: 3px 0 0 3px; }
+/* Zeitraum „ohne Fahrer:in“: bewusst niemandem zugeordnet – grau gestreift (Mini- und große Zeitleiste) */
+.mini-zl-balken.ohne, .zl-ohne { color: var(--pico-color);
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--pico-muted-color) 30%, transparent) 0 2px,
+              color-mix(in srgb, var(--pico-muted-color) 12%, transparent) 2px 7px); }
+.zuordnungs-tabelle tr.ohne > td { color: var(--pico-muted-color); }
 .mini-zl-luecke { position: absolute; top: 0; bottom: 0; z-index: 1; }
 .mini-zl-luecke.warnung { background-color: color-mix(in srgb, var(--zl-luecke) 22%, transparent);
   background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 7px); }
@@ -1153,3 +1166,5 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 .report-karte .stichtag-wahl input[type=date] { width: auto; margin: 0 0 0 .4rem; }
 .versand-dialog .versand-stichtag { display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem; }
 .versand-dialog .versand-stichtag input { width: auto; margin: 0; font-weight: 400; }
+.ohne-fahrer { color: var(--pico-muted-color); }
+.mini-zl-balken.ohne span { color: var(--pico-muted-color); }

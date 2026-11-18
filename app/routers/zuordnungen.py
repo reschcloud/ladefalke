@@ -8,12 +8,12 @@ from sqlalchemy.orm import Session
 from app.config import heute
 from app.db import get_db
 from app.formatierung import datum_lesen
-from app.models import Fahrzeug, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
+from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
 from app.routers.ladekarten import ziel_lesen, ziele
 from app.services import zeitleiste as zeitleiste_service
 from app.services.aufloesung import neu_zuordnen_fahrer, neu_zuordnen_karte, zeitraum_vereinigen
 from app.services.zuordnung import (ZuordnungsFehler, fahrer_fahrzeug_aendern, gueltig_am,
-                                    karten_zuordnung_aendern)
+                                    karten_zuordnung_aendern, ohne_fahrer_aendern)
 from app.web import meldung, render, weiter
 
 router = APIRouter(prefix="/stammdaten/zuordnungen")
@@ -199,3 +199,54 @@ def fahrer_zuordnung_loeschen(request: Request, zuordnung_id: int, neu_zuordnen:
     db.commit()
     meldung(request, "Zuordnung gelöscht.")
     return weiter(_zurueck(request, "/stammdaten/zuordnungen"))
+
+
+# ------------------------------------------------------------------ Fahrzeug ohne Fahrer:in
+
+def _ohne(db: Session, ohne_id: int) -> FahrzeugOhneFahrer:
+    o = db.get(FahrzeugOhneFahrer, ohne_id)
+    if o is None:
+        raise HTTPException(404, "Zeitraum nicht gefunden")
+    return o
+
+
+def _ohne_formular(request, o, werte, fehler=None, status_code=200):
+    return render(request, "stammdaten/zuordnung_ohne_formular.html",
+                  {"o": o, "werte": werte, "fehler": fehler,
+                   "zurueck": _zurueck(request, f"/stammdaten/fahrzeuge/{o.fahrzeug_id}")}, status_code)
+
+
+@router.get("/ohne/{ohne_id}")
+def ohne_formular(request: Request, ohne_id: int, db: Session = Depends(get_db)):
+    o = _ohne(db, ohne_id)
+    return _ohne_formular(request, o, {"ab": o.gueltig_ab.isoformat(),
+                                       "bis": o.gueltig_bis.isoformat() if o.gueltig_bis else ""})
+
+
+@router.post("/ohne/{ohne_id}")
+def ohne_speichern(request: Request, ohne_id: int, ab: str = Form(""), bis: str = Form(""),
+                   db: Session = Depends(get_db)):
+    o = _ohne(db, ohne_id)
+    try:
+        ab_datum = datum_lesen(ab)
+        if ab_datum is None:
+            raise ZuordnungsFehler("Bitte ein Beginndatum angeben.")
+        hinweise = ohne_fahrer_aendern(db, o, ab=ab_datum, bis=datum_lesen(bis))
+    except ValueError as e:
+        db.rollback()
+        return _ohne_formular(request, o, {"ab": ab, "bis": bis}, str(e), 422)
+    db.commit()
+    meldung(request, "Zeitraum „ohne Fahrer:in“ gespeichert.")
+    for h in hinweise:
+        meldung(request, h)
+    return weiter(_zurueck(request, f"/stammdaten/fahrzeuge/{o.fahrzeug_id}"))
+
+
+@router.post("/ohne/{ohne_id}/loeschen")
+def ohne_loeschen(request: Request, ohne_id: int, db: Session = Depends(get_db)):
+    o = _ohne(db, ohne_id)
+    fahrzeug_id = o.fahrzeug_id
+    db.delete(o)
+    db.commit()
+    meldung(request, "Zeitraum „ohne Fahrer:in“ gelöscht – der Zeitraum gilt wieder als Lücke, falls niemand zugeordnet ist.")
+    return weiter(_zurueck(request, f"/stammdaten/fahrzeuge/{fahrzeug_id}"))

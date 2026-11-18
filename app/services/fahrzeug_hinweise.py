@@ -7,7 +7,8 @@ Fahrzeuge (`ermitteln`):
 - Leasing: keine Leasingdaten, Leasing-Ende fehlt, endet bald (Hinweisfrist aus den Einstellungen), abgelaufen
 - Vignette und Streckenmaut FLEX (nur mit Feature und wenn beim Fahrzeug nötig): Gültigkeit fehlt (grau), noch
   nicht gültig oder abgelaufen (rot), läuft bald ab (gelb)
-- Zuordnung: aktuell ohne Fahrer:in, Lücken in der Fahrer:innen-Zuordnung (services/luecken.py)
+- Zuordnung: aktuell ohne Fahrer:in, Lücken in der Fahrer:innen-Zuordnung (services/luecken.py); Zeiträume
+  „ohne Fahrer:in“ (bewusst niemandem zugeordnet) sind kein Hinweis
 - Ladevorgänge: unplausible AC/DC-Angaben, Vorgänge ohne AC/DC-Angabe
 Stufen: „rot“ (dringend), „gelb“ (klären), „grau“ (fehlende Angabe). Ohne Hinweis zeigt die Liste einen grünen Haken.
 Nur für aktive Fahrzeuge.
@@ -19,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.formatierung import datum
 from app.config import heute
-from app.models import Fahrzeug, Ladevorgang, ZuordnungFahrerFahrzeug
+from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
 from app.services import luecken, stromart
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.fristen import MAUT, einstufen, maut_aktiv, maut_frist, naechste_kontrolle
@@ -49,6 +50,8 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
         luecken_je.setdefault(l.fahrzeug.id, []).append(l)
     heute_zugeordnet = set(db.scalars(select(ZuordnungFahrerFahrzeug.fahrzeug_id).where(
         gueltig_am(ZuordnungFahrerFahrzeug, heute()))))
+    heute_zugeordnet |= set(db.scalars(select(FahrzeugOhneFahrer.fahrzeug_id).where(  # bewusst ohne Fahrer:in
+        gueltig_am(FahrzeugOhneFahrer, heute()))))
     unplausibel = _anzahl_je_fahrzeug(db, unplausibel_sql(e))
     ohne_stromart = _anzahl_je_fahrzeug(db, stromart.ohne_angabe())
 
