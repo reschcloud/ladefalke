@@ -19,9 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
  && apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Feste Versionen (werkzeuge/abhaengigkeiten_sperren.sh); DEV=1 (compose.dev.yaml) zusätzlich pytest und httpx
-COPY requirements.lock requirements-dev.lock ./
+COPY requirements-lock.txt requirements-dev-lock.txt ./
 ARG DEV=0
-RUN if [ "$DEV" = "1" ]; then pip install -r requirements-dev.lock; else pip install -r requirements.lock; fi
+RUN if [ "$DEV" = "1" ]; then pip install -r requirements-dev-lock.txt; else pip install -r requirements-lock.txt; fi
 
 COPY . .
 # Versionsanzeige im Footer (app/version.py): Build-Datum; APP_VERSION setzt die Release-Pipeline (z. B. „v1.0.1“),

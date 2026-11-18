@@ -1,0 +1,44 @@
+# Prüfung: Tests und Sicherheitsprüfung der Abhängigkeiten – bei Pushes auf main, bei jedem Pull Request (auch von
+# Dependabot) und wöchentlich (neu bekannt gewordene Sicherheitslücken in unveränderten Abhängigkeiten).
+name: Prüfung
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 5 * * 1"  # montags 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testumgebung (.env aus der Vorlage, Image mit Testwerkzeugen)
+        run: |
+          cp .env.example .env
+          echo "COMPOSE_FILE=compose.yaml:compose.dev.yaml" >> .env
+          mkdir -p samples data
+      - name: Tests
+        run: docker compose run --rm --build app pytest -q -p no:warnings
+      - name: Aufräumen
+        if: always()
+        run: docker compose down -v
+
+  sicherheit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bekannte Sicherheitslücken in den festen Versionen (pip-audit)
+        run: |
+          pip install --quiet pip-audit
+          pip-audit --strict --disable-pip --no-deps -r requirements-lock.txt
+          pip-audit --strict --disable-pip --no-deps -r requirements-dev-lock.txt

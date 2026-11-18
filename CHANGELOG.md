@@ -5,7 +5,16 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
-Noch nichts.
+### Neu
+
+- Abhängigkeiten werden auf GitHub geprüft: Dependabot schlägt Updates vor (Python-Pakete, Basis-Image, PostgreSQL,
+  Actions), der Workflow „Prüfung“ testet jeden Push und Pull Request und sucht wöchentlich mit `pip-audit` nach
+  bekannten Sicherheitslücken.
+- Lock-Dateien heißen `requirements-lock.txt` und `requirements-dev-lock.txt` (Dependabot erkennt nur `.txt`).
+
+### Beim Update beachten
+
+- Nichts.
 
 ## v1.0.1 – 18.11.2026
 

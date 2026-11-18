@@ -1,0 +1,51 @@
+# Dependabot: wöchentliche Update-Vorschläge als Pull Requests; der Workflow „Prüfung“ testet jeden davon.
+# Kleinere Updates (Minor/Patch) je Ökosystem in einem PR gesammelt, größere einzeln.
+version: 2
+updates:
+  # Python: feste Versionen (requirements-lock.txt, requirements-dev-lock.txt) und Bereiche (requirements*.txt)
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Vienna
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "Abhängigkeiten"
+    groups:
+      python-klein:
+        update-types: [minor, patch]
+
+  # Basis-Image im Dockerfile (python:3.12-slim)
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Vienna
+    commit-message:
+      prefix: "Basis-Image"
+
+  # PostgreSQL-Image in compose.yaml – Hauptversionen nicht automatisch (Wechsel nur über Sicherung, README)
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Vienna
+    ignore:
+      - dependency-name: "*postgres*"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "Compose"
+
+  # GitHub Actions in .github/workflows
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "Actions"

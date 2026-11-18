@@ -295,16 +295,25 @@ keine Hauptversion.
 
 ### Abhängigkeiten aktualisieren
 
-Das Image installiert feste Versionen aus `requirements.lock` (Entwicklung: `requirements-dev.lock`); so baut jeder
+Das Image installiert feste Versionen aus `requirements-lock.txt` (Entwicklung: `requirements-dev-lock.txt`); so baut jeder
 Server dieselben Bibliotheken wie getestet. Direkte Abhängigkeiten stehen in `requirements.txt` bzw.
 `requirements-dev.txt`. Aktualisieren (z. B. für Sicherheitsupdates):
 
 ```sh
-sh werkzeuge/abhaengigkeiten_sperren.sh   # löst neu auf und schreibt beide .lock-Dateien
+sh werkzeuge/abhaengigkeiten_sperren.sh   # löst neu auf und schreibt beide Lock-Dateien
 docker compose run --rm --build app pytest
 ```
 
-Danach die `.lock`-Dateien committen – mit dem nächsten Release erreichen sie die Server.
+Danach die Lock-Dateien committen – mit dem nächsten Release erreichen sie die Server.
+
+**Automatische Prüfungen auf GitHub:**
+- **Dependabot** ([.github/dependabot.yml](.github/dependabot.yml)) schlägt wöchentlich Updates als Pull Request vor:
+  Python-Pakete (kleinere Updates gesammelt in einem PR), Basis-Image, PostgreSQL in `compose.yaml` (ohne
+  Hauptversionen – Wechsel nur über die Sicherung, siehe oben) und monatlich die GitHub Actions.
+- **Prüfung** ([.github/workflows/pruefung.yml](.github/workflows/pruefung.yml)) führt bei jedem Push auf `main` und
+  jedem Pull Request die Tests aus und prüft die festen Versionen mit `pip-audit` auf bekannte Sicherheitslücken –
+  diese Prüfung zusätzlich jeden Montag, auch ohne Änderungen. Ein Dependabot-PR mit grüner Prüfung kann
+  übernommen werden; es wird erst mit dem nächsten Release ausgeliefert.
 
 ## Datenschutz
 

@@ -1,4 +1,4 @@
-# Direkte Abhängigkeiten der App (Bereiche). Installiert wird aus requirements.lock (feste Versionen),
+# Direkte Abhängigkeiten der App (Bereiche). Installiert wird aus requirements-lock.txt (feste Versionen),
 # neu erzeugen mit werkzeuge/abhaengigkeiten_sperren.sh – siehe README „Betrieb“.
 fastapi>=0.115,<1
 uvicorn[standard]>=0.30
