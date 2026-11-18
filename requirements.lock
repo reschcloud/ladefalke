@@ -1,6 +1,6 @@
 # Automatisch erzeugt mit werkzeuge/abhaengigkeiten_sperren.sh – nicht von Hand ändern
 alembic==1.20.1
-annotated-doc==0.0.6
+annotated-doc==0.0.7
 annotated-types==0.8.0
 anyio==4.16.0
 brotli==1.2.1
@@ -10,7 +10,7 @@ click==8.5.1
 cryptography==50.0.2
 cssselect2==0.10.1
 et_xmlfile==2.0.0
-fastapi==0.162.5
+fastapi==0.164.0
 fonttools==4.68.0
 greenlet==3.5.6
 h11==0.16.0
@@ -29,15 +29,15 @@ psycopg==3.3.9
 psycopg-binary==3.3.9
 pycparser==3.12
 pydantic==2.14.3
-pydantic-settings==2.16.2
+pydantic-settings==2.16.3
 pydantic_core==2.50.4
 pydyf==0.13.0
 pypdfium2==5.15.2
 pyphen==0.18.1
 python-dotenv==1.2.4
-python-multipart==0.0.33
+python-multipart==0.0.34
 PyYAML==6.0.3
-SQLAlchemy==2.0.57
+SQLAlchemy==2.0.58
 starlette==1.10.0
 tinycss2==1.5.1
 tinyhtml5==2.1.0
