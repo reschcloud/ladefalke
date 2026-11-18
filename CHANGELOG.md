@@ -5,7 +5,11 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
-Wird zu **v1.0.0**, dem ersten Release.
+Noch nichts.
+
+## v1.0.0 – 18.11.2026
+
+Erstes Release.
 
 ### Enthalten
 
