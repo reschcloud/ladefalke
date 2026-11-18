@@ -1,0 +1,63 @@
+# Release: bei jedem Tag „v*“ (README „Betrieb → Release erstellen“) erst die Tests, dann das Produktiv-Image bauen
+# und als ghcr.io/<owner>/ladefalke veröffentlichen – Tags z. B. 1.0.1, 1.0, 1 und latest.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testumgebung (.env aus der Vorlage, Image mit Testwerkzeugen)
+        run: |
+          cp .env.example .env
+          echo "COMPOSE_FILE=compose.yaml:compose.dev.yaml" >> .env
+          mkdir -p samples data
+      - name: Tests
+        run: docker compose run --rm --build app pytest -q -p no:warnings
+      - name: Aufräumen
+        if: always()
+        run: docker compose down -v
+
+  image:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/ladefalke
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=Ladefalke
+            org.opencontainers.image.description=Der elektrische Fuhrpark im Blick – Ladekosten-Auswertung
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          build-args: APP_VERSION=${{ github.ref_name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

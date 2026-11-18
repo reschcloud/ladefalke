@@ -197,16 +197,22 @@ Datenbank, die schon Ladevorgänge enthält. Danach gelten die Benutzer:innen au
 
 ### Installation auf einem Server
 
-Voraussetzung: Docker mit Compose-Plugin und Git. Installiert wird immer ein **Release** (Git-Tag, siehe
-[CHANGELOG.md](CHANGELOG.md)), nicht der laufende Entwicklungsstand.
+Voraussetzung: Docker mit Compose-Plugin. Installiert wird immer ein **Release** (siehe [CHANGELOG.md](CHANGELOG.md))
+als fertiges Image aus der GitHub Container Registry (`ghcr.io/reschcloud/ladefalke`); auf dem Server braucht es nur
+`compose.yaml` und `.env`.
 
 ```sh
-git clone git@github.com:reschcloud/ladefalke.git && cd ladefalke
-git checkout v1.0.0                 # gewünschtes Release
-cp .env.example .env                # Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus (Reverse Proxy)
-docker compose up -d --build
+mkdir ladefalke && cd ladefalke
+V=v1.0.1                            # gewünschtes Release
+curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
+curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
+nano .env                           # LADEFALKE_VERSION, Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus
+docker compose up -d                # lädt das Image und startet
 docker compose ps                   # app „healthy“ = App antwortet und erreicht die Datenbank
 ```
+
+**Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
+Release auschecken (`git checkout v1.0.1`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 
 Umzug bzw. Neuaufbau mit Daten: danach eine Sicherung einspielen (siehe [Backup und Umzug](#backup-und-umzug)) –
 mit dem `BACKUP_PASSWORT` der Sicherung. Die Sicherung enthält auch die eingespielten Postleitzahlen; GeoNames muss
@@ -215,15 +221,18 @@ nicht neu geladen werden. Das TLS-Zertifikat entsteht neu (oder eigenes nach `da
 
 ### Update
 
+1. In [CHANGELOG.md](CHANGELOG.md) „Beim Update beachten“ des neuen Release lesen (z. B. ob `compose.yaml` oder
+   `.env` neue Einträge brauchen).
+2. In `.env` `LADEFALKE_VERSION` auf die neue Version setzen (z. B. `1.1.0`), dann:
+
 ```sh
-cat CHANGELOG.md                    # „Beim Update beachten“ des neuen Release lesen
-git fetch --tags
-git checkout v1.1.0
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Der Footer zeigt danach die neue Version (z. B. „v1.1.0 · 20.11.2026“).
+Selbst gebaut: `git fetch --tags && git checkout v1.1.0 && docker compose up -d --build`. Der Footer zeigt danach die
+neue Version (z. B. „v1.1.0 · 20.11.2026“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
 Sicherung** an (`ladefalke-backup-…-update.tar.gz`, Art „vor Update“; wird nie automatisch gelöscht). Schlägt diese
@@ -234,11 +243,12 @@ alten Stand; die Ursache steht in `docker compose logs app`.
 
 ### Zurück auf ein älteres Release
 
-Verlässlich ist nur: altes Release starten und die Sicherung von vor dem Update einspielen.
+Verlässlich ist nur: altes Release starten und die Sicherung von vor dem Update einspielen. In `.env`
+`LADEFALKE_VERSION` auf die alte Version setzen (selbst gebaut: `git checkout v1.0.1 && docker compose build app`),
+dann:
 
 ```sh
-git checkout v1.0.0
-docker compose build app
+docker compose pull app
 docker compose stop app             # die alte App startet ohnehin nicht, solange die Datenbank neuer ist
 docker compose run --rm app python -m werkzeuge.backup liste
 docker compose run --rm -it app python -m werkzeuge.backup wiederherstellen \
@@ -270,12 +280,18 @@ keine Hauptversion.
 
 1. Tests grün (`docker compose run --rm --build app pytest`).
 2. In [CHANGELOG.md](CHANGELOG.md) den Abschnitt „Unveröffentlicht“ zur neuen Version mit Datum machen; unter
-   „Beim Update beachten“ alles, was von Hand zu tun ist (oder „nichts“).
-3. Commit, dann **einfacher** Tag (ohne `-a`, damit die Versionsanzeige ihn ohne Git-Historie erkennt):
+   „Beim Update beachten“ alles, was von Hand zu tun ist (oder „nichts“). In `.env.example` `LADEFALKE_VERSION` und
+   in dieser README die Beispielversion anpassen.
+3. Commit, dann **einfacher** Tag (ohne `-a`, damit die Versionsanzeige ihn auch beim Selbstbauen erkennt):
 
    ```sh
    git tag v1.1.0 && git push origin main v1.1.0
    ```
+
+4. Der Tag startet die Pipeline [.github/workflows/release.yml](.github/workflows/release.yml) (GitHub → Actions):
+   erst die Tests, dann das Image `ghcr.io/reschcloud/ladefalke` mit den Tags `1.1.0`, `1.1`, `1` und `latest`.
+   Schlagen die Tests fehl, entsteht kein Image. Beim ersten Mal unter GitHub → Packages → ladefalke →
+   Package settings die Sichtbarkeit auf „Public“ stellen, falls das Image nicht öffentlich ist.
 
 ### Abhängigkeiten aktualisieren
 

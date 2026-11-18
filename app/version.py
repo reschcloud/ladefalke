@@ -1,6 +1,7 @@
 """Version der App für die Anzeige (Footer, Reports, Manifest der Sicherungen): Release und Build-Datum.
 
-Release = Git-Tag des laufenden Commits (z. B. „v1.2.0“, siehe README „Betrieb“), sonst der kurze Commit-Stand.
+Release = Inhalt der Datei VERSION (schreibt der Image-Build der Release-Pipeline, siehe .github/workflows), sonst
+der Git-Tag des laufenden Commits (z. B. „v1.2.0“, siehe README „Betrieb“), sonst der kurze Commit-Stand.
 Im Image liegen nur .git/HEAD und die Refs samt Tags (siehe .dockerignore), keine Historie; BUILD_DATUM schreibt das
 Dockerfile. Erkannt werden einfache Tags und – über packed-refs – auch annotierte. Fehlt alles (z. B. Start ohne
 Git), heißt die Version „unbekannt“.
@@ -70,7 +71,13 @@ def version() -> str:
     """z. B. „v1.2.0 · 18.11.2026“ bzw. ohne Release „e207884 · 12.11.2026“."""
     teile = []
     git = WURZEL / ".git"
-    if commit := _commit(git):
+    try:
+        release = (WURZEL / "VERSION").read_text().strip()
+    except OSError:
+        release = ""
+    if release:
+        teile.append(release)
+    elif commit := _commit(git):
         teile.append(_tag(git, commit) or commit[:7])
     try:
         teile.append(date.fromisoformat((WURZEL / "BUILD_DATUM").read_text().strip()).strftime("%d.%m.%Y"))

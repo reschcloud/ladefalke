@@ -6,3 +6,6 @@ __pycache__/
 *.dump
 # Lokale Einstellungen von Claude Code (enthalten lokale Pfade)
 .claude/
+# Version und Build-Datum entstehen beim Image-Build
+/VERSION
+/BUILD_DATUM

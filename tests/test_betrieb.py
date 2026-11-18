@@ -37,3 +37,18 @@ def test_gesund(client):
     """Ohne Anmeldung erreichbar, nur der Status."""
     antwort = client.get("/gesund")
     assert antwort.status_code == 200 and antwort.json() == {"status": "ok"}
+
+
+def test_version_aus_datei(tmp_path, monkeypatch):
+    """Image der Release-Pipeline: VERSION-Datei geht vor dem Git-Stand (im Image ist kein .git)."""
+    _git(tmp_path, "ref: refs/heads/main\n", {"refs/heads/main": C1 + "\n"})
+    monkeypatch.setattr(v, "WURZEL", tmp_path)
+    v.version.cache_clear()
+    try:
+        assert v.version().startswith("a" * 7)
+        (tmp_path / "VERSION").write_text("v1.0.1\n")
+        (tmp_path / "BUILD_DATUM").write_text("2026-11-18\n")
+        v.version.cache_clear()
+        assert v.version() == "v1.0.1 · 18.11.2026"
+    finally:
+        v.version.cache_clear()

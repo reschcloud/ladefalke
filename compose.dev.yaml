@@ -2,6 +2,8 @@
 # Parser-Tests. Einschalten in .env:  COMPOSE_FILE=compose.yaml:compose.dev.yaml
 services:
   app:
+    image: ladefalke-app:dev  # immer lokal gebaut, nie aus der Registry geladen
+    pull_policy: build
     build:
       args:
         DEV: "1"

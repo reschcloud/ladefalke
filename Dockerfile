@@ -24,8 +24,10 @@ ARG DEV=0
 RUN if [ "$DEV" = "1" ]; then pip install -r requirements-dev.lock; else pip install -r requirements.lock; fi
 
 COPY . .
-# Build-Datum für die Versionsanzeige im Footer (app/version.py)
-RUN date +%Y-%m-%d > /app/BUILD_DATUM
+# Versionsanzeige im Footer (app/version.py): Build-Datum; APP_VERSION setzt die Release-Pipeline (z. B. „v1.0.1“),
+# beim Selbstbauen ergibt sich die Version aus dem Git-Stand
+ARG APP_VERSION=""
+RUN date +%Y-%m-%d > /app/BUILD_DATUM && if [ -n "$APP_VERSION" ]; then echo "$APP_VERSION" > /app/VERSION; fi
 
 EXPOSE 8000
 # Migrationen, dann HTTPS mit selbstsigniertem Zertifikat (TLS=an) bzw. HTTP hinter einem Reverse Proxy (TLS=aus)

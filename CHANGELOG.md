@@ -7,6 +7,22 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 Noch nichts.
 
+## v1.0.1 – 18.11.2026
+
+### Neu
+
+- Fertige Images in der GitHub Container Registry (`ghcr.io/reschcloud/ladefalke`): Jeder Release-Tag startet eine
+  Pipeline, die erst die Tests ausführt und dann das Image baut. Installation und Update laden das Image, statt es
+  auf dem Server zu bauen (README „Betrieb“); selbst bauen geht weiterhin.
+- Die Versionsanzeige kommt im Image aus dem Build (kein `.git` mehr nötig).
+
+### Beim Update beachten
+
+- Selbst gebaute Installationen laufen unverändert weiter (`git checkout v1.0.1 && docker compose up -d --build`).
+- Umstieg auf das fertige Image: `compose.yaml` von v1.0.1 übernehmen, in `.env` `LADEFALKE_VERSION=1.0.1`
+  eintragen, dann `docker compose pull && docker compose up -d`.
+- Entwicklung: Das lokal gebaute Image heißt jetzt `ladefalke-app:dev` (`compose.dev.yaml`).
+
 ## v1.0.0 – 18.11.2026
 
 Erstes Release.

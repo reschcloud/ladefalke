@@ -21,6 +21,9 @@ services:
       retries: 10
 
   app:
+    # Fertiges Image der Release-Pipeline (Version in .env: LADEFALKE_VERSION, z. B. 1.0.1); selbst bauen statt laden:
+    # docker compose up -d --build (README „Betrieb“)
+    image: ghcr.io/reschcloud/ladefalke:${LADEFALKE_VERSION:-latest}
     build: .
     restart: unless-stopped
     env_file: .env
