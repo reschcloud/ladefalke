@@ -297,9 +297,14 @@ nie committet (siehe `.gitignore`).
 
 ## Lizenz
 
-Ladefalke ist freie Software unter der **GNU General Public License, Version 3** (GPL-3.0, siehe [LICENSE](LICENSE)).
-Du darfst sie nutzen, verändern und weitergeben; veränderte Versionen müssen wieder unter der GPL-3.0 und mit
-Quelltext weitergegeben werden. Ohne jede Gewährleistung.
+Ladefalke ist freie Software unter der **GNU Affero General Public License, Version 3 oder später**
+(AGPL-3.0-or-later, siehe [LICENSE](LICENSE)). Du darfst sie nutzen, verändern und weitergeben; veränderte Versionen
+müssen wieder unter der AGPL und mit Quelltext weitergegeben werden. Ohne jede Gewährleistung.
+
+**Betrieb einer veränderten Version:** Die AGPL gilt auch, wenn die App nur über das Netz genutzt wird – wer eine
+veränderte Version für andere betreibt, muss deren Nutzer:innen den Quelltext dieser Version anbieten. Dafür steht
+im Footer der Link „Quelltext“; in `.env` mit `QUELLTEXT_URL` auf den eigenen Quelltext zeigen lassen. Für den
+unveränderten Einsatz (auch intern in einer Firma) ist nichts zu tun.
 
 Mitgelieferte Fremdbestandteile behalten ihre Lizenzen: Leaflet und Leaflet.heat (BSD-2-Clause), htmx (Zero-Clause
 BSD), Pico CSS (MIT), Natural-Earth-Daten (gemeinfrei); die GeoNames-Postleitzahlen (CC-BY 4.0) werden nicht

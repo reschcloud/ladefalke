@@ -8,7 +8,7 @@ from markupsafe import Markup
 
 from app.version import version
 from app import formatierung
-from app.config import heute
+from app.config import einstellungen, heute
 from app.services.evse import cpo_land, landname
 from app.services.geokodierung import verortung_text
 
@@ -35,6 +35,7 @@ templates.env.globals["static_version"] = format(
     max(int(f.stat().st_mtime) for f in (Path(__file__).parent / "static").iterdir()), "x")
 templates.env.globals["heute_datum"] = heute
 templates.env.globals["app_version"] = version
+templates.env.globals["quelltext_url"] = lambda: einstellungen().quelltext_url  # Footer (AGPL-3.0)
 
 
 def datumzeit_lokal(wert, sekunden: bool = False) -> str:

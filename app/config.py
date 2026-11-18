@@ -22,6 +22,9 @@ class Einstellungen(BaseSettings):
     # Sitzungs-Cookie nur über HTTPS senden: Standard ja (eigenes TLS oder Reverse Proxy mit HTTPS);
     # nur für reinen HTTP-Testbetrieb ohne Proxy auf false setzen
     cookie_secure: bool = True
+    # Quelltext dieser Installation (AGPL-3.0, Abschnitt 13: Nutzer:innen über das Netz bekommen den Quelltext
+    # angeboten) – wer eine veränderte Version betreibt, trägt hier die Adresse des eigenen Quelltexts ein
+    quelltext_url: str = "https://github.com/reschcloud/ladefalke"
 
 
 @lru_cache

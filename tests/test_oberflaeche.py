@@ -220,4 +220,5 @@ def test_footer(angemeldet, client):
     for seite in (angemeldet.get("/").text, angemeldet.get("/einstellungen").text):
         fuss = seite.split('<footer class="fuss">')[1].split("</footer>")[0]
         assert 'href="https://resch.cloud" target="_blank" rel="noopener"' in fuss and f"Version {version()}" in fuss
+        assert 'href="https://github.com/reschcloud/ladefalke"' in fuss and "Quelltext" in fuss  # AGPL-3.0 § 13
     assert version() and version() != "unbekannt"
