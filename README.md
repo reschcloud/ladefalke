@@ -5,12 +5,15 @@ Spezifikation: [SPEC.md](SPEC.md).
 
 ## Start
 
+**Installation auf einem Server** mit dem fertigen Image: siehe [Betrieb](#betrieb). Aus dem Quelltext (Ausprobieren,
+Entwicklung) im geklonten Repository:
+
 ```sh
 cp .env.example .env      # Passwörter, SECRET_KEY und BACKUP_PASSWORT setzen
 docker compose up --build
 ```
 
-Installation auf einem Server, Updates und Releases: siehe [Betrieb](#betrieb). Für die **Entwicklung** in `.env`
+Für die **Entwicklung** in `.env`
 zusätzlich `COMPOSE_FILE=compose.yaml:compose.dev.yaml` setzen – das Image enthält dann die Testwerkzeuge und die
 Beispieldateien aus `samples/` werden eingebunden (`compose.dev.yaml`).
 
@@ -179,7 +182,7 @@ docker compose exec app python -m werkzeuge.backup liste
 
 **Wiederherstellen / Umziehen** (bewusst nur per Kommando – ersetzt Datenbank und Originaldateien):
 
-1. Neue Installation einrichten (`.env` mit eigenen Werten, `docker compose up -d --build`).
+1. Neue Installation einrichten (siehe [Installation auf einem Server](#installation-auf-einem-server)).
 2. Sicherungsdatei nach `data/backups/` kopieren.
 3. ```sh
    docker compose exec -it app python -m werkzeuge.backup wiederherstellen /data/backups/<datei> --ueberschreiben
@@ -207,12 +210,15 @@ V=v1.1.0                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # LADEFALKE_VERSION, Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus
+mkdir -p data/uploads data/backups data/tls data/geo
 docker compose up -d                # lädt das Image und startet
 docker compose ps                   # app „healthy“ = App antwortet und erreicht die Datenbank
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
 Release auschecken (`git checkout v1.1.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
+`docker compose pull` (das würde es durch das fertige ersetzen).
 
 Umzug bzw. Neuaufbau mit Daten: danach eine Sicherung einspielen (siehe [Backup und Umzug](#backup-und-umzug)) –
 mit dem `BACKUP_PASSWORT` der Sicherung. Die Sicherung enthält auch die eingespielten Postleitzahlen; GeoNames muss
@@ -222,7 +228,9 @@ nicht neu geladen werden. Das TLS-Zertifikat entsteht neu (oder eigenes nach `da
 ### Update
 
 1. In [CHANGELOG.md](CHANGELOG.md) „Beim Update beachten“ des neuen Release lesen (z. B. ob `compose.yaml` oder
-   `.env` neue Einträge brauchen).
+   `.env` neue Einträge brauchen). Eine geänderte `compose.yaml` holen mit
+   `curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/v1.2.0/compose.yaml`; neue Einträge für `.env`
+   stehen in `.env.example` desselben Release.
 2. In `.env` `LADEFALKE_VERSION` auf die neue Version setzen (z. B. `1.2.0`), dann:
 
 ```sh
@@ -261,16 +269,22 @@ importieren.
 
 ### PostgreSQL-Hauptversion wechseln (z. B. 16 → 17)
 
-Das Datenverzeichnis einer Hauptversion lässt sich nicht mit der nächsten öffnen; der Wechsel geht über die Sicherung:
+Das App-Image enthält die PostgreSQL-Werkzeuge für Sicherungen in der Version der Datenbank (`pg_dump` 16 zu
+`postgres:16`). Ein `pg_dump` kann keine neuere Server-Version sichern – die Datenbank daher **nie allein** auf eine
+neue Hauptversion stellen. Der Wechsel kommt als Ladefalke-Release (Hauptversion, z. B. 2.0.0) mit Image und
+`compose.yaml` für die neue PostgreSQL-Version; die CHANGELOG beschreibt ihn. Ablauf dann, weil sich das
+Datenverzeichnis einer Hauptversion nicht mit der nächsten öffnen lässt:
 
-1. Sicherung erstellen (`docker compose exec app python -m werkzeuge.backup erstellen`) und auf ein anderes System
-   kopieren.
-2. In `compose.yaml` das Image auf `postgres:17` und den Volume-Namen von `pgdata` auf `pgdata17` ändern (beide
-   Stellen), im `Dockerfile` `postgresql-client-16` → `-17`. Das alte Volume `ladefalke_pgdata` bleibt unberührt –
-   das ist der Rückweg.
-3. `docker compose up -d --build` – startet mit leerer Datenbank.
+1. Mit der bisherigen Version eine Sicherung erstellen
+   (`docker compose exec app python -m werkzeuge.backup erstellen`) und auf ein anderes System kopieren.
+2. `compose.yaml` des neuen Release holen (neues PostgreSQL-Image, neuer Volume-Name, z. B. `pgdata17`) und in `.env`
+   `LADEFALKE_VERSION` setzen. Das alte Volume `ladefalke_pgdata` bleibt unberührt – das ist der Rückweg.
+3. `docker compose pull && docker compose up -d` – startet mit leerer Datenbank.
 4. Sicherung einspielen (siehe [Backup und Umzug](#backup-und-umzug)). Läuft alles, kann das alte Volume später mit
    `docker volume rm ladefalke_pgdata` weg.
+
+Selbst gebaut gilt dasselbe: `postgres:` in `compose.yaml` und `postgresql-client-…` im `Dockerfile` immer gemeinsam
+ändern.
 
 ### Release erstellen (Entwicklung)
 

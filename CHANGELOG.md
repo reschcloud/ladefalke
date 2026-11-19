@@ -8,6 +8,9 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 ### Behoben
 
 - Fahrer:in: Der Knopf „Heute“ neben „Letzte Führerscheinkontrolle“ sitzt bündig neben dem Datumsfeld.
+- README „Betrieb“ durchgehend auf das fertige Image ausgerichtet: Wiederherstellen, Update mit geänderter
+  `compose.yaml`, PostgreSQL-Hauptversion nur gemeinsam mit einem Ladefalke-Release (das `pg_dump` im Image muss zur
+  Datenbank passen).
 
 ### Beim Update beachten
 
