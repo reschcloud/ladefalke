@@ -1,0 +1,35 @@
+Volkswagen Group Charging GmbH, Mollstraße 1, 10178 Berlin
+Erika Beispiel
+Test GmbH,
+Musterweg 1
+1010 Wien
+Kundenservice
+Rechnung für Österreich
+Kundennummer Rechnungsnummer Zeitraum Belegdatum
+10000001 800000000002 10.04.2023 - 30.04.2023 02.05.2023
+Guten Tag Erika Beispiel,
+für die Nutzung der Easy Charging Ladedienste in Österreich im Zeitraum vom 10.04.2023 -
+30.04.2023 haben sich folgende Kosten ergeben:
+Beschreibung Anzahl Volumen Nettopreis USt. Bruttopreis
+Grundgebühr Power
+10.04.2023 - 30.04.2023
+8,00 EUR 20,0 % 9,60 EUR
+Ladevorgänge in Österreich 1 40,12 kWh 15,00 EUR 20,0 % 18,00 EUR
+Gesamtbetrag netto 23,00 EUR
+USt. 20,0% 4,60 EUR
+Gesamtbetrag brutto 27,60 EUR
+Vielen Dank für die Nutzung des Easy Charging Ladedienstes.
+Ihr Team von Easy Charging
+Volkswagen Group Charging GmbH, Mollstraße 1, 10178 Berlin
+Übersicht der Ladevorgänge
+Anlage zu Rechnungsnummer
+800000000002
+Beginn, Station, ID
+16.04.2023, 14:20:05
+EVSEID: AT*TST*E003*1 (Teststation Süd,
+Testort)
+00000000-0000-4000-8000-000000000004
+40,1180 00:31:00 18,00 EUR
+Summe Ladevorgänge 18,00 EUR
+Gesamtbetrag brutto 18,00 EUR
+* Die Abrechnung der Ladevorgänge erfolgt je nach gewähltem Tarif.

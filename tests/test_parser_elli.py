@@ -108,3 +108,42 @@ def test_rechnung_echt():
     assert e.warnungen == [] and len(e.vorgaenge) == 6
     assert sum(v.kosten_netto for v in e.vorgaenge) == e.rechnung.summe_netto
     assert all(v.externe_id and v.ladepunkt and v.stromart and v.ende > v.start for v in e.vorgaenge)
+
+
+GRUNDGEBUEHR = Path(__file__).parent / "fixtures" / "elli_grundgebuehr_beispiel.txt"
+
+
+def test_rechnung_mit_grundgebuehr():
+    """„Grundgebühr Power“ wird zur Gebühr der Karte; die Ladevorgänge bekommen nur ihr Netto laut Position."""
+    e = parsen_text(GRUNDGEBUEHR.read_text(encoding="utf-8"))
+    assert e.warnungen == []
+    assert e.rechnung.summe_netto == D("23.00")
+    [g] = e.gebuehren
+    assert (g.bezeichnung, g.betrag_netto, g.zeitraum_von, g.zeitraum_bis) == (
+        "Grundgebühr Power", D("8.00"), date(2023, 4, 10), date(2023, 4, 30))
+    assert (g.kartenkennung, g.kennung_typ) == ("Erika Beispiel", KennungTyp.kartenlabel)
+    [v] = e.vorgaenge
+    assert (v.kosten_netto, v.kwh, v.stromart) == (D("15.00"), D("40.118"), None)  # 40,12 kWh laut Rechnung: passt
+    assert v.start == datetime(2023, 4, 16, 14, 20, 5)
+
+
+def test_rechnung_nur_grundgebuehr():
+    """Rechnung ohne Ladevorgänge und ohne Anlage: nur die Grundgebühr."""
+    text = GRUNDGEBUEHR.read_text(encoding="utf-8")
+    text = text.split("Ladevorgänge in Österreich")[0] + "Gesamtbetrag netto 8,00 EUR\nUSt. 20,0% 1,60 EUR\n" \
+        "Gesamtbetrag brutto 9,60 EUR\nVielen Dank für die Nutzung des Easy Charging Ladedienstes.\n"
+    e = parsen_text(text)
+    assert e.warnungen == [] and e.vorgaenge == []
+    assert [(g.bezeichnung, g.betrag_netto) for g in e.gebuehren] == [("Grundgebühr Power", D("8.00"))]
+    assert e.rechnung.summe_netto == D("8.00")
+
+
+@pytest.mark.parametrize("pruefsumme, vorgaenge, gebuehr", [("d8986762f8d1", 1, D("7.91")), ("01602582a42b", 0, D("12.49"))])
+def test_rechnung_grundgebuehr_echt(pruefsumme, vorgaenge, gebuehr):
+    from tests.beispiele import beispiel
+    pdf = beispiel(pruefsumme)  # Easy Charging, 04/2023 (mit Ladevorgang) bzw. 05/2023 (nur Grundgebühr)
+    assert parser_erkennen(pdf) == "elli"
+    e = ElliParser().parsen(pdf)
+    assert e.warnungen == [] and len(e.vorgaenge) == vorgaenge
+    assert [g.betrag_netto for g in e.gebuehren] == [gebuehr]
+    assert sum((v.kosten_netto for v in e.vorgaenge), gebuehr) == e.rechnung.summe_netto
