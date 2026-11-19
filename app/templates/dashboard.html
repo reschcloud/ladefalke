@@ -71,10 +71,10 @@
       {% endfor %}
       {% for kurz, monat, x, segmente, summe in g.spalten %}
         <g><title>{{ monat }}: {{ wert(summe, einheit) }}{% for s in segmente | reverse %}&#10;{{ s.reihe.name }}: {{ wert(s.wert, einheit) }} ({{ s.anteil | prozent }}){% endfor %}</title>
-          <rect x="{{ x - 20 }}" y="0" width="40" height="{{ g.hoehe - g.unten }}" class="trefferflaeche"/>
+          <rect x="{{ x - g.band / 2 }}" y="0" width="{{ g.band }}" height="{{ g.hoehe - g.unten }}" class="trefferflaeche"/>
           {% for s in segmente %}<rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.breite }}" height="{{ s.hoehe }}" class="slot-{{ s.reihe.slot }}"/>{% endfor %}
         </g>
-        <text x="{{ x }}" y="{{ g.hoehe - 8 }}" class="achsentext" text-anchor="middle">{{ kurz }}</text>
+        {% if kurz %}<text x="{{ x }}" y="{{ g.hoehe - 8 }}" class="achsentext" text-anchor="middle">{{ kurz }}</text>{% endif %}
       {% endfor %}
     </svg>
   </div>

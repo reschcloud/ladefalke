@@ -161,3 +161,25 @@ def test_dc_oeffentlich_histogramme(db, angemeldet):
     assert "07–08 Uhr: 2 Ladevorgänge" in seite
     leer = angemeldet.get("/auswertungen?art=monat&jahr=2031&nr=4").text
     assert "keine öffentlichen DC-Ladungen" in leer
+
+
+def test_monatsbeschriftungen_ausgeduennt():
+    """Lange Zeiträume: nicht jeder Monat beschriftet, sonst überlagern sich die Texte."""
+    from app.services.diagramme import monatsbeschriftungen
+
+    def monate(jahr, monat, anzahl):
+        return [zeitraum("monat", jahr + (monat - 1 + i) // 12, (monat - 1 + i) % 12 + 1) for i in range(anzahl)]
+
+    assert monatsbeschriftungen(monate(2026, 1, 12)) == ["Jän", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep",
+                                                         "Okt", "Nov", "Dez"]
+    texte = monatsbeschriftungen(monate(2025, 1, 24))
+    assert [t for t in texte if t] == ["2025", "Apr", "Jul", "Okt", "2026", "Apr", "Jul", "Okt"]
+    texte = monatsbeschriftungen(monate(2023, 3, 44))  # März 2023 – Oktober 2026
+    assert [t for t in texte if t] == ["2023", "2024", "2025", "2026"] and texte[0] == "2023"
+    assert monatsbeschriftungen(monate(2023, 10, 30))[0] == ""  # Oktober: zu nah am nächsten Januar
+
+
+def test_saeulen_trefferflaeche_je_spalte():
+    v = _verteilung([{0: (D(10), D(1))}] * 36, monate=[f"{m:02d}" for m in range(1, 13)] * 3)
+    g = saeulen(v, 0)
+    assert round(g.band * len(g.spalten) + g.links, 6) == g.breite  # Flächen überlappen nicht

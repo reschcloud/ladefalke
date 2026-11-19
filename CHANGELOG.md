@@ -8,6 +8,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 ### Behoben
 
 - Fahrer:in: Der Knopf „Heute“ neben „Letzte Führerscheinkontrolle“ sitzt bündig neben dem Datumsfeld.
+- Monatssäulen (Dashboard, Reports) über lange Zeiträume: Die Achse zeigt nur noch Quartale bzw. Jahre statt jedes
+  Monats (die Texte überlagerten sich); der Tooltip trifft auch bei schmalen Säulen den richtigen Monat.
 - README „Betrieb“ durchgehend auf das fertige Image ausgerichtet: Wiederherstellen, Update mit geänderter
   `compose.yaml`, PostgreSQL-Hauptversion nur gemeinsam mit einem Ladefalke-Release (das `pg_dump` im Image muss zur
   Datenbank passen).

@@ -218,6 +218,21 @@ class Saeulen:
     unten: float
     teilstriche: list[tuple[float, float]]  # (y, Wert)
     spalten: list[tuple[str, str, float, list[Segment], Decimal]]  # (kurz, Monat, x-Mitte, Segmente, Summe)
+    band: float = 40.0  # Breite je Spalte (Trefferfläche für den Tooltip)
+
+
+def monatsbeschriftungen(monate: list[Zeitraum]) -> list[str]:
+    """Achsenbeschriftung der Monatssäulen, ausgedünnt nach Länge (sonst überlagern sich die Texte):
+    bis 12 Monate jeder Monat („Jan“); bis 24 Quartalsanfänge, der Januar als Jahr („2025“, „Apr“, …); darüber nur
+    die Jahre am Januar, der erste Monat mit seinem Jahr, wenn bis zum nächsten Januar Platz ist. Leer = ohne Text."""
+    if len(monate) <= 12:
+        return [MONATSNAMEN[m.nr - 1][:3] for m in monate]
+    if len(monate) <= 24:
+        return [str(m.jahr) if m.nr == 1 else MONATSNAMEN[m.nr - 1][:3] if m.nr in (4, 7, 10) else "" for m in monate]
+    texte = [str(m.jahr) if m.nr == 1 else "" for m in monate]
+    if monate[0].nr != 1 and 13 - monate[0].nr >= 6:  # Jahr am Anfang nur mit Abstand zum nächsten Januar
+        texte[0] = str(monate[0].jahr)
+    return texte
 
 
 def saeulen(v: Verteilung, feld: int, breite: float = 420, hoehe: float = 240) -> Saeulen:  # drei Diagramme je Zeile
@@ -229,7 +244,8 @@ def saeulen(v: Verteilung, feld: int, breite: float = 420, hoehe: float = 240) -
     band = (breite - links) / max(1, len(v.spalten))
     dicke = min(24.0, band * 0.6)
     ergebnis = []
-    for (monat, werte), summe in zip(v.spalten, summen):
+    beschriftungen = monatsbeschriftungen([monat for monat, _ in v.spalten])
+    for (monat, werte), summe, kurz in zip(v.spalten, summen, beschriftungen):
         mitte = links + band * (len(ergebnis) + 0.5)
         y, segmente = oben + flaeche, []
         for i, reihe in enumerate(v.reihen):  # unten beginnend in Reihenfolge der Legende
@@ -240,10 +256,10 @@ def saeulen(v: Verteilung, feld: int, breite: float = 420, hoehe: float = 240) -
             y -= h
             segmente.append(Segment(reihe, wert, float(wert / summe) if summe else 0, x=mitte - dicke / 2, y=y,
                                     breite=dicke, hoehe=h))
-        ergebnis.append((MONATSNAMEN[monat.nr - 1][:3], monat.label, mitte, segmente, summe))
+        ergebnis.append((kurz, monat.label, mitte, segmente, summe))
     teilstriche = [(oben + flaeche - k * schritt / maximum * flaeche, k * schritt)
                    for k in range(int(round(maximum / schritt)) + 1)]
-    return Saeulen(breite, hoehe, links, unten, teilstriche, ergebnis)
+    return Saeulen(breite, hoehe, links, unten, teilstriche, ergebnis, band)
 
 
 # ------------------------------------------------------------------ Histogramme öffentliches DC-Laden (Auswertungen)
