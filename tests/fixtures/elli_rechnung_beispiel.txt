@@ -1,0 +1,46 @@
+Volkswagen Group Charging GmbH | Mollstraße 1, 10178 Berlin | Geschäftsführung: Test
+ATU00000000 www.elli.eco
+Volkswagen Group Charging GmbH Mollstraße 1, 10178 Berlin
+Erika Beispiel
+Test GmbH Musterweg 1
+1010 Wien
+Kundenservice
+Rechnung für Österreich
+Kundennummer Rechnungsnummer Zeitraum Belegdatum
+10000001 800000000001 03.11.2023 - 24.11.2023 30.11.2023
+Guten Tag Erika Beispiel, 
+für die Nutzung der Easy Charging Ladedienste im Zeitraum vom 03.11.2023 - 24.11.2023 haben sich
+folgende Kosten ergeben:
+Beschreibung Anzahl Volumen Nettopreis USt. Bruttopreis
+Ladevorgänge in Österreich 3 80,250 kWh 30,00 EUR 20,0% 36,00 EUR
+Gesamtbetrag netto 30,00 EUR
+USt. 20,0% 6,00 EUR
+Gesamtbetrag brutto 36,00 EUR
+Vielen Dank für die Nutzung des Easy Charging Ladedienstes.
+Übersicht der Ladevorgänge
+Anlage zu Rechnungsnummer
+800000000001
+Beschreibung
+Beginn, Station, ID
+Volumen*
+kWh
+Dauer*
+hh:mm:ss
+Bruttopreis
+03.11.2023, 09:15:00
+EVSEID: AT*TST*E001*1 (Teststation Nord -,
+Testort) DC
+00000000-0000-4000-8000-000000000001
+30,1000 00:20:00 12,00 EUR
+10.11.2023, 17:40:30
+EVSEID: AT*TST*E001*2 (Teststation Nord -,
+Testort) DC
+00000000-0000-4000-8000-000000000002
+25,1500 00:18:45 12,00 EUR
+24.11.2023, 12:05:10
+EVSEID: AT*PRB*E002*1 (Probe Parkplatz, Probedorf)
+AC
+00000000-0000-4000-8000-000000000003
+25,0000 02:30:00 12,00 EUR
+Volkswagen Group Charging GmbH|Mollstraße 1, 10178 Berlin|
+Gesamtbetrag brutto 36,00 EUR

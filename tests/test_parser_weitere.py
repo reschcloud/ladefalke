@@ -152,6 +152,34 @@ def test_salzburg_ag_seitenkopf_mitten_im_vorgang():
     assert b.ladepunkt == "AT*SZG*E000002" and b.externe_id == "100000002"
 
 
+def test_salzburg_ag_aelteres_format():
+    """Älteres Layout: „Belegnummer“, Beträge mit nachgestelltem „EUR“, Transaktionsnummer mit Session, Land aus
+    „(AT)“ in der Position."""
+    e = salzburg_ag.parsen_text(_text("salzburg_ag_alt_beispiel.txt"))
+    r = e.rechnung
+    assert e.warnungen == []
+    assert (r.nummer, r.datum, r.zeitraum_von, r.zeitraum_bis, r.summe_netto) == (
+        "60000010", date(2023, 10, 31), date(2023, 10, 2), date(2023, 10, 5), D("12.40"))
+    assert _summe(e) == r.summe_netto
+    a, b = e.vorgaenge
+    assert (a.kartenkennung, a.externe_id, a.ladepunkt) == ("00042", "10000001", "AT*TST*E0001*1")
+    assert (a.start, a.ende, a.kwh, a.kosten_netto) == (datetime(2023, 10, 2, 8, 12), datetime(2023, 10, 2, 8, 53),
+                                                        D("6.200"), D("2.15"))
+    assert a.standort == "Test Energie - Probe Parkhaus Teststraße 7, Testort"  # Seitenkopf nicht im Standort
+    assert a.rohdaten["session"] == "20000001" and a.rohdaten["land"] == "AT"
+    assert (b.externe_id, b.kosten_netto) == ("10000002", D("10.25"))
+    assert [(g.kartenkennung, g.betrag_netto) for g in e.gebuehren] == [("00042", D("0.00"))]
+
+
+def test_salzburg_ag_aelteres_format_echt():
+    pfad = beispiel("7bf78dbeb8be")  # Salzburg AG, älteres Layout (2023)
+    assert parser_erkennen(pfad) == "salzburg_ag"
+    e = PARSER["salzburg_ag"].parsen(pfad)
+    assert e.warnungen == [] and len(e.vorgaenge) == 3
+    assert _summe(e) == e.rechnung.summe_netto
+    assert all(v.externe_id and v.ladepunkt and v.ende > v.start for v in e.vorgaenge)
+
+
 def test_salzburg_ag_abweichung_warnt():
     text = _text("salzburg_ag_beispiel.txt").replace("EUR 28,00 20,00% EUR 28,00", "EUR 29,00 20,00% EUR 29,00")
     w = salzburg_ag.parsen_text(text).warnungen

@@ -8,6 +8,11 @@
   abgestimmt auf Summe − ausgewiesene Mehrwertsteuer. Die Beschriftung „EUR(19%)“ im Dokument ist
   ungenau; der ausgewiesene Betrag entspricht der Rechnung je Land.
 - Übersichtszahlen mit Dezimalpunkt („86.82 EUR“), Tabelle mit Dezimalkomma („36,05 EUR“).
+
+Älteres Format (bis etwa 2023, „Easy Charging“, Volkswagen Group Charging GmbH): eine echte Rechnung je Land mit
+Rechnungsnummer, Zeitraum, Belegdatum und „Gesamtbetrag netto“; in der Anlage „Übersicht der Ladevorgänge“ je
+Vorgang Beginn mit Uhrzeit, EVSE-ID mit Station, AC/DC, eine eindeutige ID (→ externe ID), kWh, Dauer und
+Bruttopreis. Karte = Name aus der Anrede („Guten Tag …,“), wie im neuen Format der Kontoinhaber.
 """
 import re
 from datetime import date, datetime, timedelta
@@ -15,6 +20,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from app.models import KennungTyp
+from app.services.evse import land_aus_text
 from app.parsers.basis import (Ergebnis, Parser, ParserFehler, Rechnung, Vorgang, auf_summe_verteilen, cent,
                                ist_pdf, kwh_runden, pdf_text_pdfium, zahl_flexibel)
 
@@ -48,13 +54,15 @@ class ElliParser(Parser):
         if not ist_pdf(pfad):
             return False
         text = pdf_text_pdfium(pfad)
-        return "Elli Mobility GmbH" in text and "Übersicht über die Ladevorgänge" in text
+        return ("Elli Mobility GmbH" in text and "Übersicht über die Ladevorgänge" in text) or _ist_rechnung(text)
 
     def parsen(self, pfad: Path) -> Ergebnis:
         return parsen_text(pdf_text_pdfium(pfad))
 
 
 def parsen_text(text: str) -> Ergebnis:
+    if _ist_rechnung(text):
+        return _rechnung_parsen(text)
     zeilen = [z.strip().replace(" ", "") for z in text.splitlines()]
     zeilen = [z for z in zeilen if z]
     warnungen: list[str] = []
@@ -144,4 +152,108 @@ def parsen_text(text: str) -> Ergebnis:
     if m := re.search(rf"Geladene Energie\s+insgesamt\s+({ZAHL})\s*kWh", text):
         if kwh_runden(zahl_flexibel(m.group(1))) != sum((v.kwh for v in ergebnis.vorgaenge), Decimal(0)):
             warnungen.append(f"Summe der kWh passt nicht zur Übersicht ({m.group(1)} kWh).")
+    return ergebnis
+
+
+# ------------------------------------------------------------------ älteres Format: Rechnung „Easy Charging“
+
+RE_VORGANG_START = re.compile(r"^(\d{2}\.\d{2}\.\d{4}),\s*(\d{1,2}:\d{2}:\d{2})\b")
+RE_VORGANG_WERTE = re.compile(rf"({ZAHL})\s+(\d{{1,2}}):(\d{{2}}):(\d{{2}})\s+({ZAHL})\s*EUR")
+RE_EVSE = re.compile(r"EVSEID:\s*(\S+)\s*\((.*)\)\s*(AC|DC)?")
+RE_ID = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b")
+RE_KOPFDATEN = re.compile(r"^(\d+)\s+(\d+)\s+(\d{2}\.\d{2}\.\d{4})\s*-\s*(\d{2}\.\d{2}\.\d{4})\s+(\d{2}\.\d{2}\.\d{4})\s*$",
+                         re.M)
+RE_BLOCKENDE = re.compile(r"^(Volkswagen Group Charging|Gesamtbetrag|\* Die Abrechnung)")
+
+
+def _ist_rechnung(text: str) -> bool:
+    return "Easy Charging" in text and "Übersicht der Ladevorgänge" in text and "Rechnungsnummer" in text
+
+
+def _datum(text: str) -> date:
+    return datetime.strptime(text, "%d.%m.%Y").date()
+
+
+def _rechnung_parsen(text: str) -> Ergebnis:
+    text = text.replace("\xa0", " ")
+    warnungen: list[str] = []
+    r = Rechnung()
+    if m := RE_KOPFDATEN.search(text):
+        r.nummer, r.zeitraum_von, r.zeitraum_bis, r.datum = m.group(2), _datum(m.group(3)), _datum(m.group(4)), \
+            _datum(m.group(5))
+    else:
+        warnungen.append("Rechnungsnummer, Zeitraum und Belegdatum nicht gefunden.")
+    if m := re.search(rf"Gesamtbetrag netto\s+({ZAHL})\s*EUR", text):
+        r.summe_netto = zahl_flexibel(m.group(1))
+    else:
+        warnungen.append("„Gesamtbetrag netto“ nicht gefunden – das PDF wirkt unvollständig.")
+    brutto_gesamt = zahl_flexibel(m.group(1)) if (m := re.search(rf"Gesamtbetrag brutto\s+({ZAHL})\s*EUR", text)) else None
+    satz_dokument = zahl_flexibel(m.group(1)) if (m := re.search(r"USt\.\s*(\d+(?:,\d+)?)\s*%", text)) else Decimal(20)
+    land_rechnung = (re.search(r"Rechnung für\s+(\S+)", text) or [None, None])[1]
+    inhaber = (re.search(r"Guten Tag\s+([^,\n]+),", text) or [None, ""])[1].strip()
+
+    # Vorgänge: Block ab „TT.MM.JJJJ, hh:mm:ss“ bis zum nächsten Beginn bzw. Seitenfuß (Reihenfolge im Block egal)
+    bloecke, block = [], None
+    for z in (z.strip() for z in text.splitlines()):
+        if m := RE_VORGANG_START.match(z):
+            block = {"start": datetime.strptime(f"{m.group(1)} {m.group(2)}", "%d.%m.%Y %H:%M:%S"),
+                     "text": z[m.end():].strip()}
+            bloecke.append(block)
+        elif block is not None:
+            if RE_BLOCKENDE.match(z):
+                block = None
+            else:
+                block["text"] += " " + z
+
+    ergebnis = Ergebnis(rechnung=r, warnungen=warnungen)
+    roh_netto = []
+    for b in bloecke:
+        werte = RE_VORGANG_WERTE.search(b["text"])
+        if werte is None:
+            warnungen.append(f"Ladevorgang {b['start']:%d.%m.%Y %H:%M}: kWh, Dauer oder Preis nicht gefunden – übersprungen.")
+            continue
+        evse = RE_EVSE.search(RE_VORGANG_WERTE.sub("", b["text"]))
+        ladepunkt = evse.group(1) if evse else None
+        station = re.sub(r"\s+", " ", evse.group(2)).strip() if evse else None
+        land = _land(ladepunkt, None) or land_aus_text(land_rechnung)
+        satz = UST_JE_LAND.get(land) if land else None
+        if satz is None:
+            warnungen.append(f"Ladevorgang {b['start']:%d.%m.%Y %H:%M}: USt-Satz für Land {land or '?'} unbekannt – "
+                             f"{satz_dokument} % laut Dokument verwendet.")
+            satz = satz_dokument
+        brutto = zahl_flexibel(werte.group(5))
+        dauer = timedelta(hours=int(werte.group(2)), minutes=int(werte.group(3)), seconds=int(werte.group(4)))
+        roh_netto.append(brutto / (1 + Decimal(satz) / 100))
+        kennung = RE_ID.search(b["text"])
+        ergebnis.vorgaenge.append(Vorgang(
+            kartenkennung=inhaber or None, kennung_typ=KennungTyp.kartenlabel, start=b["start"],
+            ende=b["start"] + dauer, kwh=kwh_runden(zahl_flexibel(werte.group(1))), kosten_netto=None,
+            standort=station, ladepunkt=ladepunkt, externe_id=kennung.group(0) if kennung else None,
+            stromart=evse.group(3) if evse and evse.group(3) else None,
+            kartenbezeichnung=f"Elli {inhaber}".strip(),
+            rohdaten={"rechnung": r.nummer, "land": land, "ust_satz": str(satz), "brutto": str(brutto),
+                      "dauer": f"{werte.group(2)}:{werte.group(3)}:{werte.group(4)}"}))
+
+    if not ergebnis.vorgaenge:
+        raise ParserFehler("Keine Ladevorgänge gefunden – ist das eine Easy-Charging-Rechnung?")
+
+    netto = auf_summe_verteilen(roh_netto, r.summe_netto) if r.summe_netto is not None else None
+    if netto is None:
+        if r.summe_netto is not None:
+            warnungen.append(f"Netto je Land ({cent(sum(roh_netto, Decimal(0)))} EUR) passt nicht zum Gesamtbetrag "
+                             f"netto laut Rechnung ({r.summe_netto} EUR).")
+        netto = [cent(n) for n in roh_netto]
+        r.summe_netto = sum(netto, Decimal(0)) if r.summe_netto is None else r.summe_netto
+    for v, n in zip(ergebnis.vorgaenge, netto):
+        v.kosten_netto = n
+
+    # Kontrollen gegen die Rechnung: Bruttosumme, Anzahl und kWh der Position „Ladevorgänge in …“
+    brutto_summe = sum((Decimal(v.rohdaten["brutto"]) for v in ergebnis.vorgaenge), Decimal(0))
+    if brutto_gesamt is not None and brutto_summe != brutto_gesamt:
+        warnungen.append(f"Summe der Bruttopreise {brutto_summe} EUR ≠ Gesamtbetrag brutto {brutto_gesamt} EUR.")
+    if m := re.search(rf"Ladevorgänge in\s+\S+\s+(\d+)\s+({ZAHL})\s*kWh", text):
+        if int(m.group(1)) != len(ergebnis.vorgaenge):
+            warnungen.append(f"{len(ergebnis.vorgaenge)} Ladevorgänge gelesen, laut Rechnung {m.group(1)}.")
+        if kwh_runden(zahl_flexibel(m.group(2))) != sum((v.kwh for v in ergebnis.vorgaenge), Decimal(0)):
+            warnungen.append(f"Summe der kWh passt nicht zur Rechnung ({m.group(2)} kWh).")
     return ergebnis

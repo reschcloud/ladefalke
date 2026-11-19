@@ -1,0 +1,42 @@
+Salzburg AG, Bayerhamerstraße 16, 5020 Salzburg Belegnummer 60000010
+Datum 31.10.2023
+Test GmbH Zeitraum 02.10.2023 - 05.10.2023
+Musterweg 1 Zahlungsbedingungen SEPA Bankeinzug
+1010 Wien Kundennummer 00001
+Austria Ihre UID-Nummer ATU00000000
+Vertragskonto 40000001
+Seite 1 / 2
+Rechnung
+Pos. Beschreibung Anz Einzelpreis Steuersatz Gesamtpreis
+1 00042 / 00042
+1.1 Monatliche Grundgebühr im Leistungszeitraum 1,00 0,00 EUR 20,00% 0,00 EUR
+Gesamte monatliche Gebühr für den Leistungszeitraum
+1.2 Gesamtkosten für Ihre Ladevorgänge (AT) 1,00 12,40 EUR 20,00% 12,40 EUR
+Gesamtkosten für Ihre Ladevorgänge in dem angegebenen Leistungszeitraum.
+Details können Sie aus den folgenden Seiten einsehen
+Zwischensumme: 12,40 EUR
+Nettobetrag: 12,40 EUR
+Steuerbetrag: 2,48 EUR
+Gesamtpreis: 14,88 EUR
+Steuerbezeichnung Nettobetrag Steuerbetrag Steuersatz
+Standard Umsatzsteuersatz 20% 12,40 EUR 2,48 EUR 20,00 %
+Der Rechnungsbetrag wird in den kommenden Tagen von Ihrem Konto abgebucht
+Salzburg AG, Bayerhamerstraße 16, 5020 Salzburg Belegnummer 60000010
+Datum 31.10.2023
+Test GmbH Zeitraum 02.10.2023 - 05.10.2023
+Musterweg 1 Zahlungsbedingungen SEPA Bankeinzug
+1010 Wien Kundennummer 00001
+Austria Ihre UID-Nummer ATU00000000
+Vertragskonto 40000001
+Seite 2 / 2
+Ladenachweis für Rechnung 60000010
+Pos. Start / Ende Ladepunkt Dauer Verbrauch Tarif Gesamt
+00042 - 00042
+1 02.10.2023 08:12 Test Energie - Probe Parkhaus 00:41:05 6,20kWh Stromladen OK 2,15 EUR
+02.10.2023 08:53 Teststraße 7, Testort
+EVSE-ID: AT*TST*E0001*1
+# 10000001 / Session: 20000001
+2 05.10.2023 13:30 Test Energie - Probe Parkhaus 03:12:40 31,05kWh Stromladen OK 10,25 EUR
+05.10.2023 16:42 Teststraße 7, Testort
+EVSE-ID: AT*TST*E0001*2
+# 10000002 / Session: 20000002

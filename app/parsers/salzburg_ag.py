@@ -4,6 +4,10 @@ Ein Dokument kann mehrere Länderrechnungen enthalten (je „Dokument-Nr.“), d
 Deckblatt „Rechnungsübersicht“ (wird übersprungen). Je Rechnung: Positionen je Karte
 („1 K00001 / K00001“ mit Grundgebühr und Ladekosten) und der „Ladenachweis“ mit Einzelvorgängen
 (Start, Ende, kWh, Betrag netto, EVSE-ID, Transaktionsnummer „# 100000001“ als externe ID).
+
+Älteres Format (Rechnungen bis etwa 2024): „Belegnummer“ statt „Dokument-Nr.“, Beträge mit nachgestelltem „EUR“
+(„2,50 EUR“ statt „EUR 2,50“), Transaktionsnummer mit Session („# 100000001 / Session: 200000001“), Land nur in der
+Position („Gesamtkosten für Ihre Ladevorgänge (AT)“).
 """
 import re
 from collections import defaultdict
@@ -17,16 +21,21 @@ from app.parsers import salzburg_ag_csv
 from app.parsers.basis import Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden, pdf_text
 
 BETRAG = r"-?[\d.]+,\d{2}"
-RE_DOKUMENT = re.compile(r"Dokument-Nr\.\s*(\d+)")
+# Betrag mit vorangestelltem („EUR 2,50“, aktuelles Format) oder nachgestelltem „EUR“ („2,50 EUR“, älteres Format)
+EUR_BETRAG = rf"(?:EUR\s*{BETRAG}|{BETRAG}\s*EUR)"
+EUR_BETRAG_ENDE = rf"(?:EUR\s*(?P<betrag_a>{BETRAG})|(?P<betrag_b>{BETRAG})\s*EUR)\s*$"
+RE_DOKUMENT = re.compile(r"(?:Dokument-Nr\.|Belegnummer)\s*(\d+)")
 RE_KARTE_POS = re.compile(r"^\d+\s+(\S+)\s*/\s*(.+)$")
-RE_UNTERPOS = re.compile(rf"^\d+\.\d+\s+(.*?)\s+[\d,]+\s+EUR\s*{BETRAG}.*?EUR\s*({BETRAG})\s*$")
+RE_UNTERPOS = re.compile(rf"^\d+\.\d+\s+(.*?)\s+[\d,]+\s+{EUR_BETRAG}.*?{EUR_BETRAG_ENDE}")
 RE_KARTE_NACHWEIS = re.compile(r"^([A-Z0-9]+)\s+-\s+([A-Z0-9]+)$")
 RE_VORGANG = re.compile(r"^\d+\s+(\d{2}\.\d{2}\.\d{4} \d{1,2}:\d{2})\s+(.*?)\s+(\d{2}:\d{2}:\d{2})\s+"
-                        rf"(\d[\d.]*,\d+)\s*kWh\b.*?EUR\s*({BETRAG})\s*$")
+                        rf"(\d[\d.]*,\d+)\s*kWh\b.*?{EUR_BETRAG_ENDE}")
+RE_NETTO = re.compile(rf"Nettobetrag:\s*(?:EUR\s*({BETRAG})|({BETRAG})\s*EUR)")
+RE_TRANSAKTION = re.compile(r"^#\s*(\d+)(?:\s*/\s*Session:\s*(\d+))?$")
 RE_ENDE = re.compile(r"^(\d{2}\.\d{2}\.\d{4} \d{1,2}:\d{2})\s*(.*)$")
 # Seitenkopf: von „Salzburg AG, … Dokument-Nr.“ bis „Seite …“ (dazwischen Datum, Rechnungsempfänger mit Adresse,
 # Vertragskonto) – darf bei Seitenumbruch nicht in Standortangaben landen; danach die Tabellenköpfe
-RE_KOPF_ANFANG = re.compile(r"^Salzburg AG, .*Dokument-Nr\.")
+RE_KOPF_ANFANG = re.compile(r"^Salzburg AG, .*(?:Dokument-Nr\.|Belegnummer)")
 RE_TABELLENKOPF = re.compile(r"^(Pos\. |Ladenachweis)")
 
 
@@ -60,7 +69,7 @@ class SalzburgAgParser(Parser):
         if not ist_pdf(pfad):
             return salzburg_ag_csv.ist_salzburg_ag_csv(pfad)
         text = pdf_text(pfad, nur_erste_seite=True)
-        return "Salzburg AG" in text and "Dokument-Nr" in text
+        return "Salzburg AG" in text and ("Dokument-Nr" in text or "Belegnummer" in text)
 
     def parsen(self, pfad: Path) -> Ergebnis:
         if not ist_pdf(pfad) and salzburg_ag_csv.ist_salzburg_ag_csv(pfad):
@@ -88,15 +97,16 @@ def parsen_text(text: str) -> Ergebnis:
     for nr, zeilen in _dokumente(text):
         dok = "\n".join(zeilen)
         nummern.append(nr)
-        land = (re.search(rf"Rechnung\s+(\S+)\s+{nr}", dok) or [None, ""])[1]
+        land = ((re.search(rf"Rechnung\s+(\S+)\s+{nr}", dok) or [None, ""])[1]
+                or (re.search(r"Ladevorg\S*\s+\(([A-Z]{2})\)", dok) or [None, ""])[1])  # älteres Format: „(AT)“
         if m := re.search(r"Datum\s+(\d{2}\.\d{2}\.\d{4})", dok):
             daten.append(_datum(m.group(1)))
         zeitraum = None
         if m := re.search(r"Zeitraum\s+(\d{2}\.\d{2}\.\d{4})\s*-\s*(\d{2}\.\d{2}\.\d{4})", dok):
             zeitraum = (_datum(m.group(1)), _datum(m.group(2)))
             zeitraeume.append(zeitraum)
-        if m := re.search(rf"Nettobetrag:\s*EUR\s*({BETRAG})", dok):
-            netto = decimal_lesen(m.group(1))
+        if m := RE_NETTO.search(dok):
+            netto = decimal_lesen(m.group(1) or m.group(2))
             netto_gesamt += netto
         else:
             netto = None
@@ -118,7 +128,7 @@ def parsen_text(text: str) -> Ergebnis:
                     karte = m.group(1)
                     bezeichnungen[karte] = m.group(2).strip()
                 elif karte and (m := RE_UNTERPOS.match(z)):
-                    betrag = decimal_lesen(m.group(2))
+                    betrag = decimal_lesen(m["betrag_a"] or m["betrag_b"])
                     summe += betrag
                     if "Ladevorg" in m.group(1):
                         ladekosten_pos[karte] += betrag
@@ -136,7 +146,7 @@ def parsen_text(text: str) -> Ergebnis:
                 continue
             if karte and (m := RE_VORGANG.match(z)):
                 start = _zeit(m.group(1))
-                betrag = decimal_lesen(m.group(5))
+                betrag = decimal_lesen(m["betrag_a"] or m["betrag_b"])
                 ladekosten_nachweis[karte] += betrag
                 vorgang = Vorgang(
                     kartenkennung=karte, kennung_typ=KennungTyp.kartennummer, start=start, ende=start,
@@ -155,8 +165,10 @@ def parsen_text(text: str) -> Ergebnis:
                     vorgang.standort = f"{vorgang.standort} {m.group(2)}"
             elif m := re.match(r"^EVSE-ID:\s*(\S+)", z):
                 vorgang.ladepunkt = m.group(1)
-            elif m := re.match(r"^#\s*(\d+)$", z):
+            elif m := RE_TRANSAKTION.match(z):
                 vorgang.externe_id = m.group(1)
+                if m.group(2):
+                    vorgang.rohdaten["session"] = m.group(2)
                 vorgang = None  # Transaktionsnummer schließt den Vorgang ab
             else:
                 vorgang.standort = f"{vorgang.standort}, {z}"  # Adresszeilen
