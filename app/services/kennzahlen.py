@@ -1,4 +1,4 @@
-"""Kennzahlen über den gesamten Zeitraum für Detailseiten (Fahrzeug, Fahrer:in) – direkt in der Datenbank summiert,
+"""Kennzahlen über den gesamten Zeitraum für Detailseiten (Fahrzeug, Fahrer:in, Ladekarte) – direkt in der Datenbank summiert,
 ohne die ganze Auswertung zu rechnen. Nur Ladevorgänge (ohne Gebühren und Pauschalen), Beträge netto."""
 from dataclasses import dataclass
 from datetime import datetime
@@ -43,6 +43,25 @@ def _summen(db: Session, *bedingungen) -> Gesamt:
         func.max(spalte), func.avg(dc_dauer), func.count(dc_dauer)).where(*bedingungen)).one()
     return Gesamt(anzahl, Decimal(kwh), Decimal(kosten), Decimal(kwh_oeff), bool(geschaetzt), erste, letzte,
                   round(float(dc_schnitt) / 60) if dc_schnitt is not None else None, dc_anzahl)
+
+
+def ladekarte(db: Session, karte_id: int) -> Gesamt:
+    return _summen(db, Ladevorgang.ladekarte_id == karte_id)
+
+
+def erster_und_letzter(db: Session, *bedingungen) -> tuple[Ladevorgang | None, Ladevorgang | None]:
+    """Erster und letzter Ladevorgang (nach Stichtag, wie die Auswertungen) – für Links auf der Detailseite."""
+    spalte = stichtag_spalte(stichtag_art(db))
+    q = select(Ladevorgang).where(*bedingungen)
+    return (db.scalars(q.order_by(spalte, Ladevorgang.id).limit(1)).first(),
+            db.scalars(q.order_by(spalte.desc(), Ladevorgang.id.desc()).limit(1)).first())
+
+
+def letzte_je_karte(db: Session) -> dict[int, datetime]:
+    """Letzter Ladevorgang (Stichtag) je Ladekarte – für die Kartenliste."""
+    spalte = stichtag_spalte(stichtag_art(db))
+    return dict(db.execute(select(Ladevorgang.ladekarte_id, func.max(spalte))
+                           .where(Ladevorgang.ladekarte_id.is_not(None)).group_by(Ladevorgang.ladekarte_id)).all())
 
 
 def fahrzeug(db: Session, fahrzeug_id: int) -> Gesamt:

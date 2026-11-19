@@ -278,3 +278,30 @@ def test_offene_punkte_auf_detailseiten(angemeldet, db):
     person.email = "offen@example.org"
     db.flush()
     assert "offene-punkte" not in angemeldet.get(f"/stammdaten/fahrer/{person.id}").text
+
+
+def test_ladekarte_erster_und_letzter_ladevorgang(angemeldet, db):
+    """Liste: letzter Ladevorgang je Karte; Detailseite: Kennzahlen, erster und letzter Ladevorgang mit Link."""
+    from datetime import datetime
+    from decimal import Decimal as Dec
+    from app.models import Import, ImportStatus, Ladeart, Ladevorgang, ZuordnungQuelle
+    msp = db.scalar(select(Msp).where(Msp.parser_key == "dcs"))
+    karte, leer = (Ladekarte(msp=msp, kennung=k, kennung_typ=KennungTyp.kartennummer) for k in ("EL-1", "EL-2"))
+    imp = Import(dateiname="e.pdf", datei_pfad="e.pdf", datei_hash="e" * 64, msp_id=msp.id,
+                 ladeart=Ladeart.oeffentlich, status=ImportStatus.abgeschlossen)
+    db.add_all([karte, leer, imp])
+    db.flush()
+    vorgaenge = [Ladevorgang(import_id=imp.id, msp_id=msp.id, ladekarte_id=karte.id, roh_kartenkennung="EL-1",
+                             start=datetime(2026, m, 3, 8), ende=datetime(2026, m, 3, 9, 30), kwh=Dec(20),
+                             kosten_netto=Dec(8), ladeart=Ladeart.oeffentlich,
+                             zuordnung_quelle=ZuordnungQuelle.keine) for m in (5, 2, 9)]
+    db.add_all(vorgaenge)
+    db.flush()
+    liste = angemeldet.get("/stammdaten/ladekarten?status=alle").text
+    assert "Letzter Ladevorgang" in liste and "03.09.2026" in liste
+    seite = angemeldet.get(f"/stammdaten/ladekarten/{karte.id}").text
+    erster, letzter = vorgaenge[1], vorgaenge[2]
+    assert f'href="/ladevorgaenge/{erster.id}">03.02.2026 09:30' in seite
+    assert f'href="/ladevorgaenge/{letzter.id}">03.09.2026 09:30' in seite
+    assert '<span class="kachel-zahl">3</span>' in seite  # Anzahl in den Kennzahl-Kacheln
+    assert "Erster Ladevorgang" not in angemeldet.get(f"/stammdaten/ladekarten/{leer.id}").text

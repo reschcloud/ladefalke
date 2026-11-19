@@ -5,6 +5,11 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
+### Neu
+
+- Ladekarten: Die Liste zeigt den letzten Ladevorgang je Karte; die Detailseite Kennzahlen (wie bei Fahrzeug und
+  Fahrer:in) sowie ersten und letzten Ladevorgang mit Link.
+
 ### Behoben
 
 - Fahrer:in: Der Knopf „Heute“ neben „Letzte Führerscheinkontrolle“ sitzt bündig neben dem Datumsfeld.

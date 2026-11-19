@@ -11,7 +11,7 @@ from app.formatierung import datum_lesen
 from app.models import Fahrer, Fahrzeug, Gebuehr, KennungTyp, Ladekarte, Ladevorgang, Msp, ZuordnungKarte
 from app.routers.ladevorgaenge import mehrfach_bedingung
 from app.services import mini_zeitleiste
-from app.services import protokoll
+from app.services import kennzahlen, protokoll
 from app.services.aufloesung import neu_zuordnen_karte
 from app.services.fahrzeug_hinweise import Hinweis
 from app.services.ladevorgaenge import letzte_vorgaenge
@@ -101,6 +101,9 @@ def _detail(request, db, karte, werte, fehler=None, status_code=200, zuordnung_w
                 art="person" if z.fahrer_id else "auto")
              for z in karte.zuordnungen], heute(), luecken_art=None if karte.ist_gastkarte else "neutral")
     kontext["verlauf"] = protokoll.verlauf(request, db, "ladekarte", karte.id if karte else None)
+    kontext["gesamt"] = kennzahlen.ladekarte(db, karte.id) if karte else None
+    kontext["erster"], kontext["letzter"] = (kennzahlen.erster_und_letzter(db, Ladevorgang.ladekarte_id == karte.id)
+                                             if karte else (None, None))
     ohne = db.scalar(select(func.count()).select_from(Ladevorgang).where(
         Ladevorgang.ladekarte_id == karte.id, *ohne_fahrzeug_bedingungen())) if karte else 0
     kontext["offen"] = [Hinweis("rot", f"{ohne} Ladevorgang ohne Fahrzeug" if ohne == 1
@@ -139,6 +142,7 @@ def liste(request: Request, status: str = "aktiv", msp_id: list[str] = Query([])
         select(ZuordnungKarte).where(gueltig_am(ZuordnungKarte, heute())))}
     return render(request, "stammdaten/ladekarte_liste.html", {
         "karten": db.scalars(q).all(), "aktuell": aktuell, "status": status, "msp_id": msp_id,
+        "letzte": kennzahlen.letzte_je_karte(db),
         "msp_paare": [("msp_id", x) for x in msp_id],
         "msp_optionen": [(str(x.id), x.name) for x in db.scalars(select(Msp).order_by(Msp.name))]})
 

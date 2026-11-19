@@ -7,7 +7,12 @@
 <p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
   {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/ladekarten' }}" role="button" class="outline secondary klein nav-knopf">← Alle Ladekarten</a>{{ m.blaettern(blaettern) }}</p>
 <h1>{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}</h1>
-{% if karte %}{{ m.offene_punkte(offen, "/stammdaten/ladekarten/%d" % karte.id) }}{% endif %}
+{% if karte %}{{ m.offene_punkte(offen, "/stammdaten/ladekarten/%d" % karte.id) }}
+{{ m.gesamt_kacheln(gesamt, "dieser Karte") }}
+{% if erster %}<p class="erster-letzter"><small title="Zeitpunkt nach {{ STICHTAG[request.state.stichtag] }} (Einstellungen)">
+  Erster Ladevorgang <a href="/ladevorgaenge/{{ erster.id }}">{{ (erster.start if request.state.stichtag == "beginn" else erster.ende) | datumzeit }}</a>
+  · letzter Ladevorgang <a href="/ladevorgaenge/{{ letzter.id }}">{{ (letzter.start if request.state.stichtag == "beginn" else letzter.ende) | datumzeit }}</a></small></p>{% endif %}
+{% endif %}
 
 <form method="post" class="formular" action="{{ '/stammdaten/ladekarten/%d' % karte.id if karte else '/stammdaten/ladekarten/neu' }}">
   <div class="grid">
