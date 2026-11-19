@@ -12,6 +12,12 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   bekannten Sicherheitslücken.
 - Lock-Dateien heißen `requirements-lock.txt` und `requirements-dev-lock.txt` (Dependabot erkennt nur `.txt`).
 
+### Geändert
+
+- Lücken ohne Fahrer:in: Mit Leasing-Ende wird der ganze Leasingzeitraum geprüft, auch künftige Zeiträume (z. B. eine
+  Zuordnung endet vor dem Leasing) – unter „Aufgaben“, auf der Fahrzeugseite und im Report „Offene Aufgaben“. Ohne
+  Leasing-Ende wie bisher bis heute. Aktuelle Lücken nennen ihr Ende, falls bekannt.
+
 ### Beim Update beachten
 
 - Nichts.

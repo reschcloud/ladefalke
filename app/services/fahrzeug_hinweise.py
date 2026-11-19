@@ -82,7 +82,7 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
         offen = next((l for l in eigene if l.offen), None)
         if offen:
             h.append(Hinweis("rot", f"ohne Fahrer:in seit {datum(offen.von)}", seite,
-                             "Aktuell ist keine Fahrer:in zugeordnet"))
+                             "Aktuell ist keine Fahrer:in zugeordnet" + ("" if offen.endlos else f" (Lücke bis {datum(offen.bis)})")))
         elif fz.id not in heute_zugeordnet:  # ohne Bezugszeitraum (weder Leasing noch je eine Zuordnung)
             h.append(Hinweis("rot", "ohne Fahrer:in", seite, "Aktuell ist keine Fahrer:in zugeordnet"))
         frueher = [l for l in eigene if not l.offen]

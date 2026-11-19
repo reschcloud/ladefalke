@@ -1,8 +1,8 @@
 """Lücken in der Fahrer:innen-Zuordnung je Fahrzeug (Hinweis unter „Aufgaben“).
 
 Geprüft wird je aktivem Fahrzeug der Zeitraum ab Leasingbeginn (ohne Leasingbeginn: ab der ersten Zuordnung) bis
-heute bzw. bis zum Leasing-Ende. Jeder Tag, an dem keine Fahrer:in zugeordnet ist, gehört zu einer Lücke – auch am
-Ende („seit … ohne Fahrer:in“). Überlappende Zuordnungen (Poolfahrzeuge) zählen gemeinsam. Ladevorgänge in einer
+zum Leasing-Ende – auch in der Zukunft (z. B. eine Zuordnung endet vor dem Leasing) –, ohne Leasing-Ende bis heute.
+Jeder Tag, an dem keine Fahrer:in zugeordnet ist, gehört zu einer Lücke – auch am Ende („seit … ohne Fahrer:in“). Überlappende Zuordnungen (Poolfahrzeuge) zählen gemeinsam. Ladevorgänge in einer
 Lücke bekommen keine Person (Auswertung pro Fahrer:in), daher wird ihre Anzahl mit angegeben. Zeiträume „ohne
 Fahrer:in“ (FahrzeugOhneFahrer) gelten als abgedeckt – das Fahrzeug war bewusst niemandem zugeordnet.
 """
@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import heute
+from app.formatierung import datum
 from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
 from app.services.aufloesung import stichtag_art, stichtag_spalte
 
@@ -22,8 +23,17 @@ class Luecke:
     fahrzeug: Fahrzeug
     von: date
     bis: date  # inklusive
-    offen: bool  # reicht bis heute (aktuell ohne Fahrer:in)
+    offen: bool  # umfasst heute (aktuell ohne Fahrer:in)
     ladevorgaenge: int = 0
+    endlos: bool = False  # ohne Leasing-Ende: reicht bis heute, ein Ende ist nicht bekannt
+    kuenftig: bool = False  # beginnt erst nach heute
+
+    @property
+    def text(self) -> str:
+        """z. B. „seit 01.06.2026 ohne Fahrer:in (bis 31.12.2026)“ bzw. „01.01.2027 – 31.03.2027 ohne Fahrer:in“."""
+        if self.offen:
+            return f"seit {datum(self.von)} ohne Fahrer:in" + ("" if self.endlos else f" (bis {datum(self.bis)})")
+        return f"{datum(self.von)} – {datum(self.bis)} ohne Fahrer:in"
 
     @property
     def tage(self) -> int:
@@ -57,10 +67,11 @@ def ermitteln(db: Session, tag: date | None = None) -> list[Luecke]:
         von = fz.leasing_beginn or min((ab for ab, _ in eigene), default=None)
         if von is None:  # weder Leasingbeginn noch Zuordnung: kein Bezugszeitraum
             continue
-        bis = min(tag, fz.leasing_ende) if fz.leasing_ende else tag
+        bis = fz.leasing_ende or tag  # mit Leasing-Ende der ganze Leasingzeitraum, auch die Zukunft
         for a, b in _zeitraeume(von, bis, eigene):
             anzahl = db.scalar(select(func.count()).select_from(Ladevorgang).where(
                 Ladevorgang.fahrzeug_id == fz.id, spalte >= datetime.combine(a, time.min),
                 spalte < datetime.combine(b + timedelta(days=1), time.min))) or 0
-            ergebnis.append(Luecke(fz, a, b, offen=b == tag, ladevorgaenge=anzahl))
+            ergebnis.append(Luecke(fz, a, b, offen=a <= tag <= b, ladevorgaenge=anzahl,
+                                   endlos=not fz.leasing_ende and b == tag, kuenftig=a > tag))
     return ergebnis

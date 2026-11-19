@@ -3,7 +3,8 @@
 Zeigt die Zuordnungen eines Objekts (Fahrer:innen eines Fahrzeugs, Fahrzeuge einer Person, Ziele einer Ladekarte,
 Karten eines Fahrzeugs bzw. einer Person) als Abschnitte auf einer Achse – von Leasingbeginn bzw. erster Zuordnung bis
 heute plus 3 Monate –, mit Heute-Linie und beim Fahrzeug Leasing-Markierungen. Lücken:
-- „warnung“: Fahrzeug ohne Fahrer:in (wie in Zeitleiste und Aufgaben, ab Leasingbeginn bis heute bzw. Leasing-Ende)
+- „warnung“: Fahrzeug ohne Fahrer:in (wie in Zeitleiste und Aufgaben, ab Leasingbeginn bis Leasing-Ende – auch in
+  der Zukunft –, ohne Leasing-Ende bis heute)
 - „neutral“: Ladekarte ohne Zuordnung (kein Fehler, nur zur Orientierung)
 - None: keine Lücken (Person ohne Fahrzeug ist keine Lücke; Karten am Fahrzeug sind optional)
 Die Tabelle listet Zuordnungen und Lücken chronologisch (alt → neu).
@@ -121,11 +122,11 @@ def berechnen(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None
     luecken: list[tuple[date, date]] = []
     if luecken_art and (leasing_beginn or eintraege):
         start = leasing_beginn or eintraege[0].ab
-        ende = min(heute, leasing_ende) if leasing_ende else heute
+        ende = leasing_ende or heute
         if start <= ende:
             luecken = zeitraeume_ohne(start, ende, [(e.ab, e.bis) for e in eintraege])
     for a, b in luecken:
-        offen = b == heute and not (leasing_ende and leasing_ende <= heute)
+        offen = b == heute and not leasing_ende  # ohne Leasing-Ende: „bis heute“
         mini.luecken.append(Abschnitt(*lage(a, b), von=a, bis=None if offen else b))
     # Tabelle chronologisch: Zuordnungen und Lücken
     mini.zeilen = sorted([Zeile(e.ab, eintrag=e) for e in eintraege]

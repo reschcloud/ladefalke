@@ -59,7 +59,8 @@
   <tbody>
   {% for l in luecken %}
     <tr><td>{{ l.fahrzeug.kennzeichen }}</td>
-      <td>{% if l.offen %}seit {{ l.von | datum }} <span class="warnung">(aktuell)</span>{% else %}{{ l.von | datum }} – {{ l.bis | datum }}{% endif %}</td>
+      <td>{% if l.offen %}seit {{ l.von | datum }}{% if not l.endlos %} bis {{ l.bis | datum }}{% endif %} <span class="warnung">(aktuell)</span>
+        {%- else %}{{ l.von | datum }} – {{ l.bis | datum }}{% if l.kuenftig %} (künftig){% endif %}{% endif %}</td>
       <td class="r">{{ l.tage }}</td><td class="r">{{ l.ladevorgaenge or "" }}</td></tr>
   {% endfor %}
   </tbody>

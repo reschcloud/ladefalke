@@ -70,3 +70,38 @@ def test_ladekarte_zuordnung_leasing_und_vorauswahl(angemeldet, db):
     assert f'"fahrzeug:{fz.id}": ["2025-03-01", "2028-02-29"]' in seite and 'data-leasing-feld="ziel"' in seite
     assert 'data-leasing-uebernehmen="ende"' in seite
     assert 'name="neu_zuordnen" checked' in seite  # Vorauswahl: bereits importierte neu zuordnen
+
+
+def test_luecken_bis_leasing_ende_auch_kuenftig(db):
+    """Mit Leasing-Ende wird der ganze Leasingzeitraum geprüft – auch künftige Zeiträume ohne Fahrer:in."""
+    from app.services import mini_zeitleiste
+    tag = D(2026, 11, 19)
+    fz = Fahrzeug(kennzeichen="LU-K1", leasing_beginn=D(2026, 1, 1), leasing_ende=D(2028, 12, 31))
+    ohne_ende = Fahrzeug(kennzeichen="LU-K2", leasing_beginn=D(2026, 1, 1))
+    anna, bernd = Fahrer(name="Anna Künftig"), Fahrer(name="Bernd Künftig")
+    db.add_all([fz, ohne_ende, anna, bernd])
+    db.flush()
+    db.add_all([ZuordnungFahrerFahrzeug(fahrer_id=anna.id, fahrzeug_id=fz.id, gueltig_ab=D(2026, 1, 1),
+                                        gueltig_bis=D(2026, 12, 31)),
+                ZuordnungFahrerFahrzeug(fahrer_id=bernd.id, fahrzeug_id=ohne_ende.id, gueltig_ab=D(2026, 1, 1),
+                                        gueltig_bis=D(2026, 6, 30))])
+    db.flush()
+    alle = {l.fahrzeug.kennzeichen: l for l in luecken.ermitteln(db, tag)}
+    k = alle["LU-K1"]
+    assert (k.von, k.bis, k.offen, k.kuenftig, k.endlos) == (D(2027, 1, 1), D(2028, 12, 31), False, True, False)
+    e = alle["LU-K2"]  # ohne Leasing-Ende: bis heute, offen und ohne bekanntes Ende
+    assert (e.von, e.bis, e.offen, e.endlos) == (D(2026, 7, 1), tag, True, True)
+    assert e.text == "seit 01.07.2026 ohne Fahrer:in"
+    # Aktuelle Lücke mit bekanntem Ende (Leasing-Ende)
+    db.get(ZuordnungFahrerFahrzeug, db.scalar(select(ZuordnungFahrerFahrzeug.id).where(
+        ZuordnungFahrerFahrzeug.fahrzeug_id == fz.id))).gueltig_bis = D(2026, 6, 30)
+    db.flush()
+    k = {l.fahrzeug.kennzeichen: l for l in luecken.ermitteln(db, tag)}["LU-K1"]
+    assert k.offen and not k.endlos and k.text == "seit 01.07.2026 ohne Fahrer:in (bis 31.12.2028)"
+    # Mini-Zeitleiste der Fahrzeugseite: Lücke bis zum Leasing-Ende, nicht „bis heute“
+    mini = mini_zeitleiste.berechnen([mini_zeitleiste.Eintrag(D(2026, 1, 1), D(2026, 12, 31), "Anna")], tag,
+                                     D(2026, 1, 1), D(2028, 12, 31), "warnung")
+    assert [(l.von, l.bis) for l in mini.luecken] == [(D(2027, 1, 1), D(2028, 12, 31))]
+    mini = mini_zeitleiste.berechnen([mini_zeitleiste.Eintrag(D(2026, 1, 1), D(2026, 6, 30), "Bernd")], tag,
+                                     D(2026, 1, 1), None, "warnung")
+    assert [(l.von, l.bis) for l in mini.luecken] == [(D(2026, 7, 1), None)]  # None = bis heute
