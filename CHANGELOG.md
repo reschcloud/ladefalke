@@ -5,7 +5,13 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
-Noch nichts.
+### Behoben
+
+- Fahrer:in: Der Knopf „Heute“ neben „Letzte Führerscheinkontrolle“ sitzt bündig neben dem Datumsfeld.
+
+### Beim Update beachten
+
+- Nichts.
 
 ## v1.1.0 – 19.11.2026
 

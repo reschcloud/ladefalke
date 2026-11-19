@@ -620,7 +620,7 @@ a.hinweis:hover { filter: brightness(.85); }
 .msp-marke.fahrzeug { color: var(--pico-primary); background: transparent; }
 /* Datumsfeld mit Knopf daneben (z. B. „Heute“ bei der Führerscheinkontrolle) */
 .datum-mit-knopf { display: flex; align-items: flex-end; gap: .75rem; }
-.datum-mit-knopf > label { flex: 1; }
+.datum-mit-knopf > label { flex: 1; margin-bottom: 0; }  /* sonst sitzt der Knopf um den Label-Abstand tiefer */
 .datum-mit-knopf > button { width: auto; margin-bottom: var(--pico-spacing); }
 /* ---------------------------------------------------------------- Mini-Zeitleiste der Zuordnungs-Abschnitte */
 .mini-zl { --zl-balken: #2a78d6; --zl-luecke: #fab219; --zl-leasing: #1a7f5a; --spur-h: 1.35rem; margin: .5rem 0 1rem; }
