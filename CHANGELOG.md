@@ -5,13 +5,16 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
+Noch nichts.
+
+## v1.1.0 – 19.11.2026
+
 ### Neu
 
 - Abhängigkeiten werden auf GitHub geprüft: Dependabot schlägt Updates vor (Python-Pakete, Basis-Image, PostgreSQL,
   Actions), der Workflow „Prüfung“ testet jeden Push und Pull Request und sucht wöchentlich mit `pip-audit` nach
   bekannten Sicherheitslücken.
 - Lock-Dateien heißen `requirements-lock.txt` und `requirements-dev-lock.txt` (Dependabot erkennt nur `.txt`).
-
 - Ältere Rechnungsformate werden erkannt: Salzburg AG (Layout bis etwa 2024 mit „Belegnummer“) und Elli bzw.
   „Easy Charging“ (Rechnung bis etwa 2023, mit Uhrzeit, EVSE-ID, AC/DC und eindeutiger ID je Ladevorgang;
   „Grundgebühr“ als Gebühr der Karte, auch Rechnungen nur mit Grundgebühr).
