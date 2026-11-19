@@ -105,3 +105,25 @@ def test_beispiel_pdf():
     assert sum(1 for g in e.gebuehren if g.kartenkennung is None) == 1  # Vertrag nur mit Grundgebühr
     assert len({v.kartenkennung for v in e.vorgaenge}) == 9
     assert all(v.kartenkennung and v.kartenkennung.isdigit() for v in e.vorgaenge)
+
+
+def test_aeltere_rechnung_vertragsnummer_als_ladekarte():
+    """Ältere Rechnungen nennen nach „Ladekarte:“ die Vertragsnummer statt einer Kartennummer."""
+    text = FIXTURE.read_text(encoding="utf-8").replace("Ladekarte: 100001", "Ladekarte: AT-VIE-C00000001-A")
+    text = text.replace("DC150 - Ladekarte:\n100001", "DC150 - Ladekarte:\nAT-VIE-C00000001-A")
+    e = parsen_text(text)
+    assert e.warnungen == [] and len(e.vorgaenge) == len(parsen_text(FIXTURE.read_text(encoding="utf-8")).vorgaenge)
+    v = e.vorgaenge[0]
+    assert (v.kartenkennung, v.kennung_typ) == ("AT-VIE-C00000001-A", KennungTyp.vertragsnummer)
+    assert any(x.kartenkennung == "AT-VIE-C00000001-A" for x in e.vorgaenge if x.ladepunkt.endswith("E0002*1"))
+
+
+def test_aeltere_rechnung_echt():
+    from tests.beispiele import beispiel
+    pdf = beispiel("7d3a5f89fca6")  # Wien Energie, Servicerechnung 05/2023
+    assert parser_erkennen(pdf) == "wien_energie"
+    from app.parsers import PARSER
+    e = PARSER["wien_energie"].parsen(pdf)
+    assert e.warnungen == [] and len(e.vorgaenge) == 4 and len(e.gebuehren) == 1
+    assert all(v.kennung_typ == KennungTyp.vertragsnummer for v in e.vorgaenge)
+    assert sum(v.kosten_netto for v in e.vorgaenge) + e.gebuehren[0].betrag_netto == e.rechnung.summe_netto

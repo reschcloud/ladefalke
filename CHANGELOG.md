@@ -15,6 +15,7 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 - Ältere Rechnungsformate werden erkannt: Salzburg AG (Layout bis etwa 2024 mit „Belegnummer“) und Elli bzw.
   „Easy Charging“ (Rechnung bis etwa 2023, mit Uhrzeit, EVSE-ID, AC/DC und eindeutiger ID je Ladevorgang;
   „Grundgebühr“ als Gebühr der Karte, auch Rechnungen nur mit Grundgebühr).
+- Wien Energie: ältere Rechnungen (bis etwa 2023) mit der Vertragsnummer statt einer Kartennummer nach „Ladekarte:“.
 
 ### Geändert
 

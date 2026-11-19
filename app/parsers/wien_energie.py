@@ -10,6 +10,8 @@ Nettobetrag, dann Details je Vertrag mit den Abschnitten „Wien Energie-Ladesta
   die Schätzbasis geht mit, damit der Import mit den Werten aus den Ladedaten neu schätzen kann.
 - Alle Beträge in der Rechnung sind brutto; netto = brutto / (1 + USt), Rundungsreste
   werden so verteilt, dass die Summe exakt dem Nettobetrag der Rechnung entspricht.
+- „Ladekarte:“ nennt die Kartennummer („Ladekarte: 100001“) oder – in älteren Rechnungen (bis etwa 2023) – die
+  Vertragsnummer („Ladekarte: AT-VIE-C00000001-A“); die Kennung gilt dann als Vertragsnummer.
 """
 import re
 from collections import defaultdict
@@ -33,7 +35,7 @@ RE_SEGMENT = re.compile(r"^(\d{2}\.\d{2}\.\d{4} \d{2}:\d{2})\s+(\d{2}\.\d{2}\.\d
                         rf"(\d[\d.]*,\d+)\s+(-?\d[\d.]*,\d+)\s+({BETRAG})$")
 RE_LADEPUNKT = re.compile(r"[A-Z]{2}\*[A-Z0-9]{3}\*[^,]+")
 RE_LEISTUNG = re.compile(r",(AC|DC)\s?(\d+(?:,\d+)?)\s*-\s*Ladekarte")
-RE_KARTE = re.compile(r"Ladekarte:\s*(\d+)")
+RE_KARTE = re.compile(r"Ladekarte:\s*(\S+)")  # Kartennummer oder (älter) Vertragsnummer
 RE_ZEITRAUM = re.compile(r"(\d{1,2}\.\d{1,2}\.\d{4})\s*-\s*(\d{1,2}\.\d{1,2}\.\d{4})")
 
 
@@ -207,7 +209,8 @@ def parsen_text(text: str) -> Ergebnis:
         rohdaten = {"vertrag": s["vertrag"], "kopfzeile": s["kopfzeile"], "abschnitte": s["abschnitte"],
                     "brutto": str(s["brutto"])}
         ergebnis.vorgaenge.append(Vorgang(
-            kartenkennung=s["karte"], kennung_typ=KennungTyp.kartennummer, vertragsnummer=s["vertrag"],
+            kartenkennung=s["karte"], vertragsnummer=s["vertrag"],
+            kennung_typ=KennungTyp.vertragsnummer if RE_VERTRAG.fullmatch(s["karte"]) else KennungTyp.kartennummer,
             start=s["start"], ende=s["ende"], kwh=kwh, kwh_geschaetzt=basis is not None, kosten_netto=n,
             standort=s["standort"], ladepunkt=s["ladepunkt"], kartenbezeichnung=f"Wien Energie {s['vertrag']}",
             stromart=s["stromart"], schaetzbasis=basis,
