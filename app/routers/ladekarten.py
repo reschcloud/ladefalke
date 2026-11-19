@@ -16,7 +16,7 @@ from app.services.aufloesung import neu_zuordnen_karte
 from app.services.fahrzeug_hinweise import Hinweis
 from app.services.ladevorgaenge import letzte_vorgaenge
 from app.services.offen import ohne_fahrzeug_bedingungen
-from app.services.zuordnung import ZuordnungsFehler, gueltig_am, karte_zuordnen
+from app.services.zuordnung import ZuordnungsFehler, fahrer_von_fahrzeug_am, gueltig_am, karte_zuordnen
 from app.web import blaettern, liste_merken, meldung, render, weiter, zuordnung_vorbelegung
 
 router = APIRouter(prefix="/stammdaten/ladekarten")
@@ -143,6 +143,9 @@ def liste(request: Request, status: str = "aktiv", msp_id: list[str] = Query([])
     return render(request, "stammdaten/ladekarte_liste.html", {
         "karten": db.scalars(q).all(), "aktuell": aktuell, "status": status, "msp_id": msp_id,
         "letzte": kennzahlen.letzte_je_karte(db),
+        # Fahrzeugkarten: wer das Fahrzeug heute fährt („Kennzeichen (Person)“)
+        "fahrer_heute": {z.fahrzeug_id: fahrer_von_fahrzeug_am(db, z.fahrzeug_id, heute())
+                         for z in aktuell.values() if z.fahrzeug_id},
         "msp_paare": [("msp_id", x) for x in msp_id],
         "msp_optionen": [(str(x.id), x.name) for x in db.scalars(select(Msp).order_by(Msp.name))]})
 

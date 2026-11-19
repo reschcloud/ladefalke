@@ -307,3 +307,21 @@ def test_ladekarte_erster_und_letzter_ladevorgang(angemeldet, db):
     assert f'href="/ladevorgaenge/{letzter.id}">03.09.2026 09:30' in seite
     assert '<span class="kachel-zahl">3</span>' in seite  # Anzahl in den Kennzahl-Kacheln
     assert "Erster Ladevorgang" not in angemeldet.get(f"/stammdaten/ladekarten/{leer.id}").text
+
+
+def test_ladekarten_liste_fahrzeugkarte_mit_person(angemeldet, db):
+    """„Aktuell zugeordnet“: bei Fahrzeugkarten Kennzeichen und wer das Fahrzeug heute fährt."""
+    from datetime import date
+    msp = db.scalar(select(Msp).where(Msp.parser_key == "dcs"))
+    fz, leer_fz = Fahrzeug(kennzeichen="KP-1", aktiv=True), Fahrzeug(kennzeichen="KP-2", aktiv=True)
+    person = Fahrer(name="Karla Person")
+    k1, k2 = (Ladekarte(msp=msp, kennung=k, kennung_typ=KennungTyp.kartennummer) for k in ("KP-K1", "KP-K2"))
+    db.add_all([fz, leer_fz, person, k1, k2])
+    db.flush()
+    db.add_all([ZuordnungFahrerFahrzeug(fahrer_id=person.id, fahrzeug_id=fz.id, gueltig_ab=date(2020, 1, 1)),
+                ZuordnungKarte(ladekarte_id=k1.id, fahrzeug_id=fz.id, gueltig_ab=date(2020, 1, 1)),
+                ZuordnungKarte(ladekarte_id=k2.id, fahrzeug_id=leer_fz.id, gueltig_ab=date(2020, 1, 1))])
+    db.flush()
+    liste = angemeldet.get("/stammdaten/ladekarten").text
+    assert f'>KP-1</a> (<a href="/stammdaten/fahrer/{person.id}">Karla Person</a>)' in liste
+    assert '>KP-2</a> <small class="ohne-fahrer">(ohne Fahrer:in)</small>' in liste

@@ -247,9 +247,11 @@
 {%- endmacro %}
 
 {# Ziel einer Karten-Zuordnung mit Symbol: Auto = fahrzeuggebundene Karte, Person = personengebundene Karte #}
-{% macro karten_ziel(z, link=true) -%}
+{# personen: bei Fahrzeugkarten die Fahrer:innen des Fahrzeugs (Liste) – dann „Kennzeichen (Person)“; none = weglassen #}
+{% macro karten_ziel(z, link=true, personen=none) -%}
 {%- if z.fahrer is not none %}{{ symbol("person", "Person") }} {% if link %}<a href="/stammdaten/fahrer/{{ z.fahrer.id }}">{{ z.fahrer.name }}</a>{% else %}{{ z.fahrer.name }}{% endif %}
 {%- elif z.fahrzeug is not none %}{{ symbol("auto", "Fahrzeug") }} {% if link %}<a href="/stammdaten/fahrzeuge/{{ z.fahrzeug.id }}">{{ z.fahrzeug.kennzeichen }}</a>{% else %}{{ z.fahrzeug.kennzeichen }}{% endif %}
+  {%- if personen is not none %} {% if personen %}({% for f in personen %}{% if link %}<a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% else %}{{ f.name }}{% endif %}{{ ", " if not loop.last }}{% endfor %}){% else %}<small class="ohne-fahrer">(ohne Fahrer:in)</small>{% endif %}{% endif %}
 {%- else %}–{% endif -%}
 {%- endmacro %}
 

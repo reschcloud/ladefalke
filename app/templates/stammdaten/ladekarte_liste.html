@@ -26,7 +26,7 @@
       <td>{{ k.msp.name }}</td>
       <td>
         {% if k.ist_gastkarte %}<span class="marker gast">Gäste</span>
-        {% elif aktuell.get(k.id) %}{{ m.karten_ziel(aktuell[k.id]) }}
+        {% elif aktuell.get(k.id) %}{{ m.karten_ziel(aktuell[k.id], personen=fahrer_heute.get(aktuell[k.id].fahrzeug_id, []) if aktuell[k.id].fahrzeug_id else none) }}
         {% else %}–{% endif %}
       </td>
       <td>{% if letzte.get(k.id) %}{{ letzte[k.id] | datum }} <small class="vor-tagen">({{ letzte[k.id] | vor_tagen }})</small>{% else %}–{% endif %}</td>
