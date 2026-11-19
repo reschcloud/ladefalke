@@ -1168,3 +1168,4 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 .versand-dialog .versand-stichtag input { width: auto; margin: 0; font-weight: 400; }
 .ohne-fahrer { color: var(--pico-muted-color); }
 .mini-zl-balken.ohne span { color: var(--pico-muted-color); }
+.vor-tagen { color: var(--pico-muted-color); white-space: nowrap; }

@@ -25,6 +25,7 @@ templates.env.filters.update(
     geld=formatierung.geld,
     monat=formatierung.monat,
     dauer=formatierung.dauer,
+    vor_tagen=formatierung.vor_tagen,
     prozent=formatierung.prozent,
     optionen=_optionen,
 )

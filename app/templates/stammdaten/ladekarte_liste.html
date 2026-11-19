@@ -29,7 +29,7 @@
         {% elif aktuell.get(k.id) %}{{ m.karten_ziel(aktuell[k.id]) }}
         {% else %}–{% endif %}
       </td>
-      <td>{{ letzte[k.id] | datum if letzte.get(k.id) else "–" }}</td>
+      <td>{% if letzte.get(k.id) %}{{ letzte[k.id] | datum }} <small class="vor-tagen">({{ letzte[k.id] | vor_tagen }})</small>{% else %}–{% endif %}</td>
       {% if status == "alle" %}<td>{{ m.aktiv_kennzeichen(k.aktiv) }}</td>{% endif %}
     </tr>
   {% else %}

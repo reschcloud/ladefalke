@@ -7,7 +7,7 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Neu
 
-- Ladekarten: Die Liste zeigt den letzten Ladevorgang je Karte; die Detailseite Kennzahlen (wie bei Fahrzeug und
+- Ladekarten: Die Liste zeigt den letzten Ladevorgang je Karte (mit „vor x Tagen“); die Detailseite Kennzahlen (wie bei Fahrzeug und
   Fahrer:in) sowie ersten und letzten Ladevorgang mit Link.
 
 ### Behoben

@@ -299,6 +299,8 @@ def test_ladekarte_erster_und_letzter_ladevorgang(angemeldet, db):
     db.flush()
     liste = angemeldet.get("/stammdaten/ladekarten?status=alle").text
     assert "Letzter Ladevorgang" in liste and "03.09.2026" in liste
+    from app.formatierung import vor_tagen
+    assert f"03.09.2026 <small class=\"vor-tagen\">({vor_tagen(datetime(2026, 9, 3))})</small>" in liste
     seite = angemeldet.get(f"/stammdaten/ladekarten/{karte.id}").text
     erster, letzter = vorgaenge[1], vorgaenge[2]
     assert f'href="/ladevorgaenge/{erster.id}">03.02.2026 09:30' in seite

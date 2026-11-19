@@ -72,3 +72,14 @@ def test_flagge():
     from app.formatierung import flagge
     assert flagge("AT") == "\U0001F1E6\U0001F1F9" and flagge("de") == "\U0001F1E9\U0001F1EA"
     assert flagge(None) == flagge("") == flagge("A*") == flagge("AUT") == ""
+
+
+def test_vor_tagen():
+    from datetime import date, datetime
+    from app.formatierung import vor_tagen
+    heute = date(2026, 11, 19)
+    assert vor_tagen(datetime(2026, 11, 19, 7, 0), heute) == "heute"
+    assert vor_tagen(date(2026, 11, 18), heute) == "gestern"
+    assert vor_tagen(datetime(2026, 9, 3, 9, 30), heute) == "vor 77 Tagen"
+    assert vor_tagen(date(2026, 11, 20), heute) == "morgen" and vor_tagen(date(2026, 11, 25), heute) == "in 6 Tagen"
+    assert vor_tagen(None, heute) == ""

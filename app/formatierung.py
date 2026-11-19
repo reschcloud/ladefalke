@@ -21,6 +21,23 @@ def zahl(wert: Decimal | int | float | None, stellen: int = 2) -> str:
     return text.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
 
 
+def vor_tagen(wert: date | datetime | None, heute: date | None = None) -> str:
+    """Abstand zu heute in Tagen: „heute“, „gestern“, „vor 12 Tagen“ (Zukunft: „in 3 Tagen“)."""
+    if wert is None:
+        return ""
+    if heute is None:
+        from app.config import heute as heute_
+        heute = heute_()
+    tage = (heute - (wert.date() if isinstance(wert, datetime) else wert)).days
+    if tage == 0:
+        return "heute"
+    if tage == 1:
+        return "gestern"
+    if tage < 0:
+        return "morgen" if tage == -1 else f"in {-tage} Tagen"
+    return f"vor {tage} Tagen"
+
+
 def dauer(start: datetime | None, ende: datetime | None) -> str:
     """Ladedauer (angesteckt): „45 min“, „1:05 h“, ab einem Tag „2 T 3 h“; ohne Zeiten „–“."""
     if start is None or ende is None or ende < start:
