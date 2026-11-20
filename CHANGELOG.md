@@ -3,7 +3,7 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
-## Unveröffentlicht
+## v1.2.0 – 20.11.2026
 
 ### Neu
 

@@ -2,7 +2,7 @@
 
 App-Name in der Oberfläche: „Ladefalke“ (Menüleiste, Browser-Tab), auf der Anmeldeseite mit Untertitel „Der elektrische Fuhrpark im Blick“; unter dem Namen klein „resch.cloud“ (Menüleiste, Anmeldung, Kopfzeile der PDF-Reports). Früherer Arbeitstitel: Ladekosten-Auswertung.
 
-Interne Webanwendung zur Erfassung und Auswertung aller Ladevorgänge der Firmenflotte.
+Webanwendung zur Erfassung und Auswertung aller Ladevorgänge der Firmenflotte.
 Läuft per Docker Compose im lokalen Netz. Alle Beträge **netto**.
 
 ## 1. Ziele

@@ -1,6 +1,6 @@
 # Ladefalke – Der elektrische Fuhrpark im Blick
 
-Interne Webanwendung zur Erfassung und Auswertung der Ladevorgänge der Firmenflotte.
+Webanwendung zur Erfassung und Auswertung der Ladevorgänge der Firmenflotte.
 Spezifikation: [SPEC.md](SPEC.md).
 
 ## Start
@@ -206,7 +206,7 @@ als fertiges Image aus der GitHub Container Registry (`ghcr.io/reschcloud/ladefa
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.1.0                            # gewünschtes Release
+V=v1.2.0                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # LADEFALKE_VERSION, Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus
@@ -216,7 +216,7 @@ docker compose ps                   # app „healthy“ = App antwortet und erre
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.1.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.2.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
@@ -229,9 +229,9 @@ nicht neu geladen werden. Das TLS-Zertifikat entsteht neu (oder eigenes nach `da
 
 1. In [CHANGELOG.md](CHANGELOG.md) „Beim Update beachten“ des neuen Release lesen (z. B. ob `compose.yaml` oder
    `.env` neue Einträge brauchen). Eine geänderte `compose.yaml` holen mit
-   `curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/v1.2.0/compose.yaml`; neue Einträge für `.env`
+   `curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/v1.3.0/compose.yaml`; neue Einträge für `.env`
    stehen in `.env.example` desselben Release.
-2. In `.env` `LADEFALKE_VERSION` auf die neue Version setzen (z. B. `1.2.0`), dann:
+2. In `.env` `LADEFALKE_VERSION` auf die neue Version setzen (z. B. `1.3.0`), dann:
 
 ```sh
 docker compose pull
@@ -239,8 +239,8 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.2.0 && docker compose up -d --build`. Der Footer zeigt danach die
-neue Version (z. B. „v1.2.0 · 20.12.2026“).
+Selbst gebaut: `git fetch --tags && git checkout v1.3.0 && docker compose up -d --build`. Der Footer zeigt danach die
+neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
 Sicherung** an (`ladefalke-backup-…-update.tar.gz`, Art „vor Update“; wird nie automatisch gelöscht). Schlägt diese
@@ -299,11 +299,11 @@ keine Hauptversion.
 3. Commit, dann **einfacher** Tag (ohne `-a`, damit die Versionsanzeige ihn auch beim Selbstbauen erkennt):
 
    ```sh
-   git tag v1.2.0 && git push origin main v1.2.0
+   git tag v1.3.0 && git push origin main v1.3.0
    ```
 
 4. Der Tag startet die Pipeline [.github/workflows/release.yml](.github/workflows/release.yml) (GitHub → Actions):
-   erst die Tests, dann das Image `ghcr.io/reschcloud/ladefalke` mit den Tags `1.2.0`, `1.2`, `1` und `latest`.
+   erst die Tests, dann das Image `ghcr.io/reschcloud/ladefalke` mit den Tags `1.3.0`, `1.3`, `1` und `latest`.
    Schlagen die Tests fehl, entsteht kein Image. Beim ersten Mal unter GitHub → Packages → ladefalke →
    Package settings die Sichtbarkeit auf „Public“ stellen, falls das Image nicht öffentlich ist.
 
