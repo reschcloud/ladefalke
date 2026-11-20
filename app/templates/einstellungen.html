@@ -113,6 +113,10 @@
     {% call feature("feature_vignette", "Autobahn-Vignette (Österreich)", "Vignette überwachen", "Gültigkeit je Fahrzeug; neue Fahrzeuge brauchen sie standardmäßig (beim Fahrzeug abwählbar).") %}
       {{ einstellung("vignette_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
     {% endcall %}
+    {% call feature("feature_kartenpruefung", "Ladekarten je Fahrzeug", "Anzahl der Fahrzeugkarten prüfen", "Zeiträume, in denen einem Fahrzeug weniger oder mehr Ladekarten direkt zugeordnet sind als hier erlaubt, erscheinen beim Fahrzeug und unter „Aufgaben“ (geprüft ab Leasingbeginn bis Leasing-Ende, sonst ab der ersten Zuordnung bis heute). Persönliche Karten der Fahrer:innen zählen nicht.") %}
+      {{ einstellung("karten_min", "Mindestens", "Karten", empfehlung=false) }}
+      {{ einstellung("karten_max", "Höchstens", "Karten", empfehlung=false) }}
+    {% endcall %}
     {% call feature("feature_streckenmaut", "Streckenmaut FLEX (Österreich)", "Streckenmaut FLEX überwachen", "Gültigkeit je Fahrzeug; standardmäßig bei keinem Fahrzeug nötig (beim Fahrzeug anwählbar).") %}
       {{ einstellung("streckenmaut_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
     {% endcall %}

@@ -108,12 +108,35 @@ def _karten_perioden(db: Session, karte_id: int, ohne_id: int | None = None):
     return db.scalars(q).all()
 
 
+def leasing_pruefen(fahrzeug: Fahrzeug, ab: date, bis: date | None) -> tuple[date | None, list[str]]:
+    """Ladekarte → Fahrzeug nur innerhalb des Leasingzeitraums (ohne Leasingdaten keine Grenze). Ein offenes Ende wird
+    auf das Leasing-Ende begrenzt. Liefert (wirksames Ende, Hinweise); außerhalb → ZuordnungsFehler."""
+    lb, le = fahrzeug.leasing_beginn, fahrzeug.leasing_ende
+    if lb and ab < lb:
+        raise ZuordnungsFehler(f"Fahrzeug {fahrzeug.kennzeichen}: Die Zuordnung beginnt vor dem Leasingbeginn "
+                               f"{datum(lb)} – Ladekarten nur innerhalb des Leasings zuordnen.")
+    if le and ab > le:
+        raise ZuordnungsFehler(f"Fahrzeug {fahrzeug.kennzeichen}: Die Zuordnung beginnt nach dem Leasing-Ende {datum(le)}.")
+    if le and bis is None:
+        return le, [f"Die Zuordnung endet mit dem Leasing des Fahrzeugs {fahrzeug.kennzeichen} am {datum(le)}."]
+    if le and bis > le:
+        raise ZuordnungsFehler(f"Fahrzeug {fahrzeug.kennzeichen}: Die Zuordnung endet nach dem Leasing-Ende "
+                               f"{datum(le)} – bitte spätestens bis dahin.")
+    return bis, []
+
+
 def karte_zuordnen(db: Session, karte: Ladekarte, *, ab: date, bis: date | None = None,
                    fahrer_id: int | None = None, fahrzeug_id: int | None = None,
                    heute: date) -> tuple[ZuordnungKarte, list[str]]:
     _karte_pruefen(karte, fahrer_id, fahrzeug_id)
+    leasing_hinweise = []
+    if fahrzeug_id is not None:  # vor dem Beenden der Vorperiode: offenes Ende beendet sie wie bisher
+        if (fz := db.get(Fahrzeug, fahrzeug_id)) is not None:
+            _, leasing_hinweise = leasing_pruefen(fz, ab, bis)
     zu_beenden = _pruefen(_karten_perioden(db, karte.id), ab, bis, vorperiode_beenden=True)
-    hinweise = _beenden(db, zu_beenden, ab, lambda z: z.ziel_name)
+    if fahrzeug_id is not None and fz is not None:
+        bis, _ = leasing_pruefen(fz, ab, bis)
+    hinweise = leasing_hinweise + _beenden(db, zu_beenden, ab, lambda z: z.ziel_name)
     neu = ZuordnungKarte(ladekarte_id=karte.id, fahrer_id=fahrer_id, fahrzeug_id=fahrzeug_id,
                          gueltig_ab=ab, gueltig_bis=bis)
     db.add(neu)
@@ -125,13 +148,16 @@ def karte_zuordnen(db: Session, karte: Ladekarte, *, ab: date, bis: date | None 
 def karten_zuordnung_aendern(db: Session, z: ZuordnungKarte, *, ab: date, bis: date | None,
                              fahrer_id: int | None, fahrzeug_id: int | None, heute: date) -> list[str]:
     _karte_pruefen(z.ladekarte, fahrer_id, fahrzeug_id)
+    leasing_hinweise = []
+    if fahrzeug_id is not None and (fz := db.get(Fahrzeug, fahrzeug_id)) is not None:
+        bis, leasing_hinweise = leasing_pruefen(fz, ab, bis)
     _pruefen(_karten_perioden(db, z.ladekarte_id, ohne_id=z.id), ab, bis, vorperiode_beenden=False)
     rueckwirkend = ab < z.gueltig_ab
     z.gueltig_ab, z.gueltig_bis, z.fahrer_id, z.fahrzeug_id = ab, bis, fahrer_id, fahrzeug_id
     db.flush()
     db.refresh(z)
-    hinweise = zusammenfassen(db, ZuordnungKarte, ladekarte_id=z.ladekarte_id, fahrer_id=fahrer_id,
-                              fahrzeug_id=fahrzeug_id)
+    hinweise = leasing_hinweise + zusammenfassen(db, ZuordnungKarte, ladekarte_id=z.ladekarte_id, fahrer_id=fahrer_id,
+                                                 fahrzeug_id=fahrzeug_id)
     return hinweise + (_rueckwirkend(ab, heute) if rueckwirkend else [])
 
 

@@ -35,6 +35,29 @@
     Person aktualisieren.</small>
 </section>
 {% endif %}
+{# Ladekarten je Fahrzeug: Anzahl außerhalb der Grenzen bzw. Zuordnung außerhalb des Leasings (services/kartenpruefung.py) #}
+{% if karten_befunde %}
+<section class="meldung meldung-warnung karten-befunde" id="karten-je-fahrzeug" role="status" aria-label="Ladekarten je Fahrzeug">
+  <strong>💳 Ladekarten je Fahrzeug</strong>
+  <ul>
+  {% for b in karten_befunde %}
+    <li><a href="/stammdaten/fahrzeuge/{{ b.fahrzeug.id }}#ladekarten">{{ b.fahrzeug.kennzeichen }}</a>:
+      {% if b.art == "ausserhalb" %}Karte <a href="/stammdaten/ladekarten/{{ b.zuordnung.ladekarte.id }}">{{ b.zuordnung.ladekarte.bezeichnung or b.zuordnung.ladekarte.kennung }}</a>
+        <strong>außerhalb des Leasings</strong> – {% if b.offen %}seit {{ b.von | datum }}{% else %}{{ zeitraum(b.von, b.bis) }}{% endif %}
+        <a href="/stammdaten/zuordnungen/karte/{{ b.zuordnung.id }}?zurueck=/aufgaben" role="button" class="outline klein" data-schreiben>Zuordnung anpassen</a>
+      {%- else %}<strong>{{ b.anzahl_text }}</strong> –
+        {% if b.offen %}seit {{ b.von | datum }}{% if b.bis %} (bis {{ b.bis | datum }}){% endif %}{% else %}{{ zeitraum(b.von, b.bis) }}{% endif %}
+        {%- if b.kuenftig %} <small>(künftig)</small>{% endif %}{% endif %}
+      <small class="karten-befund-erklaerung">· {{ b.erklaerung }}</small></li>
+  {% endfor %}
+  </ul>
+  <small>Ladekarten werden einem Fahrzeug nur innerhalb des Leasings zugeordnet.
+    {%- if einst.feature_kartenpruefung %} Geprüft wird außerdem die Anzahl der direkt zugeordneten Karten
+    (erlaubt {{ einst.karten_min }}{% if einst.karten_max != einst.karten_min %} bis {{ einst.karten_max }}{% endif %}) – ab
+    Leasingbeginn bis Leasing-Ende, sonst ab der ersten Zuordnung bis heute.{% endif %} Einstellbar unter
+    <a href="/einstellungen#fristen">Einstellungen</a>. Überblick je Fahrzeug: Zeitleiste auf der Fahrzeugseite.</small>
+</section>
+{% endif %}
 {# Hinweis: Zeiträume, in denen ein aktives Fahrzeug keine Fahrer:in hatte (services/luecken.py) #}
 {% if luecken %}
 <section class="meldung meldung-info luecken" role="status" aria-label="Lücken in der Fahrer:innen-Zuordnung">
@@ -71,6 +94,7 @@
 {% endmacro %}
 <nav class="kacheln aufgaben-uebersicht" aria-label="Übersicht der Aufgaben">
   {{ aufgabe("fristen", fristen | length, "Fristen", "Datum beim Fahrzeug bzw. der Person aktualisieren") }}
+  {{ aufgabe("karten-je-fahrzeug", karten_befunde | length, "Ladekarten je Fahrzeug", "Kartenzuordnung beim Fahrzeug prüfen") }}
   {{ aufgabe("ohne-fahrzeug", request.state.offen.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug",
              "Karte zuordnen oder Vorgänge manuell zuweisen") }}
   {{ aufgabe("gebuehren", gebuehren | length, "Gebühren ohne Ladekarte", "einer Ladekarte zuweisen") }}
@@ -86,7 +110,7 @@
   {% endif %}
 </nav>
 {% if not (request.state.offen.ohne_fahrzeug or vorgaenge or gebuehren or unplausible or request.state.offen.ohne_stromart
-           or stromart_msp or ladeorte or fristen or luecken) %}<p class="meldung meldung-info">✓ Alles erledigt – nichts zu klären.</p>{% endif %}
+           or stromart_msp or ladeorte or fristen or luecken or karten_befunde) %}<p class="meldung meldung-info">✓ Alles erledigt – nichts zu klären.</p>{% endif %}
 
 {% if request.state.offen.ohne_fahrzeug or vorgaenge %}
 <div class="kopf">

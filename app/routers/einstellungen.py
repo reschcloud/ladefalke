@@ -20,8 +20,8 @@ from app.web import meldung, render, weiter
 router = APIRouter(prefix="/einstellungen")
 GANZZAHLEN = ("leasing_dauer_monate", "leasing_vorwarnung_tage", "fuehrerschein_intervall_monate",
               "fuehrerschein_vorwarnung_tage", "backup_behalten", "protokoll_aufbewahrung_jahre",
-              "vignette_vorwarnung_tage", "streckenmaut_vorwarnung_tage")
-FEATURES = ("feature_fuehrerschein", "feature_vignette", "feature_streckenmaut")
+              "vignette_vorwarnung_tage", "streckenmaut_vorwarnung_tage", "karten_min", "karten_max")
+FEATURES = ("feature_fuehrerschein", "feature_vignette", "feature_streckenmaut", "feature_kartenpruefung")
 
 
 def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
@@ -125,6 +125,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
               syslog_werte: str = Form(""), feature_fuehrerschein: str = Form(""), feature_vignette: str = Form(""),
               feature_streckenmaut: str = Form(""), vignette_vorwarnung_tage: str = Form("30"),
               streckenmaut_vorwarnung_tage: str = Form("30"), aufgaben_auto_an: str = Form(""),
+              feature_kartenpruefung: str = Form(""), karten_min: str = Form("1"), karten_max: str = Form("1"),
               aufgaben_auto: str = Form("woechentlich"),
               aufgaben_auto_wochentag: str = Form("0"), aufgaben_auto_tag: str = Form("1"),
               aufgaben_auto_uhrzeit: str = Form("07:00"), aufgaben_auto_nur_offen: str = Form(""),
@@ -152,7 +153,8 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
              "syslog_werte": bool(syslog_werte), "vignette_vorwarnung_tage": vignette_vorwarnung_tage,
              "streckenmaut_vorwarnung_tage": streckenmaut_vorwarnung_tage,
              "feature_fuehrerschein": bool(feature_fuehrerschein), "feature_vignette": bool(feature_vignette),
-             "feature_streckenmaut": bool(feature_streckenmaut)}
+             "feature_streckenmaut": bool(feature_streckenmaut), "feature_kartenpruefung": bool(feature_kartenpruefung),
+             "karten_min": karten_min, "karten_max": karten_max}
     fehler, daten = {}, {feld: "1" if werte[feld] else "" for feld in FEATURES}
     for feld in GANZZAHLEN:  # Fristen: ganze Monate bzw. Tage
         text = werte[feld].strip()
@@ -163,6 +165,8 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
             fehler[feld] = "Bitte einen Wert größer 0 angeben."
         else:
             daten[feld] = str(int(text))
+    if "karten_min" in daten and "karten_max" in daten and int(daten["karten_max"]) < int(daten["karten_min"]):
+        fehler["karten_max"] = "Das Maximum darf nicht kleiner als das Minimum sein."
     if backup_zeitplan not in BACKUP_ZEITPLAENE:
         fehler["backup_zeitplan"] = "Bitte einen Zeitplan wählen."
     else:

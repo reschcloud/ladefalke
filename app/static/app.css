@@ -1169,3 +1169,19 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 .ohne-fahrer { color: var(--pico-muted-color); }
 .mini-zl-balken.ohne span { color: var(--pico-muted-color); }
 .vor-tagen { color: var(--pico-muted-color); white-space: nowrap; }
+/* Zeitleiste des Fahrzeugs (Fahrzeugseite): Fahrer:innen und Ladekarten auf gemeinsamer Achse, Beschriftung links */
+.fzl-zeile { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: center; gap: .6rem; }
+.fzl-zeile + .fzl-zeile { margin-top: .3rem; }
+.fzl-titel { font-size: .8rem; color: var(--pico-muted-color); text-align: right; }
+/* Markierung über einer Leiste: falsche Kartenanzahl (gelb) bzw. außerhalb des Leasings / keine Karte (rot) */
+.mini-zl-markierung { position: absolute; top: 0; bottom: 0; z-index: 1; border-bottom: 3px solid; }
+.mini-zl-markierung.gelb { border-color: #c98a00; background: repeating-linear-gradient(135deg,
+  color-mix(in srgb, #fab219 35%, transparent) 0 2px, transparent 2px 7px); }
+.mini-zl-markierung.rot { border-color: var(--pico-del-color); background: repeating-linear-gradient(135deg,
+  color-mix(in srgb, var(--pico-del-color) 30%, transparent) 0 2px, transparent 2px 7px); }
+.fzl-befunde { list-style: none; padding: 0; margin: .6rem 0 0; font-size: .85rem; }
+.fzl-befunde li { list-style: none; margin: 0 0 .15rem; padding-left: 1.1rem; position: relative; }
+.fzl-befunde li::before { content: "⚠"; position: absolute; left: 0; }
+.fzl-befunde li.rot { color: var(--pico-del-color); }
+.fzl-befunde li.gelb { color: #8a5a00; }
+@media (max-width: 40rem) { .fzl-zeile { grid-template-columns: minmax(0, 1fr); } .fzl-titel { text-align: left; } }

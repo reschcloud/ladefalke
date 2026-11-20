@@ -9,7 +9,7 @@ from app.config import heute
 from app.db import get_db
 from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug, ZuordnungKarte
 from app.services import app_einstellungen, fahrzeug_hinweise, mini_zeitleiste
-from app.services import kartenanzeige, kennzahlen, protokoll
+from app.services import kartenanzeige, kartenpruefung, kennzahlen, protokoll
 from app.services.kartenanzeige import kurz as kurz_kennung
 from app.services.fristen import jahresvignette, leasing_ende_vorschlag
 from app.services.ladeprofil import ohne_angabe, schaetzgrundlage, unplausible_anzahl
@@ -125,19 +125,26 @@ def _detail(request, db, fz, werte, fehler=None, status_code=200, zuordnung_wert
             .order_by(ZuordnungKarte.gueltig_ab.desc())).all()
         zurueck = f"?zurueck=/stammdaten/fahrzeuge/{fz.id}"
         ohne = db.scalars(select(FahrzeugOhneFahrer).where(FahrzeugOhneFahrer.fahrzeug_id == fz.id)).all()
-        kontext["fahrer_mini"] = mini_zeitleiste.berechnen(
+        fahrer_eintraege = (
             [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.fahrer.name, f"/stammdaten/fahrer/{z.fahrer.id}",
                                      bearbeiten=f"/stammdaten/zuordnungen/fahrer/{z.id}{zurueck}", art="person")
              for z in kontext["fahrer_historie"]]
             + [mini_zeitleiste.Eintrag(o.gueltig_ab, o.gueltig_bis, "ohne Fahrer:in", stil="ohne",
-                                       bearbeiten=f"/stammdaten/zuordnungen/ohne/{o.id}{zurueck}") for o in ohne],
-            heute(), fz.leasing_beginn, fz.leasing_ende, "warnung")
+                                       bearbeiten=f"/stammdaten/zuordnungen/ohne/{o.id}{zurueck}") for o in ohne])
+        karten_eintraege = [
+            mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.ladekarte.msp.name,
+                                    f"/stammdaten/ladekarten/{z.ladekarte.id}", f"…{kurz_kennung(z.ladekarte.kennung)}",
+                                    f"/stammdaten/zuordnungen/karte/{z.id}{zurueck}", art="karte")
+            for z in kontext["karten_historie"]]
+        # Zeitleiste des Fahrzeugs: Fahrer:innen und Karten auf gemeinsamer Achse, Befunde der Kartenprüfung markiert
+        achse = mini_zeitleiste.bereich(fahrer_eintraege + karten_eintraege, heute(), fz.leasing_beginn, fz.leasing_ende)
+        kontext["fahrer_mini"] = mini_zeitleiste.berechnen(fahrer_eintraege, heute(), fz.leasing_beginn,
+                                                           fz.leasing_ende, "warnung", achse=achse)
         kontext["karten_auswahl"] = kartenanzeige.zuordenbare_karten(db)
-        kontext["karten_mini"] = mini_zeitleiste.berechnen(
-            [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.ladekarte.msp.name,
-                                     f"/stammdaten/ladekarten/{z.ladekarte.id}", f"…{kurz_kennung(z.ladekarte.kennung)}",
-                                     f"/stammdaten/zuordnungen/karte/{z.id}{zurueck}", art="karte")
-             for z in kontext["karten_historie"]], heute(), fz.leasing_beginn, fz.leasing_ende)
+        kontext["karten_mini"] = mini_zeitleiste.berechnen(karten_eintraege, heute(), fz.leasing_beginn,
+                                                           fz.leasing_ende, achse=achse)
+        kontext["karten_markierungen"] = mini_zeitleiste.markierungen(kontext["karten_mini"], [
+            (b.von, b.bis, b.stufe, f"{b.text} – {b.erklaerung}") for b in kartenpruefung.ermitteln(db, e, fahrzeuge=[fz])])
         kontext["vorgaenge"] = letzte_vorgaenge(db, Ladevorgang.fahrzeug_id == fz.id)
         grundlage = schaetzgrundlage(db)
         kontext["profil"] = grundlage.fahrzeuge.get(fz.id, {})

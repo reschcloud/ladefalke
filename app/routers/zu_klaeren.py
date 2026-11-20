@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.db import get_db
 from app.models import Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort, Ladevorgang, Msp, ZuordnungQuelle
 from app.routers.ladevorgaenge import ladeort_plz_speichern
-from app.services import app_einstellungen, fristen, kartenanzeige, luecken, stromart
+from app.services import app_einstellungen, fristen, kartenanzeige, kartenpruefung, luecken, stromart
 from app.services.aufloesung import fahrzeug_setzen, neu_zuordnen, stichtag_art, stichtag_spalte
 from app.services.ladeprofil import leistung, unplausibel_grund, unplausibel_sql
 from app.services.geokodierung import GENAUIGKEIT, alle_geokodieren, verzeichnis_vorhanden, verzichten, wieder_verorten
@@ -95,6 +95,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
 
     return render(request, "zu_klaeren.html", {
         "fristen": fristen.ermitteln(db, einst), "einst": einst, "luecken": luecken.ermitteln(db),
+        "karten_befunde": kartenpruefung.ermitteln(db, einst),
         "ohne_stromart": ohne_stromart, "stromart_msp": stromart_msp if stromart_msp.isdigit() else "",
         "stromart_vorgaenge": [(v, kw, *stromart.vorschlag(kw, einst))
                                for v in stromart_vorgaenge for kw in [leistung(v)]],

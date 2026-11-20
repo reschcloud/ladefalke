@@ -9,7 +9,7 @@ from app.db import get_db
 from app.models import Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, Ladekarte, Ladeort, Ladevorgang, Msp
 from app.services.app_einstellungen import laden as einstellungen_laden
 from app.services.geokodierung import verzeichnis_vorhanden
-from app.services import fristen, stromart
+from app.services import fristen, kartenpruefung, stromart
 from app.services.ladeprofil import unplausibel_sql
 
 
@@ -29,16 +29,18 @@ class OffenePunkte:
     ladeorte: int = 0  # Ladeorte ohne Koordinaten bzw. nur auf das Land verortet
     ohne_stromart: int = 0  # Ladevorgänge ohne AC/DC-Angabe
     fristen: int = 0  # Leasing, Führerscheinkontrolle, Vignette, Streckenmaut FLEX (services/fristen.py)
+    karten: int = 0  # Ladekarten je Fahrzeug: Anzahl bzw. außerhalb des Leasings (services/kartenpruefung.py)
 
     @property
     def zu_klaeren(self) -> int:
         return (self.ohne_fahrzeug + self.gebuehren_ohne_karte + self.unplausibel + self.ladeorte + self.ohne_stromart
-                + self.fristen)
+                + self.fristen + self.karten)
 
     @property
     def beschreibung(self) -> str:
         """Tooltip des roten Punkts: nur Kategorien mit offenen Punkten, in der Reihenfolge der Aufgabenseite."""
-        teile = [(self.fristen, "Fristen"), (self.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug"),
+        teile = [(self.fristen, "Fristen"), (self.karten, "Ladekarten je Fahrzeug"),
+                 (self.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug"),
                  (self.gebuehren_ohne_karte, "Gebühren ohne Ladekarte"), (self.unplausibel, "unplausible AC/DC-Angaben"),
                  (self.ohne_stromart, "Ladevorgänge ohne AC/DC-Angabe"), (self.ladeorte, "Ladeorte ohne Koordinaten")]
         return ", ".join(f"{n} {text}" for n, text in teile if n)
@@ -56,7 +58,8 @@ def zaehlen(db: Session) -> OffenePunkte:
         unplausibel=anzahl(Ladevorgang, unplausibel_sql(e)),
         ladeorte=anzahl(Ladeort, *ladeorte_offen_bedingungen()) if verzeichnis_vorhanden(db) else 0,
         ohne_stromart=anzahl(Ladevorgang, stromart.ohne_angabe()),
-        fristen=len(fristen.ermitteln(db, e)))
+        fristen=len(fristen.ermitteln(db, e)),
+        karten=len(kartenpruefung.ermitteln(db, e)))
 
 
 def ladeorte_offen_bedingungen():
@@ -112,6 +115,7 @@ def fuer_report(db: Session, max_zeilen: int = 30) -> dict:
     return {
         "zahlen": zaehlen(db), "einst": e, "max_zeilen": max_zeilen,
         "fristen": fristen.ermitteln(db, e), "luecken": luecken.ermitteln(db),
+        "karten_befunde": kartenpruefung.ermitteln(db, e),
         "gruppen": gruppen, "karten": karten,
         "gebuehren": db.scalars(select(Gebuehr).where(Gebuehr.ladekarte_id.is_(None))
                                 .options(selectinload(Gebuehr.import_).selectinload(Import.msp))

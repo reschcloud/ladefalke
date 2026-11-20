@@ -38,7 +38,7 @@ def test_detailseiten(angemeldet, db):
                 ZuordnungKarte(ladekarte_id=k.id, fahrzeug_id=fz.id, gueltig_ab=D(2026, 4, 1), gueltig_bis=D(2026, 8, 31))])
     db.flush()
     seite = angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text
-    assert 'class="mini-zl"' in seite and 'class="mini-zl-leasing beginn"' in seite
+    assert 'class="mini-zl fzl"' in seite and 'class="mini-zl-leasing beginn"' in seite  # Zeitleiste des Fahrzeugs
     assert '<tr class="luecken-zeile warnung">' in seite and "⚠ Lücke ohne Fahrer:in" in seite
     assert 'data-luecke-fuellen="neue-fahrer-zuordnung"' in seite and 'data-von="2026-01-01" data-bis="2026-02-28"' in seite
     assert 'id="neue-fahrer-zuordnung"' in seite and ">Lücke schließen</button>" in seite

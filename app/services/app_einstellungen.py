@@ -33,6 +33,10 @@ STANDARD = {
     "feature_streckenmaut": "",
     "vignette_vorwarnung_tage": "30",
     "streckenmaut_vorwarnung_tage": "30",
+    # Ladekarten je Fahrzeug prüfen (services/kartenpruefung.py): an/aus und erlaubte Anzahl gleichzeitiger Karten
+    "feature_kartenpruefung": "1",
+    "karten_min": "1",
+    "karten_max": "1",
     # Backup (services/backup.py): Zeitplan aus | taeglich | woechentlich, Wochentag 0 = Montag
     "backup_zeitplan": "aus",
     "backup_wochentag": "6",
@@ -120,6 +124,9 @@ class AppEinstellungen:
     feature_streckenmaut: bool = False  # Streckenmaut FLEX (AT) je Fahrzeug
     vignette_vorwarnung_tage: int = 30
     streckenmaut_vorwarnung_tage: int = 30
+    feature_kartenpruefung: bool = True  # Anzahl der Fahrzeugkarten je Fahrzeug prüfen
+    karten_min: int = 1
+    karten_max: int = 1
     backup_zeitplan: str = "aus"
     backup_wochentag: int = 6
     backup_uhrzeit: str = "02:00"
@@ -205,6 +212,8 @@ def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
         feature_streckenmaut=bool(werte["feature_streckenmaut"]),
         vignette_vorwarnung_tage=int(werte["vignette_vorwarnung_tage"] or 30),
         streckenmaut_vorwarnung_tage=int(werte["streckenmaut_vorwarnung_tage"] or 30),
+        feature_kartenpruefung=bool(werte["feature_kartenpruefung"]),
+        karten_min=int(werte["karten_min"] or 0), karten_max=max(int(werte["karten_min"] or 0), int(werte["karten_max"] or 0)),
         backup_zeitplan=werte["backup_zeitplan"] if werte["backup_zeitplan"] in BACKUP_ZEITPLAENE else "aus",
         backup_wochentag=int(werte["backup_wochentag"]) % 7,
         backup_uhrzeit=werte["backup_uhrzeit"],

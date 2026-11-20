@@ -128,6 +128,13 @@ def test_fahrzeug_hinweise(angemeldet, db):
     db.add_all([ok, leer, alt, f])
     db.flush()
     db.add(ZuordnungFahrerFahrzeug(fahrer_id=f.id, fahrzeug_id=ok.id, gueltig_ab=date(2020, 1, 1)))
+    from app.models import KennungTyp, Ladekarte, Msp, ZuordnungKarte
+    karte = Ladekarte(msp=db.scalar(select(Msp).where(Msp.parser_key == "dcs")), kennung="HW-K",
+                      kennung_typ=KennungTyp.kartennummer)
+    db.add(karte)
+    db.flush()
+    db.add(ZuordnungKarte(ladekarte_id=karte.id, fahrzeug_id=ok.id, gueltig_ab=date(2020, 1, 1),
+                          gueltig_bis=ok.leasing_ende))  # genau 1 Karte im ganzen Leasing
     db.flush()
     h = fahrzeug_hinweise.ermitteln(db, [ok, leer, alt], app_einstellungen.laden(db))
     assert h[ok.id] == []

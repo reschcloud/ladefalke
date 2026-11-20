@@ -3,21 +3,21 @@
    spalte: Kopf der Namensspalte; zusatz: Kopf einer Zusatzspalte (z. B. MSP) oder none; formular: id des Formulars
    „Neue Zuordnung“ auf der Seite – dann füllt „Lücke schließen“ es mit dem Zeitraum der Lücke; ohne_fahrer: Adresse,
    unter der eine Lücke als „ohne Fahrer:in“ markiert wird (Fahrzeugseite). #}
-{% macro abschnitt(mini, spalte, zusatz=none, formular=none, leer="Keine Zuordnungen.", ohne_fahrer=none) %}
+{# Band einer Mini-Zeitleiste: Abschnitte (Spuren), Lücken, außerhalb des Leasings, Leasing-Markierungen, heute;
+   markierungen: hervorgehobene Zeiträume (mini_zeitleiste.markierungen, z. B. falsche Kartenanzahl) #}
+{% macro band(mini, markierungen=[]) %}
 {% set luecke_text = "⚠ Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
-<div class="abschnitt-karte">
-{% if mini.abschnitte or mini.luecken %}
-<div class="mini-zl" style="--spuren: {{ mini.spuren }}" aria-hidden="true">
-  <div class="mini-zl-achse">{% for text, links in mini.achse %}<span style="left: {{ links }}%">{{ text }}</span>{% endfor %}</div>
-  <div class="mini-zl-band">
+  <div class="mini-zl-band" style="--spuren: {{ mini.spuren }}">
     {% for links, breite in mini.ausserhalb %}<span class="mini-zl-ausserhalb" style="left: {{ links }}%; width: {{ breite }}%"
       title="außerhalb des Leasings"></span>{% endfor %}
     {% for l in mini.luecken %}<span class="mini-zl-luecke {{ mini.luecken_art }}" style="left: {{ l.links }}%; width: {{ l.breite }}%"
       title="{{ luecke_text }}: {{ l.von | datum }} – {{ (l.bis | datum) if l.bis else 'heute' }}"></span>{% endfor %}
+    {% for mk in markierungen %}<span class="mini-zl-markierung {{ mk.stufe }}" style="left: {{ mk.links }}%; width: {{ mk.breite }}%"
+      title="{{ mk.text }}"></span>{% endfor %}
     {% for a in mini.abschnitte %}
       <a class="mini-zl-balken{{ ' offen' if not a.bis }}{{ ' ' ~ a.eintrag.stil if a.eintrag.stil }}" href="{{ a.eintrag.bearbeiten or a.eintrag.link or '#' }}"
-         style="left: {{ a.links }}%; width: {{ a.breite }}%; --spur: {{ a.spur }}" title="{{ a.eintrag.name }}: {{ a.eintrag.zeitraum }}"
-         tabindex="-1"><span>{{ a.eintrag.name }}</span></a>
+         style="left: {{ a.links }}%; width: {{ a.breite }}%; --spur: {{ a.spur }}" title="{{ a.eintrag.name }}{{ ' ' ~ a.eintrag.zusatz if a.eintrag.zusatz }}: {{ a.eintrag.zeitraum }}"
+         tabindex="-1"><span>{{ a.eintrag.name }}{{ ' ' ~ a.eintrag.zusatz if a.eintrag.zusatz }}</span></a>
     {% endfor %}
     {% if mini.leasing_beginn is not none %}<span class="mini-zl-leasing beginn" style="left: {{ mini.leasing_beginn }}%"
       title="Leasingbeginn {{ mini.leasing_beginn_datum | datum }}"></span>{% endif %}
@@ -25,13 +25,40 @@
       title="Leasing-Ende {{ mini.leasing_ende_datum | datum }}"></span>{% endif %}
     {% if mini.heute is not none %}<span class="mini-zl-heute" style="left: {{ mini.heute }}%" title="heute"></span>{% endif %}
   </div>
-  {# Enden der Leiste: was der linke und rechte Rand bedeuten; Leasing-Markierungen dazwischen beschriftet #}
+{% endmacro %}
+
+{# Enden der Leiste: was der linke und rechte Rand bedeuten; Leasing-Markierungen dazwischen beschriftet #}
+{% macro enden(mini) %}
   <div class="mini-zl-enden">
     <span class="links">◂ {{ mini.ende_links }}</span>
     {% if mini.leasing_beginn is not none and mini.leasing_beginn >= 4 %}<span class="leasing" style="left: {{ mini.leasing_beginn }}%">▲ Leasingbeginn {{ mini.leasing_beginn_datum | datum }}</span>{% endif %}
     {% if mini.leasing_ende is not none and mini.leasing_ende <= 96 %}<span class="leasing ende" style="left: {{ mini.leasing_ende }}%">Leasing-Ende {{ mini.leasing_ende_datum | datum }} ▲</span>{% endif %}
     <span class="rechts">{{ mini.ende_rechts }} ▸</span>
   </div>
+{% endmacro %}
+
+{# Zeitleiste des Fahrzeugs: Fahrer:innen und darunter die Ladekarten auf einer gemeinsamen Achse; markierungen über
+   den Karten: falsche Kartenanzahl bzw. Zuordnung außerhalb des Leasings (services/kartenpruefung.py) #}
+{% macro fahrzeug_zeitleiste(fahrer, karten, markierungen) %}
+<div class="abschnitt-karte">
+<div class="mini-zl fzl" aria-hidden="true">
+  <div class="fzl-zeile"><span></span><div class="mini-zl-achse">{% for text, links in fahrer.achse %}<span style="left: {{ links }}%">{{ text }}</span>{% endfor %}</div></div>
+  <div class="fzl-zeile"><span class="fzl-titel">Fahrer:in</span>{{ band(fahrer) }}</div>
+  <div class="fzl-zeile"><span class="fzl-titel">Ladekarten</span>{{ band(karten, markierungen) }}</div>
+  <div class="fzl-zeile"><span></span>{{ enden(fahrer) }}</div>
+</div>
+{% if markierungen %}<ul class="fzl-befunde">{% for mk in markierungen %}<li class="{{ mk.stufe }}">{{ mk.text }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro abschnitt(mini, spalte, zusatz=none, formular=none, leer="Keine Zuordnungen.", ohne_fahrer=none, grafik=true) %}
+{% set luecke_text = "⚠ Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
+<div class="abschnitt-karte">
+{% if grafik and (mini.abschnitte or mini.luecken) %}
+<div class="mini-zl" aria-hidden="true">
+  <div class="mini-zl-achse">{% for text, links in mini.achse %}<span style="left: {{ links }}%">{{ text }}</span>{% endfor %}</div>
+  {{ band(mini) }}
+  {{ enden(mini) }}
 </div>
 {% endif %}
 <div class="tabelle">

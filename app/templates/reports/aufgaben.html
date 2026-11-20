@@ -19,8 +19,9 @@
     <span class="vgl">{{ fristen | selectattr("ueberfaellig") | list | length }} überfällig bzw. fehlend</span></div>
   <div class="kachel"><span class="zahl">{{ zn.ohne_fahrzeug }}</span><span class="text">Ladevorgänge ohne Fahrzeug</span>
     <span class="vgl">{{ gruppen | length }} Karte{{ "n" if gruppen | length != 1 }} bzw. Kennungen</span></div>
-  <div class="kachel"><span class="zahl">{{ luecken | length }}</span><span class="text">Lücken in der Zuordnung</span>
-    <span class="vgl">{{ luecken | selectattr("offen") | list | length }} aktuell ohne Fahrer:in</span></div>
+  <div class="kachel"><span class="zahl">{{ (luecken | length) + (karten_befunde | length) }}</span><span class="text">Zuordnungen</span>
+    <span class="vgl">{{ luecken | length }} Lücke{{ "n" if luecken | length != 1 }} ({{ luecken | selectattr("offen") | list | length }} aktuell),
+      {{ karten_befunde | length }} bei Ladekarten je Fahrzeug</span></div>
   <div class="kachel"><span class="zahl">{{ zn.unplausibel + zn.ohne_stromart }}</span><span class="text">AC/DC zu prüfen</span>
     <span class="vgl">{{ zn.unplausibel }} unplausibel, {{ zn.ohne_stromart }} ohne Angabe</span></div>
   <div class="kachel"><span class="zahl">{{ zn.gebuehren_ohne_karte }}</span><span class="text">Gebühren ohne Karte</span></div>
@@ -65,6 +66,25 @@
   {% endfor %}
   </tbody>
 </table>
+{% endif %}
+
+{% if karten_befunde %}
+<h2>Ladekarten je Fahrzeug</h2>
+<table>
+  <thead><tr><th>Fahrzeug</th><th>Befund</th><th>Zeitraum</th></tr></thead>
+  <tbody>
+  {% for b in karten_befunde %}
+    <tr><td>{{ b.fahrzeug.kennzeichen }}</td>
+      <td>{% if b.art == "ausserhalb" %}<span class="warnung">Karte {{ b.zuordnung.ladekarte.bezeichnung or b.zuordnung.ladekarte.kennung }}
+        außerhalb des Leasings</span>{% else %}{{ b.anzahl_text }}{% endif %}</td>
+      <td>{% if b.offen %}seit {{ b.von | datum }}{% if b.bis %} bis {{ b.bis | datum }}{% endif %} <span class="warnung">(aktuell)</span>
+        {%- else %}{{ zeitraum(b.von, b.bis) }}{% if b.kuenftig %} (künftig){% endif %}{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="klein">Erlaubt: {{ einst.karten_min }}{% if einst.karten_max != einst.karten_min %} bis {{ einst.karten_max }}{% endif %}
+  direkt zugeordnete Ladekarte(n) je Fahrzeug{% if not einst.feature_kartenpruefung %} (Prüfung der Anzahl ausgeschaltet){% endif %};
+  Ladekarten werden einem Fahrzeug nur innerhalb des Leasings zugeordnet.</p>
 {% endif %}
 
 {% if gruppen %}

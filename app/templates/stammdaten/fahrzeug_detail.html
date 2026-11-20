@@ -93,8 +93,11 @@
 </article>
 
 
+<h2 id="zeitleiste">Zeitleiste</h2>
+{{ zo.fahrzeug_zeitleiste(fahrer_mini, karten_mini, karten_markierungen) }}
+
 <h2>Fahrer:innen</h2>
-{{ zo.abschnitt(fahrer_mini, "Fahrer:in", formular="neue-fahrer-zuordnung", ohne_fahrer="/stammdaten/fahrzeuge/%d/ohne-fahrer" % fahrzeug.id) }}
+{{ zo.abschnitt(fahrer_mini, "Fahrer:in", formular="neue-fahrer-zuordnung", ohne_fahrer="/stammdaten/fahrzeuge/%d/ohne-fahrer" % fahrzeug.id, grafik=false) }}
 
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
   <header><strong>Neue Fahrer:in-Zuordnung</strong></header>
@@ -119,8 +122,8 @@
   </form>
 </article>
 
-<h2>Direkt zugeordnete Ladekarten</h2>
-{{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine direkt zugeordneten Karten.") }}
+<h2 id="ladekarten">Direkt zugeordnete Ladekarten</h2>
+{{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine direkt zugeordneten Karten.", grafik=false) }}
 {{ zo.karte_zuordnen(karten_auswahl, "fahrzeug:%d" % fahrzeug.id, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
 
 {{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrzeug_id=%d" % fahrzeug.id, mit_karte=true, art=request.state.stichtag) }}

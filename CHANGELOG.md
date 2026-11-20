@@ -7,6 +7,12 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Neu
 
+- Ladekarten je Fahrzeug: Zuordnungen „Karte → Fahrzeug“ nur innerhalb des Leasings (ein offenes Ende wird auf das
+  Leasing-Ende begrenzt); bestehende Zuordnungen außerhalb werden zur Aufgabe. Zeiträume, in denen einem Fahrzeug
+  weniger oder mehr Karten direkt zugeordnet sind als erlaubt (Einstellungen: an/aus, Mindest- und Höchstzahl, Standard
+  genau 1), erscheinen beim Fahrzeug, unter „Aufgaben“ und im Report „Offene Aufgaben“.
+- Fahrzeugseite: gemeinsame Zeitleiste mit Fahrer:innen und darunter den Ladekarten, Befunde der Kartenprüfung
+  markiert.
 - Ladekarten: Die Liste zeigt bei Fahrzeugkarten neben dem Kennzeichen, wer das Fahrzeug heute fährt, und den letzten
   Ladevorgang je Karte (mit „vor x Tagen“); die Detailseite Kennzahlen (wie bei Fahrzeug und
   Fahrer:in) sowie ersten und letzten Ladevorgang mit Link.
@@ -22,7 +28,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Beim Update beachten
 
-- Nichts.
+- Die Prüfung der Kartenanzahl ist eingeschaltet (genau 1 Karte je Fahrzeug). Fahrzeuge ohne bzw. mit mehreren
+  Fahrzeugkarten erscheinen danach unter „Aufgaben“ – Grenzen oder Abschalten unter Einstellungen → Fristen.
 
 ## v1.1.0 – 19.11.2026
 

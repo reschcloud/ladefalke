@@ -92,14 +92,22 @@ def _monatsanfang(tag: date, verschiebung: int = 0) -> date:
     return date(index // 12, index % 12 + 1, 1)
 
 
-def berechnen(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None = None,
-              leasing_ende: date | None = None, luecken_art: str | None = None) -> Mini:
-    eintraege = sorted(eintraege, key=lambda e: (e.ab, e.bis or date.max))
+def bereich(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None = None,
+            leasing_ende: date | None = None) -> tuple[date, date]:
+    """Achse: ab Monatsanfang von Leasingbeginn bzw. erster Zuordnung bis heute + 3 Monate bzw. letztem Ende."""
     starts = [d for d in [leasing_beginn] + [e.ab for e in eintraege] if d]
     von = _monatsanfang(min(starts) if starts else _monatsanfang(heute, -11))
     enden = [_monatsanfang(heute, 3) - timedelta(days=1)] + [e.bis for e in eintraege if e.bis] \
         + ([leasing_ende] if leasing_ende else [])
-    bis = _monatsanfang(max(enden), 1) - timedelta(days=1)
+    return von, _monatsanfang(max(enden), 1) - timedelta(days=1)
+
+
+def berechnen(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None = None,
+              leasing_ende: date | None = None, luecken_art: str | None = None,
+              achse: tuple[date, date] | None = None) -> Mini:
+    """`achse`: gemeinsamer Bereich mehrerer Leisten (Zeitleiste des Fahrzeugs: Fahrer:innen und Karten)."""
+    eintraege = sorted(eintraege, key=lambda e: (e.ab, e.bis or date.max))
+    von, bis = achse or bereich(eintraege, heute, leasing_beginn, leasing_ende)
     tage = (bis - von).days + 1
 
     def lage(a: date, b: date) -> tuple[float, float]:
@@ -149,3 +157,23 @@ def berechnen(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None
     if leasing_ende and leasing_ende < bis:
         mini.ausserhalb.append(lage(leasing_ende + timedelta(days=1), bis))
     return mini
+
+
+@dataclass
+class Markierung:
+    """Hervorgehobener Zeitraum über einer Leiste (z. B. falsche Kartenanzahl), Lage in % der Achse."""
+    links: float
+    breite: float
+    stufe: str  # „rot“ | „gelb“
+    text: str
+
+
+def markierungen(mini: Mini, zeitraeume: list[tuple[date, date | None, str, str]]) -> list[Markierung]:
+    """(von, bis oder None = bis Achsenende, Stufe, Text) → Markierungen auf der Achse von `mini`."""
+    tage = (mini.bis - mini.von).days + 1
+    ergebnis = []
+    for a, b, stufe, text in zeitraeume:
+        a, b = max(a, mini.von), min(b or mini.bis, mini.bis)
+        if a <= b:
+            ergebnis.append(Markierung((a - mini.von).days / tage * 100, ((b - a).days + 1) / tage * 100, stufe, text))
+    return ergebnis

@@ -10,6 +10,8 @@ Fahrzeuge (`ermitteln`):
 - Zuordnung: aktuell ohne Fahrer:in, Lücken in der Fahrer:innen-Zuordnung (services/luecken.py); Zeiträume
   „ohne Fahrer:in“ (bewusst niemandem zugeordnet) sind kein Hinweis
 - Ladevorgänge: unplausible AC/DC-Angaben, Vorgänge ohne AC/DC-Angabe
+- Ladekarten (services/kartenpruefung.py): Anzahl der Fahrzeugkarten außerhalb der Grenzen, Zuordnung außerhalb des
+  Leasings
 Stufen: „rot“ (dringend), „gelb“ (klären), „grau“ (fehlende Angabe). Ohne Hinweis zeigt die Liste einen grünen Haken.
 Nur für aktive Fahrzeuge.
 """
@@ -21,7 +23,7 @@ from sqlalchemy.orm import Session
 from app.formatierung import datum
 from app.config import heute
 from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
-from app.services import luecken, stromart
+from app.services import kartenpruefung, luecken, stromart
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.fristen import MAUT, einstufen, maut_aktiv, maut_frist, naechste_kontrolle
 from app.services.ladeprofil import unplausibel_sql
@@ -52,6 +54,9 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
         gueltig_am(ZuordnungFahrerFahrzeug, heute()))))
     heute_zugeordnet |= set(db.scalars(select(FahrzeugOhneFahrer.fahrzeug_id).where(  # bewusst ohne Fahrer:in
         gueltig_am(FahrzeugOhneFahrer, heute()))))
+    karten_befunde: dict[int, list] = {}
+    for b in kartenpruefung.ermitteln(db, e, fahrzeuge=fahrzeuge):
+        karten_befunde.setdefault(b.fahrzeug.id, []).append(b)
     unplausibel = _anzahl_je_fahrzeug(db, unplausibel_sql(e))
     ohne_stromart = _anzahl_je_fahrzeug(db, stromart.ohne_angabe())
 
@@ -92,6 +97,16 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
                              "/stammdaten/zuordnungen/zeitleiste?ansicht=alles",
                              "; ".join(f"{datum(l.von)} – {datum(l.bis)}" for l in frueher)
                              + (f" – {betroffen} Ladevorgänge ohne Person" if betroffen else "")))
+        # Ladekarten: aktueller Befund einzeln, übrige Zeiträume zusammengefasst; außerhalb des Leasings
+        befunde = karten_befunde.get(fz.id, [])
+        karten_seite = f"{seite}#ladekarten"
+        if aktuell := next((b for b in befunde if b.art == "anzahl" and b.offen), None):
+            h.append(Hinweis(aktuell.stufe, aktuell.anzahl_text, karten_seite, f"{aktuell.text} – {aktuell.erklaerung}"))
+        if andere := [b for b in befunde if b.art == "anzahl" and not b.offen]:
+            h.append(Hinweis("gelb", f"{len(andere)} Zeitr{'äume' if len(andere) != 1 else 'aum'}: Kartenanzahl",
+                             karten_seite, "; ".join(b.text for b in andere) + f" – {andere[0].erklaerung}"))
+        if ausserhalb := [b for b in befunde if b.art == "ausserhalb"]:
+            h.append(Hinweis("rot", "Karte außerhalb des Leasings", karten_seite, "; ".join(b.text for b in ausserhalb)))
         # Ladevorgänge
         if n := unplausibel.get(fz.id):
             h.append(Hinweis("gelb", f"{n} unplausible AC/DC", f"/ladevorgaenge?fahrzeug_id={fz.id}&unplausibel=1",
