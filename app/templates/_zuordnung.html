@@ -38,16 +38,17 @@
 {% endmacro %}
 
 {# Zeitleiste des Fahrzeugs: Fahrer:innen und darunter die Ladekarten auf einer gemeinsamen Achse; markierungen über
-   den Karten: falsche Kartenanzahl bzw. Zuordnung außerhalb des Leasings (services/kartenpruefung.py) #}
-{% macro fahrzeug_zeitleiste(fahrer, karten, markierungen) %}
+   den Karten: falsche Kartenanzahl bzw. Zuordnung außerhalb des Leasings (services/kartenpruefung.py);
+   fahrer_markierungen: Fahrer:innen außerhalb des Leasings (services/leasingpruefung.py) #}
+{% macro fahrzeug_zeitleiste(fahrer, karten, markierungen, fahrer_markierungen=[]) %}
 <div class="abschnitt-karte">
 <div class="mini-zl fzl" aria-hidden="true">
   <div class="fzl-zeile"><span></span><div class="mini-zl-achse">{% for text, links in fahrer.achse %}<span style="left: {{ links }}%">{{ text }}</span>{% endfor %}</div></div>
-  <div class="fzl-zeile"><span class="fzl-titel">Fahrer:in</span>{{ band(fahrer) }}</div>
+  <div class="fzl-zeile"><span class="fzl-titel">Fahrer:in</span>{{ band(fahrer, fahrer_markierungen) }}</div>
   <div class="fzl-zeile"><span class="fzl-titel">Ladekarten</span>{{ band(karten, markierungen) }}</div>
   <div class="fzl-zeile"><span></span>{{ enden(fahrer) }}</div>
 </div>
-{% if markierungen %}<ul class="fzl-befunde">{% for mk in markierungen %}<li class="{{ mk.stufe }}">{{ mk.text }}</li>{% endfor %}</ul>{% endif %}
+{% if markierungen or fahrer_markierungen %}<ul class="fzl-befunde">{% for mk in fahrer_markierungen + markierungen %}<li class="{{ mk.stufe }}">{{ mk.text }}</li>{% endfor %}</ul>{% endif %}
 </div>
 {% endmacro %}
 

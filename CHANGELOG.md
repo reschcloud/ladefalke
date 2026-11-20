@@ -13,6 +13,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   genau 1), erscheinen beim Fahrzeug, unter „Aufgaben“ und im Report „Offene Aufgaben“.
 - Fahrzeugseite: gemeinsame Zeitleiste mit Fahrer:innen und darunter den Ladekarten, Befunde der Kartenprüfung
   markiert.
+- Warnung beim Fahrzeug, wenn Fahrer:innen, Vignette oder Streckenmaut FLEX außerhalb des Leasings liegen
+  (offene Fahrer:in-Zuordnung erst nach dem Leasing-Ende; Vignette/Streckenmaut nur komplett außerhalb).
 - Ladekarten: Die Liste zeigt bei Fahrzeugkarten neben dem Kennzeichen, wer das Fahrzeug heute fährt, und den letzten
   Ladevorgang je Karte (mit „vor x Tagen“); die Detailseite Kennzahlen (wie bei Fahrzeug und
   Fahrer:in) sowie ersten und letzten Ladevorgang mit Link.

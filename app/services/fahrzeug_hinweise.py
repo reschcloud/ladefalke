@@ -12,6 +12,7 @@ Fahrzeuge (`ermitteln`):
 - Ladevorgänge: unplausible AC/DC-Angaben, Vorgänge ohne AC/DC-Angabe
 - Ladekarten (services/kartenpruefung.py): Anzahl der Fahrzeugkarten außerhalb der Grenzen, Zuordnung außerhalb des
   Leasings
+- Fahrer:innen, Vignette, Streckenmaut FLEX außerhalb des Leasings (services/leasingpruefung.py, nur Warnung)
 Stufen: „rot“ (dringend), „gelb“ (klären), „grau“ (fehlende Angabe). Ohne Hinweis zeigt die Liste einen grünen Haken.
 Nur für aktive Fahrzeuge.
 """
@@ -23,7 +24,7 @@ from sqlalchemy.orm import Session
 from app.formatierung import datum
 from app.config import heute
 from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
-from app.services import kartenpruefung, luecken, stromart
+from app.services import kartenpruefung, leasingpruefung, luecken, stromart
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.fristen import MAUT, einstufen, maut_aktiv, maut_frist, naechste_kontrolle
 from app.services.ladeprofil import unplausibel_sql
@@ -57,6 +58,7 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
     karten_befunde: dict[int, list] = {}
     for b in kartenpruefung.ermitteln(db, e, fahrzeuge=fahrzeuge):
         karten_befunde.setdefault(b.fahrzeug.id, []).append(b)
+    leasing_warnungen = leasingpruefung.ermitteln(db, e, [fz for fz in fahrzeuge if fz.aktiv])
     unplausibel = _anzahl_je_fahrzeug(db, unplausibel_sql(e))
     ohne_stromart = _anzahl_je_fahrzeug(db, stromart.ohne_angabe())
 
@@ -107,6 +109,12 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
                              karten_seite, "; ".join(b.text for b in andere) + f" – {andere[0].erklaerung}"))
         if ausserhalb := [b for b in befunde if b.art == "ausserhalb"]:
             h.append(Hinweis("rot", "Karte außerhalb des Leasings", karten_seite, "; ".join(b.text for b in ausserhalb)))
+        # Fahrer:innen, Vignette, Streckenmaut FLEX außerhalb des Leasings – je Art ein Hinweis
+        warnungen = leasing_warnungen.get(fz.id, [])
+        for art, text, ziel in (("fahrer", "Fahrer:in außerhalb des Leasings", f"{seite}#zeitleiste"),
+                                *((a, f"{n} außerhalb des Leasings", seite) for a, n in MAUT.items())):
+            if eigene := [w for w in warnungen if w.art == art]:
+                h.append(Hinweis("gelb", text, ziel, "; ".join(w.text for w in eigene)))
         # Ladevorgänge
         if n := unplausibel.get(fz.id):
             h.append(Hinweis("gelb", f"{n} unplausible AC/DC", f"/ladevorgaenge?fahrzeug_id={fz.id}&unplausibel=1",

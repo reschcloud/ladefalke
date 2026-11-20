@@ -9,7 +9,7 @@ from app.config import heute
 from app.db import get_db
 from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug, ZuordnungKarte
 from app.services import app_einstellungen, fahrzeug_hinweise, mini_zeitleiste
-from app.services import kartenanzeige, kartenpruefung, kennzahlen, protokoll
+from app.services import kartenanzeige, kartenpruefung, kennzahlen, leasingpruefung, protokoll
 from app.services.kartenanzeige import kurz as kurz_kennung
 from app.services.fristen import jahresvignette, leasing_ende_vorschlag
 from app.services.ladeprofil import ohne_angabe, schaetzgrundlage, unplausible_anzahl
@@ -143,6 +143,9 @@ def _detail(request, db, fz, werte, fehler=None, status_code=200, zuordnung_wert
         kontext["karten_auswahl"] = kartenanzeige.zuordenbare_karten(db)
         kontext["karten_mini"] = mini_zeitleiste.berechnen(karten_eintraege, heute(), fz.leasing_beginn,
                                                            fz.leasing_ende, achse=achse)
+        kontext["fahrer_markierungen"] = mini_zeitleiste.markierungen(kontext["fahrer_mini"], [
+            (w.von, w.bis, "gelb", w.text) for w in leasingpruefung.ermitteln(db, e, [fz]).get(fz.id, [])
+            if w.art == "fahrer"])
         kontext["karten_markierungen"] = mini_zeitleiste.markierungen(kontext["karten_mini"], [
             (b.von, b.bis, b.stufe, f"{b.text} – {b.erklaerung}") for b in kartenpruefung.ermitteln(db, e, fahrzeuge=[fz])])
         kontext["vorgaenge"] = letzte_vorgaenge(db, Ladevorgang.fahrzeug_id == fz.id)
