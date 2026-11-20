@@ -283,4 +283,17 @@ Weitere Festlegungen während der Umsetzung:
 
 Noch nicht beauftragt – erst nach Rückfrage umsetzen.
 
-- **CO₂e je Ladevorgang** über die Electricity Maps API (Strommix am Ort und zur Zeit der Ladung); in den Einstellungen aktivierbar, braucht einen API-Key (die App verbindet sich nur dann nach außen).
+Vorgemerkt für die Woche ab 23.11.2026:
+
+- **Schönere Icons** (Stil wie Home Assistant), evtl. farbig je Art – Personen, Ladekarten, Fahrzeuge usw. sollen auf
+  einen Blick unterscheidbar sein.
+- **Zahl der offenen Aufgaben im Menü** (am Menüpunkt „Aufgaben“).
+- **„Zuordnung anpassen“ in den Aufgaben** führt direkt auf die Seite der Ladekarte statt auf eine eigene Seite.
+- **Report „Zuordnung zum Stichtag“** dichter gestalten.
+- **CO₂e (vereinfacht)**: in den Einstellungen ein fixer Emissionsfaktor in g CO₂e/kWh, evtl. je Jahr; daraus CO₂e je
+  Ladevorgang (kWh × Faktor) und in den Auswertungen.
+
+Weitere Ideen:
+
+- **CO₂e genau** über die Electricity Maps API (Strommix am Ort und zur Zeit der Ladung) als Ausbau der vereinfachten
+  Variante; in den Einstellungen aktivierbar, braucht einen API-Key (die App verbindet sich nur dann nach außen).
