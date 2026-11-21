@@ -1,4 +1,4 @@
-"""Dashboard: Vollständigkeit, Kennzahlen, Verteilung auf Fahrer:innen (Standard: Vormonat), Heatmap."""
+"""Dashboard: Vollständigkeit, Kennzahlen, Verteilung auf Fahrer:innen (Standard: Vorauswahl aus Mein Konto, sonst Vormonat), Heatmap."""
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from app.services import app_einstellungen, kennzahlen
 from app.services.auswertung import auswerten, vergleichen, vormonat, zeitraum_aus_parametern
 from app.services import diagramme, karte
 from app.services.vollstaendigkeit import pruefen as vollstaendigkeit_pruefen
-from app.web import render
+from app.web import art_vorgabe, render
 
 router = APIRouter()
 
@@ -20,7 +20,7 @@ def _verteilungen(db, a, einst) -> dict:
 
 
 @router.get("/")
-def dashboard(request: Request, art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def dashboard(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
               db: Session = Depends(get_db)):
     z = zeitraum_aus_parametern(art, jahr, nr, von, bis, standard=vormonat(), db=db)
     einst = app_einstellungen.laden(db)

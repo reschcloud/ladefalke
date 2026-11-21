@@ -7,6 +7,9 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Neu
 
+- Vorausgewählter Zeitraum je Benutzer:in (Mein Konto → Darstellung): Monat, Quartal, Halbjahr, Jahr oder Alles –
+  gilt für Dashboard, Auswertungen und Reports, wenn kein Zeitraum gewählt ist; jeweils der Zeitraum, der den
+  Vormonat enthält. Standard bleibt der Vormonat (Migration 0030).
 - Neue Symbole (Material Design Icons, wie in Home Assistant): im Untermenü „Stammdaten“, farbig je Art – Fahrzeug
   blau, Person violett, Ladekarte türkis, MSP orange; Warnung, Erledigt, Frist, E-Mail, Schloss usw. als Symbol statt
   Zeichen, auch in den PDF-Reports.

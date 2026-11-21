@@ -11,7 +11,7 @@ from app.models import Benutzer, Fahrer
 from app.routers.auswertungen import zeitraum_navigation
 from app.services import app_einstellungen, mail, reports, versand
 from app.services.auswertung import auswerten, vormonat, zeitraum_aus_parametern
-from app.web import meldung, render, weiter
+from app.web import art_vorgabe, meldung, render, weiter
 
 router = APIRouter(prefix="/reports")
 
@@ -21,7 +21,7 @@ def _zeitraum(db: Session, art: str, jahr: str, nr: str, von: str, bis: str):
 
 
 @router.get("")
-def seite(request: Request, art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def seite(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
           fahrer: str = "", db: Session = Depends(get_db)):
     """`fahrer`: Person hervorheben (Links von der Fahrer:innen-Seite und der Auswertung)."""
     z = _zeitraum(db, art, jahr, nr, von, bis)
@@ -70,28 +70,28 @@ def _aufgaben_zeitplan(e) -> str:
 
 
 @router.get("/zusammenfassung.pdf")
-def zusammenfassung(art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def zusammenfassung(art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                     db: Session = Depends(get_db)):
     z = _zeitraum(db, art, jahr, nr, von, bis)
     return reports.antwort(reports.zusammenfassung(db, z), reports.dateiname(z, "zusammenfassung"))
 
 
 @router.get("/karten-cpo.pdf")
-def karten_cpo(art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def karten_cpo(art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                db: Session = Depends(get_db)):
     z = _zeitraum(db, art, jahr, nr, von, bis)
     return reports.antwort(reports.karten_cpo(db, z), reports.dateiname(z, "karten-cpo"))
 
 
 @router.get("/flottenbilanz.pdf")
-def flottenbilanz(art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def flottenbilanz(art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                   db: Session = Depends(get_db)):
     z = _zeitraum(db, art, jahr, nr, von, bis)
     return reports.antwort(reports.flottenbilanz(db, z), reports.dateiname(z, "flottenbilanz"))
 
 
 @router.get("/flottenbilanz-{seite}.jpg")
-def flottenbilanz_jpg(seite: int, art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def flottenbilanz_jpg(seite: int, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                       db: Session = Depends(get_db)):
     """Eine Seite der Flottenbilanz als Bild in 4K (3840 × 2160), z. B. für Präsentationen oder Social Media."""
     z = _zeitraum(db, art, jahr, nr, von, bis)
@@ -122,7 +122,7 @@ def offene_aufgaben(db: Session = Depends(get_db)):
 
 
 @router.get("/fahrer/{fahrer_id}.pdf")
-def fahrer_report(fahrer_id: int, art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def fahrer_report(fahrer_id: int, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                   db: Session = Depends(get_db)):
     z = _zeitraum(db, art, jahr, nr, von, bis)
     person = db.get(Fahrer, fahrer_id)
@@ -132,7 +132,7 @@ def fahrer_report(fahrer_id: int, art: str = "monat", jahr: str = "", nr: str = 
 
 
 @router.get("/fahrer.zip")
-def alle_fahrer(art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def alle_fahrer(art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                 db: Session = Depends(get_db)):
     z = _zeitraum(db, art, jahr, nr, von, bis)
     inhalt, _ = reports.alle_fahrer_zip(db, z)
@@ -158,7 +158,7 @@ def _senden(request: Request, db: Session, z, ausfuehren, was: str, anker: str):
 
 
 @router.post("/fahrer/senden")
-async def fahrer_senden(request: Request, art: str = "monat", jahr: str = "", nr: str = "", von: str = "",
+async def fahrer_senden(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
                         bis: str = "", db: Session = Depends(get_db)):
     """Versanddialog Fahrer:innen-Reports: an die angehakten Personen (nur an deren eigene Adresse), auf Wunsch je
     Report eine Kopie an die angemeldete Benutzer:in."""
@@ -176,7 +176,7 @@ async def fahrer_senden(request: Request, art: str = "monat", jahr: str = "", nr
 
 
 @router.post("/{report}/senden")
-async def report_senden(request: Request, report: str, art: str = "monat", jahr: str = "", nr: str = "", von: str = "",
+async def report_senden(request: Request, report: str, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
                         bis: str = "", db: Session = Depends(get_db)):
     """Versanddialog: Report (zusammenfassung, karten_cpo, flottenbilanz, aufgaben, zuordnungen) einmalig an ausgewählte
     Benutzer:innen und frei eingegebene Adressen."""

@@ -21,6 +21,8 @@ ROLLEN_TEXT = {"admin": "alles, auch Einstellungen ändern und Benutzer:innen ve
                "operator": "alles außer Einstellungen und MSP ändern sowie Benutzerverwaltung",
                "viewer": "nur lesen (inkl. Exporte und Originaldokumente)"}
 THEMES = {"auto": "Auto", "hell": "Hell", "dunkel": "Dunkel"}  # Auto = wie das Betriebssystem
+# vorausgewählter Zeitraum ohne Angabe in der Adresse; jeweils der Zeitraum, der den Vormonat enthält
+ZEITRAEUME = {"monat": "Monat", "quartal": "Quartal", "halbjahr": "Halbjahr", "jahr": "Jahr", "alles": "Alles"}
 MINDESTLAENGE = 10
 _N, _R, _P = 2 ** 14, 8, 1
 

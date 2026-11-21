@@ -738,6 +738,7 @@ main :is(article, .abschnitt-karte, .diagramm, .einstellung-gruppe, form.formula
 /* Kurzer Hinweis mit ausführlichem Text im Tooltip */
 .mit-tooltip { cursor: help; color: var(--pico-muted-color); }
 .theme-wahl .umschalter button { min-width: 2.8rem; padding-block: .15rem; font-size: 1.2rem; line-height: 1.3; }
+.zeitraum-wahl .umschalter button { font-size: .9rem; padding-inline: .7rem; line-height: 1.6; }
 
 /* ---------------------------------------------------------------- Lade-Animation (base.html) */
 /* E-Auto an der Ladesäule mit wachendem Falken (Zeichnung: _makros.lade_auto): Strom fließt durchs Kabel, der Blitz pulsiert.

@@ -18,6 +18,15 @@
     </span>
     <small>Nur für dich, wirkt sofort. Auto folgt dem Betriebssystem bzw. Browser.</small>
   </form>
+  <form method="post" action="/konto/zeitraum" class="theme-wahl zeitraum-wahl" data-immer>
+    <span class="umschalter" role="group" aria-label="Vorausgewählter Zeitraum">
+      {%- for wert, text in zeitraeume.items() %}
+      <button type="submit" name="zeitraum" value="{{ wert }}" aria-pressed="{{ 'true' if ich.zeitraum == wert else 'false' }}">{{ text }}</button>
+      {%- endfor %}
+    </span>
+    <small>Vorausgewählter Zeitraum in Dashboard, Auswertungen und Reports – jeweils der, der den Vormonat enthält
+      (Quartal also z. B. das Quartal des Vormonats). Nur für dich; die Ladevorgänge zeigen weiterhin zuerst alles.</small>
+  </form>
 </section>
 
 <section class="einstellung-gruppe">

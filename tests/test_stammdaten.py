@@ -325,3 +325,22 @@ def test_ladekarten_liste_fahrzeugkarte_mit_person(angemeldet, db):
     liste = angemeldet.get("/stammdaten/ladekarten").text
     assert f'>KP-1</a> (<a href="/stammdaten/fahrer/{person.id}">Karla Person</a>)' in liste
     assert '>KP-2</a> <small class="ohne-fahrer">(ohne Fahrer:in)</small>' in liste
+
+
+def test_zeitraum_vorauswahl(angemeldet):
+    """Vorausgewählter Zeitraum je Benutzer unter „Mein Konto“: gilt für Dashboard, Auswertungen und Reports, wenn die
+    Adresse keinen Zeitraum nennt; eine Angabe in der Adresse geht vor."""
+    from app.services.auswertung import vormonat, zeitraum_mit
+    seite = angemeldet.get("/konto").text
+    assert 'name="zeitraum" value="monat" aria-pressed="true"' in seite
+    monat, quartal = vormonat(), zeitraum_mit(vormonat().von, "quartal")
+    assert monat.label in angemeldet.get("/").text
+    angemeldet.post("/konto/zeitraum", data={"zeitraum": "quartal"})
+    assert 'name="zeitraum" value="quartal" aria-pressed="true"' in angemeldet.get("/konto").text
+    for pfad in ("/", "/auswertungen", "/reports"):
+        assert quartal.label in angemeldet.get(pfad).text, pfad
+    assert monat.label in angemeldet.get("/?art=monat").text  # Adresse geht vor
+    angemeldet.post("/konto/zeitraum", data={"zeitraum": "alles"})
+    assert "Alles (" in angemeldet.get("/auswertungen").text
+    angemeldet.post("/konto/zeitraum", data={"zeitraum": "unsinn"})
+    assert 'name="zeitraum" value="monat" aria-pressed="true"' in angemeldet.get("/konto").text

@@ -150,6 +150,11 @@ def render(request: Request, name: str, kontext: dict | None = None, status_code
     return templates.TemplateResponse(request, name, kontext or {}, status_code=status_code)
 
 
+def art_vorgabe(request: Request, art: str = "") -> str:
+    """Zeitraum-Art aus der Adresse; ohne Angabe die persönliche Vorauswahl (Mein Konto), sonst „monat“."""
+    return art or getattr(getattr(request.state, "benutzer", None), "zeitraum", None) or "monat"
+
+
 def weiter(url: str) -> RedirectResponse:
     """Weiterleitung nach POST (Post/Redirect/Get)."""
     return RedirectResponse(url, status_code=303)

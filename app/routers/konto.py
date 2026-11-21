@@ -12,6 +12,7 @@ router = APIRouter()
 
 def _seite(request: Request, fehler: dict | None = None, status_code: int = 200):
     return render(request, "konto.html", {"fehler": fehler or {}, "themes": benutzer_service.THEMES,
+                                          "zeitraeume": benutzer_service.ZEITRAEUME,
                                           "rollen": benutzer_service.ROLLEN,
                                           "rollen_text": benutzer_service.ROLLEN_TEXT,
                                           "mindestlaenge": benutzer_service.MINDESTLAENGE}, status_code)
@@ -95,6 +96,16 @@ def theme_setzen(request: Request, theme: str = Form("auto"), db: Session = Depe
     request.state.benutzer.theme = theme if theme in benutzer_service.THEMES else "auto"
     db.commit()
     return weiter("/konto")
+
+
+@router.post("/konto/zeitraum")
+def zeitraum_setzen(request: Request, zeitraum: str = Form("monat"), db: Session = Depends(get_db)):
+    """Vorausgewählter Zeitraum für Dashboard, Auswertungen und Reports – nur für den angemeldeten Benutzer."""
+    b = request.state.benutzer
+    b.zeitraum = zeitraum if zeitraum in benutzer_service.ZEITRAEUME else "monat"
+    db.commit()
+    meldung(request, f"Vorausgewählter Zeitraum: {benutzer_service.ZEITRAEUME[b.zeitraum]}.")
+    return weiter("/konto#darstellung")
 
 
 @router.get("/keine-berechtigung")

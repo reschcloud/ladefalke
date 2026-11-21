@@ -345,6 +345,8 @@ class Benutzer(Base):
     __tablename__ = "benutzer"
     __table_args__ = (CheckConstraint("rolle IN ('admin', 'operator', 'viewer')", name="ck_benutzer_rolle"),
                       CheckConstraint("theme IN ('auto', 'hell', 'dunkel')", name="ck_benutzer_theme"),
+                      CheckConstraint("zeitraum IN ('monat', 'quartal', 'halbjahr', 'jahr', 'alles')",
+                                      name="ck_benutzer_zeitraum"),
                       Index("ux_benutzer_benutzername", text("lower(benutzername)"), unique=True))
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -363,6 +365,8 @@ class Benutzer(Base):
     passwort_hash: Mapped[str] = mapped_column(String(300))
     aktiv: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     theme: Mapped[str] = mapped_column(String(10), default="auto", server_default="auto")
+    # vorausgewählter Zeitraum (Dashboard, Auswertungen, Reports), Migration 0030
+    zeitraum: Mapped[str] = mapped_column(String(10), default="monat", server_default="monat")
     angelegt_am: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     letzte_anmeldung: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

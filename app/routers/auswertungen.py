@@ -15,7 +15,7 @@ from app.services.auswertung import (ARTEN, SPAR_MINDEST_KWH, TEILE, Auswertung,
 from app.services.zuordnung import fahrer_von_fahrzeug_am
 from app.services.evse import cpo_land, landname
 from app.services.export import MEDIENTYPEN, Spalte, Tabelle, inhalt
-from app.web import render
+from app.web import art_vorgabe, render
 
 router = APIRouter(prefix="/auswertungen")
 
@@ -45,7 +45,7 @@ def navigation(db: Session, a: Auswertung, basis: str) -> dict:
 
 
 @router.get("")
-def uebersicht(request: Request, art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def uebersicht(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                karten: str = "", ladeorte: str = "", db: Session = Depends(get_db)):
     """`karten=alle`: Ladekarten-Nutzung als vollständige Rangliste statt Top 10; `ladeorte=alle` ebenso."""
     a = _auswertung(db, art, jahr, nr, von, bis)
@@ -58,7 +58,7 @@ def uebersicht(request: Request, art: str = "monat", jahr: str = "", nr: str = "
 
 
 @router.get("/fahrzeug/{fahrzeug_id}")
-def fahrzeug(request: Request, fahrzeug_id: int, art: str = "monat", jahr: str = "", nr: str = "", von: str = "",
+def fahrzeug(request: Request, fahrzeug_id: int, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
              bis: str = "", db: Session = Depends(get_db)):
     a = _auswertung(db, art, jahr, nr, von, bis)
     zeile = a.fahrzeug(fahrzeug_id)
@@ -74,7 +74,7 @@ def fahrzeug(request: Request, fahrzeug_id: int, art: str = "monat", jahr: str =
 
 
 @router.get("/fahrer/{fahrer_id}")
-def fahrer(request: Request, fahrer_id: int, art: str = "monat", jahr: str = "", nr: str = "", von: str = "",
+def fahrer(request: Request, fahrer_id: int, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
            bis: str = "", db: Session = Depends(get_db)):
     a = _auswertung(db, art, jahr, nr, von, bis)
     zeile = a.fahrer_zeile(fahrer_id)
@@ -96,7 +96,7 @@ def cpo_schluessel(code: str) -> str | None:
 
 
 @router.get("/cpo/{code:path}")
-def cpo(request: Request, code: str, art: str = "monat", jahr: str = "", nr: str = "", von: str = "", bis: str = "",
+def cpo(request: Request, code: str, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
         db: Session = Depends(get_db)):
     """Öffentliche Ladungen bei einem CPO: Fahrer:innen nach Kosten mit ihren Ladekarten, dazu MSP im Vergleich."""
     a = _auswertung(db, art, jahr, nr, von, bis)
@@ -187,7 +187,7 @@ def datei_antwort(t: Tabelle, format_: str) -> Response:
 
 
 @router.get("/export/{name}.{format_}")
-def export(name: str, format_: str, art: str = "monat", jahr: str = "", nr: str = "", von: str = "",
+def export(name: str, format_: str, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
            bis: str = "", cpo: str = "", db: Session = Depends(get_db)):
     """`cpo`: für „cpo_personen“ der CPO („-“ = unbekannt)."""
     return datei_antwort(tabelle(_auswertung(db, art, jahr, nr, von, bis), name, cpo), format_)
