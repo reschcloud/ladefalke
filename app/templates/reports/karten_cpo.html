@@ -5,6 +5,7 @@
 {% block titel %}Ladefalke – Karten und Preise je CPO {{ z.label }}{% endblock %}
 {% block kopf %}Karten und Preise je CPO {{ z.label }}{% endblock %}
 {% block inhalt %}
+{% set LANGER_BLOCK = 30 %}{# Zeilen (Personen + Karten), ab denen ein CPO-Block umbrechen darf #}
 {% macro karte(k, fahrer_id=none) -%}
 {%- set ka = a.karte(k) -%}
 {%- if ka %}{{ r.karte(ka, fahrer_id) }}{% elif k %}{{ k.bezeichnung or k.kennung }}{% else %}ohne Karte{% endif -%}
@@ -50,13 +51,10 @@
 <p>Im Zeitraum kein Sparpotenzial: Bei keinem CPO war eine Karte teurer als der günstigste {{ MSP_TEXT }} mit genügend Daten.</p>
 {% endif %}
 
-{% if mit_potenzial %}<h2>CPO mit Sparpotenzial</h2>{% endif %}
-{% for d in mit_potenzial | sort(attribute="ersparnis", reverse=true) %}
-<div class="cpo-block">
-  <h3>{{ cpo_name(d.code) }} <span class="klein">· {{ d.summe.anzahl }} Ladungen, {{ d.summe.kwh | zahl(0) }} kWh,
-    {{ d.summe.kosten | geld }}{% if d.ersparnis %} · Sparpotenzial <strong class="warnung">{{ d.ersparnis | geld }}</strong>{% endif %}</span></h3>
-  <div class="spalten cpo-spalten">
-    <div class="breit">
+{# Seitenumbruch: Ein CPO-Block bleibt zusammen, solange er auf eine Seite passt. Lange Blöcke (viele Personen/Karten)
+   stehen untereinander (MSP je Stromart zuerst) und dürfen umbrechen – zweispaltig (Flex) verteilt WeasyPrint nicht
+   sauber über Seiten. Die Überschrift „CPO mit Sparpotenzial“ steht im ersten Block, damit sie nie allein bleibt. #}
+{% macro personen_tabelle(d) %}
       <table>
         <thead><tr><th>Fahrer:in / Karte</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">€/kWh</th><th class="r">Sparpot.</th></tr></thead>
         <tbody>
@@ -72,8 +70,8 @@
         {% endfor %}
         </tbody>
       </table>
-    </div>
-    <div>
+{% endmacro %}
+{% macro msp_tabelle(d) %}
       <table class="msp-art">
         <thead><tr><th>Art</th><th>{{ MSP_TEXT }}</th><th class="r">kWh</th><th class="r">€/kWh</th></tr></thead>
         <tbody>
@@ -85,8 +83,22 @@
         {% endfor %}{% endfor %}
         </tbody>
       </table>
-    </div>
+{% endmacro %}
+{% for d in mit_potenzial | sort(attribute="ersparnis", reverse=true) %}
+{% set zeilen = d.personen | length + (d.personen | map(attribute="karten_liste") | map("length") | sum) %}
+{% set lang = zeilen > LANGER_BLOCK %}
+<div class="cpo-block{{ ' lang' if lang }}">
+  {% if loop.first %}<h2>CPO mit Sparpotenzial</h2>{% endif %}
+  <h3>{{ cpo_name(d.code) }} <span class="klein">· {{ d.summe.anzahl }} Ladungen, {{ d.summe.kwh | zahl(0) }} kWh,
+    {{ d.summe.kosten | geld }}{% if d.ersparnis %} · Sparpotenzial <strong class="warnung">{{ d.ersparnis | geld }}</strong>{% endif %}</span></h3>
+  {% if lang %}
+  <div class="cpo-untereinander">{{ msp_tabelle(d) }}{{ personen_tabelle(d) }}</div>
+  {% else %}
+  <div class="spalten cpo-spalten">
+    <div class="breit">{{ personen_tabelle(d) }}</div>
+    <div>{{ msp_tabelle(d) }}</div>
   </div>
+  {% endif %}
 </div>
 {% endfor %}
 

@@ -21,6 +21,13 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   eigenes Formular. Die übrigen Seiten zeigen „bei Person ändern →“ bzw. „bei Karte ändern →“, und die
   Bearbeitungsseite einer Zuordnung zeigt die übrigen Zeiträume derselben Person bzw. Karte.
 
+### Behoben
+
+- Report „Karten und Preise je CPO“: Die Überschrift „CPO mit Sparpotenzial“ und die Kopfzeile eines großen CPO
+  standen jeweils allein auf einer Seite, und die Tabelle „MSP je Stromart“ erschien erst am Ende des Blocks. Lange
+  CPO-Blöcke stehen jetzt untereinander und laufen über Seiten (Tabellenkopf wiederholt); die Überschrift bleibt beim
+  ersten CPO.
+
 ### Beim Update beachten
 
 - nichts
