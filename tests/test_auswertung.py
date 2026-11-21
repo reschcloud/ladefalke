@@ -556,3 +556,50 @@ def test_schnitt_pro_monat_und_auto(db, daten):
     assert s.text == "pro Monat und Auto" and len(mit) == 2
     assert s.kosten == sum((z.summe.kosten for z in mit), D(0)) / 2
     assert sep.schnitt(mit[0].summe).text == "pro Monat"
+
+
+def test_co2e_einsparung(angemeldet, db, daten):
+    """Grobe CO₂e-Einsparung ggü. Verbrennern: kWh × (l/100 km × kg/l ÷ kWh/100 km − g/kWh ÷ 1000); CO₂e des Stroms
+    leer = aus (nirgends sichtbar, Flottenbilanz zeigt dann die Zahl der Fahrer:innen)."""
+    basis = {"stichtag": "ende", "topliste_m": "", "topliste_mindestmenge": "20", "strompreis_vorbelegung": "0,30"}
+    sep, dashboard = zeitraum("monat", 2026, 9), "/?art=monat&jahr=2026&nr=9"
+    e = app_einstellungen.laden(db)
+    assert e.co2e_ersparnis_je_kwh is None and auswerten(db, sep, e).co2e_ersparnis(Summe(kwh=D(1))) is None
+    assert (e.co2e_verbrauch_e, e.co2e_verbrauch_verbrenner, e.co2e_verbrenner) == (D(20), D("7.4"), D("3.2"))
+    assert "CO₂e" not in angemeldet.get(dashboard).text
+    seite = angemeldet.get("/einstellungen").text
+    assert 'value="20,0"' in seite and 'value="7,4"' in seite and 'value="3,20"' in seite
+    assert angemeldet.post("/einstellungen", data=basis | {"co2e_strom": "x"}).status_code == 422
+    assert angemeldet.post("/einstellungen", data=basis | {"co2e_strom": "150", "co2e_verbrauch_e": "0"}).status_code == 422
+    angemeldet.post("/einstellungen", data=basis | {"co2e_strom": "150"})
+    e = app_einstellungen.laden(db)
+    assert e.co2e_ersparnis_je_kwh == D("7.4") * D("3.2") / 20 - D("0.15")  # 1,034 kg je kWh
+    a = auswerten(db, sep, e)
+    assert a.co2e_ersparnis(a.gesamt) == D(245) * D("1.034")  # 145 kWh Ladungen + 100 kWh Pauschale
+    assert a.co2e_ersparnis(a.fahrzeug(daten["fz1"].id).summe) == D("103.4")
+    seite = angemeldet.get(dashboard).text
+    assert "CO₂e eingespart" in seite and "253 kg" in seite
+    assert "103 kg" in angemeldet.get(f"/auswertungen/fahrzeug/{daten['fz1'].id}?art=monat&jahr=2026&nr=9").text
+    assert angemeldet.get("/reports/flottenbilanz.pdf?art=monat&jahr=2026&nr=9").status_code == 200
+    angemeldet.post("/einstellungen", data=basis)  # leer = aus
+    assert app_einstellungen.laden(db).co2e_ersparnis_je_kwh is None and "CO₂e" not in angemeldet.get(dashboard).text
+
+
+def test_tankkosten_ersparnis(angemeldet, db, daten):
+    """Grobe Tankkosten-Ersparnis ggü. Verbrennern: kWh × l/100 km ÷ kWh/100 km × €/l minus Kosten netto; Spritpreis
+    leer = aus (nirgends sichtbar)."""
+    basis = {"stichtag": "ende", "topliste_m": "", "topliste_mindestmenge": "20", "strompreis_vorbelegung": "0,30"}
+    sep, dashboard = zeitraum("monat", 2026, 9), "/?art=monat&jahr=2026&nr=9"
+    assert app_einstellungen.laden(db).tankkosten_je_kwh is None and "Tankkosten" not in angemeldet.get(dashboard).text
+    assert angemeldet.post("/einstellungen", data=basis | {"spritpreis": "x"}).status_code == 422
+    angemeldet.post("/einstellungen", data=basis | {"spritpreis": "1,40"})
+    e = app_einstellungen.laden(db)
+    assert e.tankkosten_je_kwh == D("7.4") / 20 * D("1.4") and e.co2e_ersparnis_je_kwh is None  # unabhängig
+    a = auswerten(db, sep, e)
+    assert a.tank_ersparnis(a.gesamt) == D(245) * D("0.518") - D("113.17")  # 126,91 € Sprit − 113,17 € Kosten
+    assert a.tank_ersparnis(a.fahrzeug(daten["fz1"].id).summe) == D("51.80") - D("42.25")
+    seite = angemeldet.get(dashboard).text
+    assert "Tankkosten gespart" in seite and "13,74 €" in seite and "CO₂e" not in seite
+    assert 'value="1,400"' in angemeldet.get("/einstellungen").text
+    angemeldet.post("/einstellungen", data=basis)
+    assert app_einstellungen.laden(db).tankkosten_je_kwh is None and "Tankkosten" not in angemeldet.get(dashboard).text

@@ -97,6 +97,8 @@ def flottenbilanz(db: Session, z: Zeitraum) -> bytes:
         zeitbedingung(spalte, z), Ladevorgang.fahrzeug_id.is_not(None), Ladevorgang.kwh > 0)) or 0
     return _pdf("reports/flottenbilanz.html", a=a, z=z, g=a.gesamt, fahrzeuge=fahrzeuge,
                 fahrer=len([f for f in a.fahrer if not f.summe.leer]),
+                co2e=a.co2e_ersparnis(a.gesamt),  # ersetzt die Zahl der Fahrer:innen, wenn eingeschaltet
+                tank=a.tank_ersparnis(a.gesamt),  # ersetzt Ø kWh je Fahrzeug, wenn eingeschaltet
                 kwh_je_fahrzeug=(a.fahrzeuge_summe.kwh / fahrzeuge) if fahrzeuge else None,
                 laender=len([c for c, s in a.laender if s.kwh > 0]), cpo_anzahl=len([c for c, _ in a.cpo if c]),
                 topliste=a.topliste_oeffentlich, dc=_ladedauer_dc(db, z, einst.stichtag), stichtag=einst.stichtag,

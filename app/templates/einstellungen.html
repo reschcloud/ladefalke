@@ -83,6 +83,17 @@
       {{ einstellung("topliste_m", "Gewichtung m", "kWh", "Leer lassen: Median der kWh je Fahrer:in im Zeitraum.", leer_text="leer (Median im Zeitraum)") }}
       {{ einstellung("topliste_mindestmenge", "Mindestmenge für die Topliste", "kWh", "Wer im Zeitraum weniger geladen hat, erscheint nicht in der Topliste.") }}
     </div>
+    <p class="gruppe-text"><small>Vergleich mit Verbrennern (grobe Schätzung): aus den geladenen kWh die Strecke
+      (Verbrauch E-PKW), dafür Emissionen bzw. Tankkosten eines Verbrenners. CO₂e-Einsparung = abzüglich der Emissionen
+      des geladenen Stroms, eingesparte Tankkosten = abzüglich der tatsächlichen Kosten netto. Leer lassen von „CO₂e des
+      Stroms“ bzw. „Spritpreis“ schaltet die jeweilige Schätzung aus.</small></p>
+    <div class="einstellung-felder">
+      {{ einstellung("co2e_strom", "CO₂e des Stroms", "g CO₂e/kWh", "Emissionsfaktor des geladenen Stroms, z. B. Strommix laut Versorger oder Umweltbundesamt.", leer_text="leer (Schätzung aus)") }}
+      {{ einstellung("co2e_verbrauch_e", "Verbrauch E-PKW", "kWh/100 km", "Durchschnittlicher Verbrauch der E-Fahrzeuge inklusive Ladeverlusten.") }}
+      {{ einstellung("co2e_verbrauch_verbrenner", "Verbrauch Verbrenner", "l/100 km", "Vergleichsfahrzeug: durchschnittlicher Kraftstoffverbrauch.") }}
+      {{ einstellung("co2e_verbrenner", "Emissionen Verbrenner", "kg CO₂e/l", "CO₂e je Liter Kraftstoff (Diesel/Benzin inklusive Vorkette rund 3,2).") }}
+      {{ einstellung("spritpreis", "Spritpreis", "€/l netto", "Durchschnittlicher Kraftstoffpreis ohne USt. – wie alle Beträge der App netto.", leer_text="leer (Schätzung aus)") }}
+    </div>
   </section>
 
   <section class="einstellung-gruppe">

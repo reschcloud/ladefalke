@@ -3,7 +3,9 @@
 {# Flottenbilanz (Marketing-Report, services/reports.flottenbilanz): zum Weitergeben nach außen, 16:9 quer
    (297 × 167 mm), ohne Kopf- und Fußzeile, Logo rechts oben – jede Seite auch als Bild bzw. Folie verwendbar.
    Seite 1: Flottenzahlen und Heatmap des öffentlichen Ladens – keine Namen, Kennzeichen, Ladekarten, Adressen oder
-   Kostensummen (als Geldwert nur Ø €/kWh). Seite 2: die drei günstigsten Öffentlich-Lader:innen auf dem
+   Kostensummen (als Geldwert nur Ø €/kWh); mit CO₂e-Schätzung (Einstellungen) statt der Zahl der Fahrer:innen die
+   geschätzte CO₂e-Einsparung, mit Spritpreis statt Ø kWh je Fahrzeug die geschätzten eingesparten Tankkosten
+   (einzige Kostensumme). Seite 2: die drei günstigsten Öffentlich-Lader:innen auf dem
    Siegertreppchen – mit Namen, ohne Kennzeichen. Ohne TLP. #}
 {% block titel %}Ladefalke – Flottenbilanz {{ z.label }}{% endblock %}
 {% block seite %}
@@ -65,9 +67,19 @@
         <span class="vgl">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}</span></div>
       <div class="kachel"><span class="zahl">{{ laender }} / {{ cpo_anzahl }}</span><span class="text">Länder / Betreiber (CPO)</span></div>
       <div class="kachel"><span class="zahl">{{ fahrzeuge }}</span><span class="text">Fahrzeuge mit Ladungen</span></div>
+      {% if co2e is not none %}
+      <div class="kachel"><span class="zahl">{{ (co2e / 1000) | zahl(1) ~ " t" if co2e | abs >= 1000 else (co2e | zahl(0)) ~ " kg" }}</span>
+        <span class="text">CO₂e eingespart</span><span class="vgl">geschätzt ggü. Verbrennern</span></div>
+      {% else %}
       <div class="kachel"><span class="zahl">{{ fahrer }}</span><span class="text">Fahrer:innen mit Ladungen</span></div>
+      {% endif %}
+      {% if tank is not none %}
+      <div class="kachel"><span class="zahl">{{ tank | zahl(0) }} €</span>
+        <span class="text">Tankkosten gespart</span><span class="vgl">geschätzt ggü. Verbrennern, netto</span></div>
+      {% else %}
       <div class="kachel"><span class="zahl">{{ kwh_je_fahrzeug | zahl(0) if kwh_je_fahrzeug is not none else "–" }}</span>
         <span class="text">Ø kWh je Fahrzeug</span></div>
+      {% endif %}
     </div>
   </div>
   <div class="bild">

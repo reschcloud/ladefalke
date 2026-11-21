@@ -72,6 +72,31 @@ def test_pdf(angemeldet, db, flotte):
     assert "Ladevorgänge nach" not in titel  # Untertitel nur Zeitraum und „Preise netto“
 
 
+def test_co2e_statt_fahrerinnen(angemeldet, db, flotte):
+    """Mit CO₂e-Schätzung ersetzt die geschätzte Einsparung die Zahl der Fahrer:innen."""
+    def titel_text():
+        return " ".join(_seiten(angemeldet.get(f"/reports/flottenbilanz.pdf?{ZEITRAUM}").content)[0].split())
+
+    titel = titel_text()
+    assert "Fahrer:innen mit Ladungen" in titel and "CO₂e" not in titel
+    app_einstellungen.speichern(db, {"co2e_strom": "184"})  # 1,184 − 0,184 = 1 kg je kWh
+    titel = titel_text()
+    assert "Fahrer:innen mit Ladungen" not in titel
+    assert "360 kg" in titel and "CO₂e eingespart" in titel and "geschätzt ggü. Verbrennern" in titel
+
+
+
+def test_tankkosten_statt_kwh_je_fahrzeug(angemeldet, db, flotte):
+    """Mit Spritpreis ersetzen die geschätzten eingesparten Tankkosten die Kachel „Ø kWh je Fahrzeug“."""
+    def titel_text():
+        return " ".join(_seiten(angemeldet.get(f"/reports/flottenbilanz.pdf?{ZEITRAUM}").content)[0].split())
+
+    assert "Ø kWh je Fahrzeug" in titel_text()
+    app_einstellungen.speichern(db, {"spritpreis": "2"})  # 360 kWh × 7,4/20 × 2 € = 266,40 € − 180,00 € Kosten
+    titel = titel_text()
+    assert "Ø kWh je Fahrzeug" not in titel and "86 € Tankkosten gespart" in titel
+
+
 def test_jpg(angemeldet, db, flotte):
     import io
     from PIL import Image

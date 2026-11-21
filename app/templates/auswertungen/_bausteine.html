@@ -55,7 +55,9 @@
 {# zeitraum: für „Ø pro Tag“ unter den Ladevorgängen (Tage bis heute) #}
 {# schnitt: services.auswertung.Schnitt („Ø … pro Monat und Auto“ bzw. „pro Monat“) oder none #}
 {# dc: services.kennzahlen.LadedauerDc (Ø Ladedauer DC) oder none #}
-{% macro kennzahlen(g, vergleich=none, zeitraum=none, schnitt=none, dc=none) %}
+{# co2e: geschätzte CO₂e-Einsparung in kg (Auswertung.co2e_ersparnis) oder none (aus) #}
+{# tank: geschätzte Tankkosten-Ersparnis in € (Auswertung.tank_ersparnis) oder none (aus) #}
+{% macro kennzahlen(g, vergleich=none, zeitraum=none, schnitt=none, dc=none, co2e=none, tank=none) %}
 {% set v = vergleich %}
 {% set sn = schnitt %}
 <div class="kacheln">
@@ -83,10 +85,23 @@
   {% endif %}
   <div class="kachel"><span class="kachel-zahl">{{ g.anteil_oeffentlich_kwh | prozent }}</span><span>öffentlich (kWh)</span>
     {% if v %}{{ abweichung(v.oeffentlich_pp, "Ø %s: %s" % (v.basis, v.referenz.anteil_oeffentlich_kwh | prozent), pp=true) }}{% endif %}</div>
+  {% if co2e is not none %}
+  <div class="kachel"><span class="kachel-zahl">{{ co2e_text(co2e) }}</span>
+    <span>CO₂e eingespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Emissionen eines Verbrenners, abzüglich der Emissionen des geladenen Stroms – Werte laut Einstellungen.") }}</span>
+    <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
+  {% endif %}
+  {% if tank is not none %}
+  <div class="kachel"><span class="kachel-zahl">{{ tank | geld }}</span>
+    <span>Tankkosten gespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Tankkosten eines Verbrenners (Verbrauch und Spritpreis netto laut Einstellungen), abzüglich der tatsächlichen Kosten netto.") }}</span>
+    <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
+  {% endif %}
 </div>
 {% if v %}<p><small>Vergleich mit dem Durchschnitt von {{ v.basis }}
   ({{ v.perioden }} {{ "Zeitraum" if v.perioden == 1 else "Zeiträume" }} mit Daten); Ø €/kWh und Anteil öffentlich gewichtet.</small></p>{% endif %}
 {% endmacro %}
+
+{# CO₂e in kg, ab 1.000 kg in t #}
+{% macro co2e_text(kg) %}{{ (kg / 1000) | zahl(1) ~ " t" if kg | abs >= 1000 else (kg | zahl(0)) ~ " kg" }}{% endmacro %}
 
 {% macro oeffentlich_privat(g) %}
 <div class="tabelle">

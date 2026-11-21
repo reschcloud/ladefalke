@@ -462,6 +462,20 @@ class Auswertung:
     ladeorte: list[tuple[Ladeort, Summe]] = field(default_factory=list)
     cpo_personen: dict[str | None, CpoDetail] = field(default_factory=dict)  # nur öffentlich, siehe Moduldoku
     karten_anzeige: dict = field(default_factory=dict)  # Karten-ID → kartenanzeige.Anzeige (nur mit Personen)
+    # grob geschätzte CO₂e-Einsparung gegenüber Verbrennern in kg je kWh (Einstellungen); None = aus
+    co2e_je_kwh: Decimal | None = None
+
+    def co2e_ersparnis(self, s: "Summe") -> Decimal | None:
+        """Geschätzte CO₂e-Einsparung in kg für die kWh der Summe; None, wenn ausgeschaltet."""
+        return s.kwh * self.co2e_je_kwh if self.co2e_je_kwh is not None else None
+
+    # grob geschätzte Tankkosten eines Verbrenners in € netto je kWh (Einstellungen); None = aus
+    tank_je_kwh: Decimal | None = None
+
+    def tank_ersparnis(self, s: "Summe") -> Decimal | None:
+        """Geschätzte Ersparnis: Tankkosten eines Verbrenners für dieselbe Strecke minus die tatsächlichen Kosten
+        (netto, inklusive Gebühren und Pauschalen der Summe); None, wenn ausgeschaltet."""
+        return s.kwh * self.tank_je_kwh - s.kosten if self.tank_je_kwh is not None else None
 
     def sparpotenziale(self) -> list[tuple[CpoDetail, CpoPerson, CpoPosten]]:
         """Alle Posten mit Ersparnis über alle CPO, größte zuerst."""
@@ -730,7 +744,8 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         d.massstab_berechnen()
         cpo_details[code] = d
     return Auswertung(
-        zeitraum=z, stichtag=einst.stichtag, fahrzeuge=fahrzeug_zeilen,
+        zeitraum=z, stichtag=einst.stichtag, fahrzeuge=fahrzeug_zeilen, co2e_je_kwh=einst.co2e_ersparnis_je_kwh,
+        tank_je_kwh=einst.tankkosten_je_kwh,
         msp=sorted(msp.items(), key=lambda e: e[0].lower()),
         fahrzeuge_summe=sum((r.summe for r in fahrzeug_zeilen), Summe()),
         nicht_zugeordnet=nicht_zugeordnet, gaeste=gaeste, gebuehren_nicht_zuordenbar=gebuehren_ohne,

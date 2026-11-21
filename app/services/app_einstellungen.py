@@ -14,6 +14,14 @@ STANDARD = {
     "topliste_m": "",  # leer = Median der Fahrzeug-kWh im Zeitraum
     "topliste_mindestmenge": "20",
     "strompreis_vorbelegung": "0.30",
+    # CO₂e-Einsparung gegenüber Verbrennern (grobe Schätzung): Strommix g CO₂e/kWh (leer = aus), Verbrauch E-PKW
+    # kWh/100 km, Verbrauch Verbrenner l/100 km, Emission Verbrenner kg CO₂e/l
+    "co2e_strom": "",
+    "co2e_verbrauch_e": "20",
+    "co2e_verbrauch_verbrenner": "7.4",
+    "co2e_verbrenner": "3.2",
+    # eingesparte Tankkosten (grobe Schätzung, Verbrauchswerte wie oben): Spritpreis netto €/l, leer = aus
+    "spritpreis": "",
     # Plausibilität AC/DC (Leistung = kWh / angesteckte Dauer)
     "plausibel_ac_max_kw": "12",  # AC ab diesem Wert unplausibel
     "plausibel_dc_min_kw": "10",  # DC unter diesem Wert unplausibel
@@ -109,6 +117,29 @@ class AppEinstellungen:
     topliste_m: Decimal | None  # Gewichtungskonstante in kWh; None = Median
     topliste_mindestmenge: Decimal
     strompreis_vorbelegung: Decimal  # €/kWh netto für private Importe
+    co2e_strom: Decimal | None = None  # g CO₂e/kWh des geladenen Stroms; None = Schätzung aus
+    co2e_verbrauch_e: Decimal = Decimal(20)  # kWh/100 km
+    co2e_verbrauch_verbrenner: Decimal = Decimal("7.4")  # l/100 km
+    co2e_verbrenner: Decimal = Decimal("3.2")  # kg CO₂e/l Kraftstoff
+    spritpreis: Decimal | None = None  # € netto je Liter; None = Tankkosten-Schätzung aus
+
+    @property
+    def co2e_ersparnis_je_kwh(self) -> Decimal | None:
+        """Grob geschätzte CO₂e-Einsparung in kg je geladener kWh gegenüber einem Verbrenner für dieselbe Strecke:
+        (Verbrenner-l/100 km × kg/l) / (E-kWh/100 km) − Strom-g/kWh / 1000; None, wenn ausgeschaltet."""
+        if self.co2e_strom is None or not self.co2e_verbrauch_e:
+            return None
+        return (self.co2e_verbrauch_verbrenner * self.co2e_verbrenner / self.co2e_verbrauch_e
+                - self.co2e_strom / 1000)
+
+    @property
+    def tankkosten_je_kwh(self) -> Decimal | None:
+        """Grob geschätzte Tankkosten (€ netto) eines Verbrenners für die Strecke, die eine geladene kWh reicht:
+        l/100 km ÷ kWh/100 km × €/l; None, wenn ausgeschaltet."""
+        if self.spritpreis is None or not self.co2e_verbrauch_e:
+            return None
+        return self.co2e_verbrauch_verbrenner / self.co2e_verbrauch_e * self.spritpreis
+
     plausibel_ac_max_kw: Decimal = Decimal(12)
     plausibel_dc_min_kw: Decimal = Decimal(10)
     plausibel_dc_max_kw: Decimal = Decimal(1000)
@@ -198,6 +229,11 @@ def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
         topliste_m=Decimal(werte["topliste_m"]) if werte["topliste_m"] else None,
         topliste_mindestmenge=Decimal(werte["topliste_mindestmenge"]),
         strompreis_vorbelegung=Decimal(werte["strompreis_vorbelegung"]),
+        co2e_strom=Decimal(werte["co2e_strom"]) if werte["co2e_strom"] else None,
+        co2e_verbrauch_e=Decimal(werte["co2e_verbrauch_e"] or 20),
+        co2e_verbrauch_verbrenner=Decimal(werte["co2e_verbrauch_verbrenner"] or "7.4"),
+        co2e_verbrenner=Decimal(werte["co2e_verbrenner"] or "3.2"),
+        spritpreis=Decimal(werte["spritpreis"]) if werte["spritpreis"] else None,
         plausibel_ac_max_kw=Decimal(werte["plausibel_ac_max_kw"]),
         plausibel_dc_min_kw=Decimal(werte["plausibel_dc_min_kw"]),
         plausibel_dc_max_kw=Decimal(werte["plausibel_dc_max_kw"]),

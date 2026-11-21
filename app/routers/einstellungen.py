@@ -30,6 +30,10 @@ def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
         "stichtag": e.stichtag, "topliste_m": zahl(e.topliste_m, 1) if e.topliste_m is not None else "",
         "topliste_mindestmenge": zahl(e.topliste_mindestmenge, 1),
         "strompreis_vorbelegung": zahl(e.strompreis_vorbelegung, 4),
+        "co2e_strom": zahl(e.co2e_strom, 0) if e.co2e_strom is not None else "",
+        "co2e_verbrauch_e": zahl(e.co2e_verbrauch_e, 1), "co2e_verbrauch_verbrenner": zahl(e.co2e_verbrauch_verbrenner, 1),
+        "co2e_verbrenner": zahl(e.co2e_verbrenner, 2),
+        "spritpreis": zahl(e.spritpreis, 3) if e.spritpreis is not None else "",
         "plausibel_ac_max_kw": zahl(e.plausibel_ac_max_kw, 1), "plausibel_dc_min_kw": zahl(e.plausibel_dc_min_kw, 1),
         "plausibel_dc_max_kw": zahl(e.plausibel_dc_max_kw, 0),
         "schaetzung_ac_kw": zahl(e.schaetzung_ac_kw, 1), "schaetzung_dc_kw": zahl(e.schaetzung_dc_kw, 1),
@@ -105,6 +109,9 @@ def anzeigen(request: Request, db: Session = Depends(get_db)):
 @router.post("", dependencies=[Depends(auth.admin_erforderlich)])  # lesen dürfen alle, ändern nur Admins
 def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = Form(""),
               topliste_mindestmenge: str = Form(""), strompreis_vorbelegung: str = Form(""),
+              co2e_strom: str = Form(""), co2e_verbrauch_e: str = Form("20"),
+              co2e_verbrauch_verbrenner: str = Form("7,4"), co2e_verbrenner: str = Form("3,2"),
+              spritpreis: str = Form(""),
               plausibel_ac_max_kw: str = Form("12"), plausibel_dc_min_kw: str = Form("10"),
               plausibel_dc_max_kw: str = Form("1000"), schaetzung_ac_kw: str = Form("11"),
               schaetzung_dc_kw: str = Form("90"), schaetzung_obergrenze_kwh: str = Form("50"),
@@ -135,7 +142,10 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
               zuordnungen_auto_uhrzeit: str = Form("07:00"),
               gruppe: str = Form(""), db: Session = Depends(get_db)):
     werte = {"stichtag": stichtag, "topliste_m": topliste_m, "topliste_mindestmenge": topliste_mindestmenge,
-             "strompreis_vorbelegung": strompreis_vorbelegung, "plausibel_ac_max_kw": plausibel_ac_max_kw,
+             "strompreis_vorbelegung": strompreis_vorbelegung, "co2e_strom": co2e_strom,
+             "co2e_verbrauch_e": co2e_verbrauch_e, "co2e_verbrauch_verbrenner": co2e_verbrauch_verbrenner,
+             "co2e_verbrenner": co2e_verbrenner, "spritpreis": spritpreis,
+             "plausibel_ac_max_kw": plausibel_ac_max_kw,
              "plausibel_dc_min_kw": plausibel_dc_min_kw, "plausibel_dc_max_kw": plausibel_dc_max_kw,
              "schaetzung_ac_kw": schaetzung_ac_kw, "schaetzung_dc_kw": schaetzung_dc_kw,
              "schaetzung_obergrenze_kwh": schaetzung_obergrenze_kwh, "leasing_dauer_monate": leasing_dauer_monate,
@@ -260,7 +270,9 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
         daten["stichtag"] = stichtag
     for feld, pflicht in (("topliste_m", False), ("topliste_mindestmenge", True), ("strompreis_vorbelegung", True),
                           ("plausibel_ac_max_kw", True), ("plausibel_dc_min_kw", True), ("plausibel_dc_max_kw", True),
-                          ("schaetzung_ac_kw", True), ("schaetzung_dc_kw", True), ("schaetzung_obergrenze_kwh", True)):
+                          ("schaetzung_ac_kw", True), ("schaetzung_dc_kw", True), ("schaetzung_obergrenze_kwh", True),
+                          ("co2e_strom", False), ("co2e_verbrauch_e", True), ("co2e_verbrauch_verbrenner", True),
+                          ("co2e_verbrenner", True), ("spritpreis", False)):
         try:
             wert = decimal_lesen(werte[feld])
         except ValueError as e:
@@ -273,7 +285,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
                 daten[feld] = ""
         elif wert < 0:
             fehler[feld] = "Der Wert darf nicht negativ sein."
-        elif wert == 0 and feld.startswith("schaetzung_"):
+        elif wert == 0 and (feld.startswith("schaetzung_") or feld == "co2e_verbrauch_e"):
             fehler[feld] = "Bitte einen Wert größer 0 angeben."
         else:
             daten[feld] = str(wert)

@@ -27,7 +27,7 @@
 
 <section id="gesamt">
   <div class="kopf"><h2>Gesamt</h2>{{ export("gesamt") }}</div>
-  {{ b.kennzahlen(a.gesamt, zeitraum=a.zeitraum, schnitt=a.schnitt_je_auto, dc=dc) }}
+  {{ b.kennzahlen(a.gesamt, zeitraum=a.zeitraum, schnitt=a.schnitt_je_auto, dc=dc, co2e=a.co2e_ersparnis(a.gesamt), tank=a.tank_ersparnis(a.gesamt)) }}
   <div class="tabelle">
   <table>
     <thead><tr><th>Bereich</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>

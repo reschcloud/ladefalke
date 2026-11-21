@@ -7,6 +7,14 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Neu
 
+- CO₂e-Einsparung gegenüber Verbrennern (grobe Schätzung): in den Einstellungen (Auswertungen) CO₂e des Stroms
+  (g/kWh, leer = aus), Verbrauch E-PKW (20 kWh/100 km), Verbrauch Verbrenner (7,4 l/100 km) und Emissionen Verbrenner
+  (3,2 kg/l). Eingeschaltet zeigen Dashboard und Auswertungen eine Kachel „CO₂e eingespart“; in der Flottenbilanz
+  ersetzt sie die Zahl der Fahrer:innen.
+- Eingesparte Tankkosten gegenüber Verbrennern (grobe Schätzung): Spritpreis netto (€/l) in den Einstellungen,
+  leer = aus; Verbrauchswerte wie bei CO₂e. Tankkosten eines Verbrenners für dieselbe Strecke minus die tatsächlichen
+  Kosten netto, als Kachel „Tankkosten gespart“ in Dashboard und Auswertungen; in der Flottenbilanz statt „Ø kWh je
+  Fahrzeug“.
 - Vorausgewählter Zeitraum je Benutzer:in (Mein Konto → Darstellung): Monat, Quartal, Halbjahr, Jahr oder Alles –
   gilt für Dashboard, Auswertungen und Reports, wenn kein Zeitraum gewählt ist; jeweils der Zeitraum, der den
   Vormonat enthält. Standard bleibt der Vormonat (Migration 0030).
