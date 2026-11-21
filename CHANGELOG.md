@@ -3,7 +3,7 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
-## Unveröffentlicht
+## v1.3.0 – 21.11.2026
 
 ### Neu
 
@@ -59,7 +59,9 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Beim Update beachten
 
-- nichts
+- nichts (Migration 0030 läuft beim Start automatisch, vorher wird gesichert). Die Schätzungen „CO₂e eingespart“
+  und „Tankkosten gespart“ sind aus, bis unter Einstellungen → Auswertungen CO₂e des Stroms bzw. ein Spritpreis
+  eingetragen ist.
 
 ## v1.2.0 – 20.11.2026
 
