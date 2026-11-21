@@ -8,13 +8,13 @@
   {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrer' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrer:innen</a>{{ m.blaettern(blaettern) }}</p>
 {% call m.titel("person", "h1") %}{{ fahrer.name if fahrer else "Neue Fahrer:in" }}{% endcall %}
 {% if fahrer %}
-{{ m.offene_punkte(offen, "/stammdaten/fahrer/%d" % fahrer.id) }}
 {{ m.querverweise("Auswertung", [
      ("/auswertungen/fahrer/%d" % fahrer.id, "Vormonat", "Auswertung des Vormonats"),
      ("/auswertungen/fahrer/%d?art=jahr&jahr=%d" % (fahrer.id, heute_datum().year), heute_datum().year, "Auswertung des laufenden Jahres"),
      ("/ladevorgaenge?fahrer=%d" % fahrer.id, "Ladevorgänge", "Alle Ladevorgänge, bei denen diese Fahrer:in gefahren ist"),
      ("/reports?fahrer=%d#fahrer-%d" % (fahrer.id, fahrer.id), "Reports →", "PDF-Reports dieser Fahrer:in (Zeitraum dort wählbar)")]) }}
 {{ m.gesamt_kacheln(gesamt, "mit dieser Person am Steuer") }}
+{{ m.offene_punkte(offen, "/stammdaten/fahrer/%d" % fahrer.id) }}{# Meldungen immer unter den Kacheln #}
 {% endif %}
 
 <form method="post" class="formular" action="{{ '/stammdaten/fahrer/%d' % fahrer.id if fahrer else '/stammdaten/fahrer/neu' }}">

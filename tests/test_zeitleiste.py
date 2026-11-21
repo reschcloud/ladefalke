@@ -78,7 +78,7 @@ def test_seite_standard_kalenderjahr(angemeldet, db, daten):
     assert f'<strong class="zeitraum-label">{heute().year}</strong>' in text  # Standard: laufendes Jahr
     assert "Person hervorheben" not in text
     text = angemeldet.get("/stammdaten/zuordnungen/zeitleiste?jahr=2026").text
-    assert "Zeitleiste Fahrzeuge · Fahrer:innen" in text and "2 Fahrzeuge mit Lücken" in text
+    assert 'aria-current="true" title="Eine Zeile je Fahrzeug"' in text and "2 Fahrzeuge mit Lücken" in text
     assert 'title="Bernd: 01.05.2026 – offen"' in text and "symbol-warnung" in text and "noch nie zugeordnet</span>" in text
     assert "/stammdaten/zuordnungen/fahrer/" in text and "zurueck=/stammdaten/zuordnungen/zeitleiste%3Fstatus%3Daktiv%26nach%3Dfahrzeug" in text
     assert "Letzte 12 Monate" in text
@@ -100,7 +100,7 @@ def test_umgedreht_nach_personen(db, daten):
 
 def test_seite_umgedreht(angemeldet, db, daten):
     text = angemeldet.get("/stammdaten/zuordnungen/zeitleiste?jahr=2026&nach=fahrer").text
-    assert "Zeitleiste Fahrer:innen · Fahrzeuge" in text
+    assert 'aria-current="true" title="Eine Zeile je Fahrer:in"' in text
     assert 'title="ZL 1 · Testmodell A: 01.01.2026 – 31.03.2026"' in text and "mit Lücken</strong>" not in text
     assert "<span>ZL 1 · Testmodell A</span>" in text  # nur Anna
     assert "nach=fahrer" in text.split('aria-label="Vorjahr"')[0]  # Blättern behält die Richtung
@@ -154,3 +154,14 @@ def test_zeitleiste_leasing(angemeldet, db):
     text = angemeldet.get("/stammdaten/zuordnungen/zeitleiste?jahr=2026").text
     assert 'title="Leasingbeginn 01.02.2026"' in text and 'title="Leasing-Ende 31.10.2026"' in text
     assert "außerhalb des Leasings" in text
+
+
+def test_zuordnungen_eine_seite_zwei_ansichten(angemeldet):
+    """„Zuordnungen“ ist ein Menüpunkt mit den Ansichten Zeitleiste (Standard) und Liste."""
+    zeitleiste = angemeldet.get("/stammdaten/zuordnungen/zeitleiste").text
+    liste = angemeldet.get("/stammdaten/zuordnungen").text
+    assert '<a href="/stammdaten/zuordnungen/zeitleiste"><svg class="symbol symbol-zuordnung"' in zeitleiste  # Menü
+    assert 'href="/stammdaten/zuordnungen/zeitleiste" aria-current="page">' in zeitleiste
+    assert 'href="/stammdaten/zuordnungen" aria-current="page">' in liste and "Fahrzeuge bei der Person" in liste
+    for seite in (zeitleiste, liste):
+        assert "Zuordnungen</h1>" in seite and seite.count('class="zuordnungen-ansicht"') == 1

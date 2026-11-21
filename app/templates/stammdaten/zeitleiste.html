@@ -1,11 +1,9 @@
 {% extends "base.html" %}
-{% block titel %}Zeitleiste Zuordnungen{% endblock %}
+{% import "stammdaten/_zuordnungen_kopf.html" as zk with context %}
+{% block titel %}Zuordnungen · Zeitleiste{% endblock %}
 {% block inhalt %}
 {% set nach_fahrzeug = nach == "fahrzeug" %}
-<div class="kopf">
-  <h1>Zeitleiste {{ "Fahrzeuge · Fahrer:innen" if nach_fahrzeug else "Fahrer:innen · Fahrzeuge" }}</h1>
-  <a href="/stammdaten/zuordnungen" role="button" class="outline secondary klein nav-knopf">Als Tabelle anzeigen</a>
-</div>
+{{ zk.kopf("zeitleiste") }}
 
 <nav class="zeitraumwahl" aria-label="Zeitraum und Ansicht">
   {% if rollierend %}

@@ -279,7 +279,7 @@ def _id_aus(antwort) -> int:
 
 def test_mehrfach_upload_und_der_reihe_nach(angemeldet, db):
     antwort = angemeldet.get("/")
-    assert 'class="punkt"' not in antwort.text  # nichts offen
+    assert 'class="punkt"' not in antwort.text and "menue-anzahl offen" not in antwort.text  # nichts offen
     assert 'class="import-ablage"' in antwort.text  # Dateien auf den Menüpunkt „Import“ ziehen
     assert 'id="datei-liste"' in angemeldet.get("/import").text
 
@@ -310,7 +310,8 @@ def test_mehrfach_upload_und_der_reihe_nach(angemeldet, db):
     assert zweite != erste
     assert "übernommen" in antwort.text and "Weiter mit der nächsten Datei" in antwort.text
     assert "Datei 2 von 3" in antwort.text  # Zählung über den ganzen Durchgang
-    assert antwort.text.count('class="punkt"') == 2  # jetzt auch „Nicht zugeordnet“ (Karten ohne Zuordnung)
+    assert antwort.text.count('class="punkt"') == 1  # „Import“ (Vorschauen offen)
+    assert 'class="menue-anzahl offen"' in antwort.text  # und „Aufgaben“ als Zahl (Vorgänge ohne Fahrzeug)
 
     # Verwerfen → zur letzten offenen Vorschau
     antwort = angemeldet.post(f"/import/{zweite}/loeschen")
@@ -324,7 +325,7 @@ def test_mehrfach_upload_und_der_reihe_nach(angemeldet, db):
     assert "Offene Vorschauen" not in antwort.text
     abschluss = antwort.text.split('id="abschluss"')[1].split("</article>")[0]
     assert "1 Datei übernommen, 2 verworfen" in abschluss and "oktober-kopie.csv" not in abschluss  # Duplikat: keine eigene Vorschau
-    assert antwort.text.count('class="punkt"') == 1  # nur noch „Nicht zugeordnet“
+    assert 'class="punkt"' not in antwort.text and 'class="menue-anzahl offen"' in antwort.text  # nur noch „Aufgaben“
 
 
 def test_mehrfach_upload_mit_bereits_importierter_datei(angemeldet, db):

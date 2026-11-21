@@ -3,38 +3,76 @@
 {% block titel %}Aufgaben{% endblock %}
 {% block inhalt %}
 <h1>Aufgaben</h1>
-{# Fristen: Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut FLEX (Vorwarnzeiten in den Einstellungen) #}
-{% if fristen %}
-<section class="meldung meldung-warnung fristen" id="fristen" role="status" aria-label="Fristen">
-  <strong>{{ icon("frist") }} Fristen</strong>
+{# Fristen je Art: (art, Titel, eingeschaltet, Vorwarnung in Tagen, was „erledigt“ heißt); im Titel ggf. ein weicher
+   Trennstrich (U+00AD), damit schmale Kacheln sauber trennen #}
+{% set frist_arten = [
+  ("leasing", "Leasing-Ende", true, einst.leasing_vorwarnung_tage, "Leasing-Ende beim Fahrzeug aktualisieren"),
+  ("fuehrerschein", "Führerschein­kontrolle", einst.feature_fuehrerschein, einst.fuehrerschein_vorwarnung_tage,
+   "Datum der Kontrolle bei der Person eintragen (alle %d Monate)" % einst.fuehrerschein_intervall_monate),
+  ("vignette", "Vignette", einst.feature_vignette, einst.vignette_vorwarnung_tage, "Gültigkeit beim Fahrzeug eintragen"),
+  ("streckenmaut", "Streckenmaut FLEX", einst.feature_streckenmaut, einst.streckenmaut_vorwarnung_tage,
+   "Gültigkeit beim Fahrzeug eintragen")] %}
+{# Übersicht: je Aufgabe eine Kachel mit Anzahl; offene farbig, erledigte mit Häkchen; Klick springt zum Abschnitt #}
+{% macro aufgabe(anker, anzahl, titel, hinweis, symbol=none) %}
+{# erledigte Aufgaben haben keinen Abschnitt – daher keine Verlinkung #}
+{% if anzahl %}<a class="kachel aufgabe offen" href="#{{ anker }}">{% else %}<div class="kachel aufgabe erledigt">{% endif %}
+  <span class="kachel-zahl">{% if anzahl %}{{ anzahl }}{% else %}{{ icon("haken") }}{% endif %}</span>
+  <strong>{% if symbol %}{{ icon(symbol) }} {% endif %}{{ titel }}</strong>
+  <small>{% if anzahl %}{{ hinweis }}{% else %}nichts zu tun{% endif %}</small>
+{% if anzahl %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+<nav class="kacheln aufgaben-uebersicht" aria-label="Übersicht der Aufgaben">
+  {% for art, titel, aktiv, vorwarnung, erledigt in frist_arten if aktiv %}
+  {{ aufgabe("frist-" ~ art, fristen | selectattr("art", "eq", art) | list | length, titel, erledigt,
+             "person" if art == "fuehrerschein" else "auto") }}
+  {% endfor %}
+  {{ aufgabe("karten-je-fahrzeug", karten_befunde | length, "Ladekarten je Fahrzeug", "Kartenzuordnung beim Fahrzeug prüfen") }}
+  {{ aufgabe("ohne-fahrzeug", request.state.offen.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug",
+             "Karte zuordnen oder Vorgänge manuell zuweisen") }}
+  {{ aufgabe("gebuehren", gebuehren | length, "Gebühren ohne Ladekarte", "einer Ladekarte zuweisen") }}
+  {{ aufgabe("unplausibel", unplausible | length, "Unplausible AC/DC-Angaben",
+             "Stromart korrigieren oder ausnehmen") }}
+  {{ aufgabe("stromart", request.state.offen.ohne_stromart, "Ladevorgänge ohne AC/DC-Angabe",
+             "Stromart je MSP setzen") }}
+  {% if geo_vorhanden %}
+  {{ aufgabe("ladeorte", ladeorte | length, "Ladeorte ohne Koordinaten", "PLZ eintragen") }}
+  {% else %}
+  <a class="kachel aufgabe nicht-verfuegbar" href="#ladeorte"><span class="kachel-zahl">–</span>
+    <strong>Ladeorte ohne Koordinaten</strong><small>nicht prüfbar: PLZ-Verzeichnis fehlt</small></a>
+  {% endif %}
+</nav>
+{# Fristen je Art eigener Abschnitt (Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut FLEX); Vorwarnzeiten in
+   den Einstellungen. Steht wie alle Meldungen unter den Kacheln. #}
+{% macro in_tagen(f) %}<small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endmacro %}
+<div id="fristen">
+{% for art, titel, aktiv, vorwarnung, erledigt in frist_arten %}{% set liste = fristen | selectattr("art", "eq", art) | list %}
+{% if liste %}
+<section class="meldung meldung-warnung fristen" id="frist-{{ art }}" role="status" aria-label="{{ titel }}">
+  <strong>{{ icon("person" if art == "fuehrerschein" else "auto") }} {{ titel }}</strong>{# Person bzw. Fahrzeug #}
   <ul>
-  {% for f in fristen %}
-    <li>
-      {% if f.art == "leasing" %}Leasing <a href="{{ f.link }}">{{ f.name }}</a>
+  {% for f in liste %}
+    <li><a href="{{ f.link }}">{{ f.name }}</a>
+      {%- if art == "leasing" %}
         {%- if f.ueberfaellig %} <strong>abgelaufen</strong> am {{ f.faellig | datum }}
-        {%- else %} endet am {{ f.faellig | datum }} <small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endif %}
-      {%- elif f.art == "fuehrerschein" %}Führerscheinkontrolle <a href="{{ f.link }}">{{ f.name }}</a>
+        {%- else %} endet am {{ f.faellig | datum }} {{ in_tagen(f) }}{% endif %}
+      {%- elif art == "fuehrerschein" %}
         {%- if f.faellig is none %} <strong>fehlt</strong> <small>(noch keine Kontrolle eingetragen)</small>
         {%- elif f.ueberfaellig %} <strong>überfällig</strong> seit {{ f.faellig | datum }}
-        {%- else %} fällig am {{ f.faellig | datum }} <small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endif %}
-      {%- else %}{{ "Vignette" if f.art == "vignette" else "Streckenmaut FLEX" }} <a href="{{ f.link }}">{{ f.name }}</a>
+        {%- else %} fällig am {{ f.faellig | datum }} {{ in_tagen(f) }}{% endif %}
+      {%- else %}
         {%- if f.zustand == "fehlt" %} <strong>Gültigkeit fehlt</strong> <small>(ab/bis beim Fahrzeug eintragen)</small>
         {%- elif f.zustand == "noch_nicht" %} <strong>noch nicht gültig</strong> – erst ab {{ f.ab | datum }}
         {%- elif f.zustand == "abgelaufen" %} <strong>abgelaufen</strong> am {{ f.faellig | datum }}
-        {%- else %} läuft ab am {{ f.faellig | datum }} <small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endif %}
-      {%- endif %}
-    </li>
+        {%- else %} läuft ab am {{ f.faellig | datum }} {{ in_tagen(f) }}{% endif %}
+      {%- endif %}</li>
   {% endfor %}
   </ul>
-  <small>Hinweis {{ einst.leasing_vorwarnung_tage }} Tage vor Leasing-Ende
-    {%- if einst.feature_fuehrerschein %}, {{ einst.fuehrerschein_vorwarnung_tage }} Tage vor der Führerscheinkontrolle
-      (alle {{ einst.fuehrerschein_intervall_monate }} Monate){% endif %}
-    {%- if einst.feature_vignette %}, {{ einst.vignette_vorwarnung_tage }} Tage vor Ablauf der Vignette{% endif %}
-    {%- if einst.feature_streckenmaut %}, {{ einst.streckenmaut_vorwarnung_tage }} Tage vor Ablauf der Streckenmaut FLEX{% endif %}
-    – einstellbar unter <a href="/einstellungen#fristen">Einstellungen</a>. Erledigt: Datum beim Fahrzeug bzw. bei der
-    Person aktualisieren.</small>
+  <small>Hinweis {{ vorwarnung }} Tage vorher – einstellbar unter <a href="/einstellungen#fristen">Einstellungen</a>.
+    Erledigt: {{ erledigt }}.</small>
 </section>
 {% endif %}
+{% endfor %}
+</div>
 {# Ladekarten je Fahrzeug: Anzahl außerhalb der Grenzen bzw. Zuordnung außerhalb des Leasings (services/kartenpruefung.py) #}
 {% if karten_befunde %}
 <section class="meldung meldung-warnung karten-befunde" id="karten-je-fahrzeug" role="status" aria-label="Ladekarten je Fahrzeug">
@@ -83,32 +121,6 @@
     <a href="/stammdaten/zuordnungen/zeitleiste?ansicht=alles">Zeitleiste (alles)</a>.</small>
 </section>
 {% endif %}
-{# Übersicht: je Aufgabe eine Kachel mit Anzahl; offene farbig, erledigte mit Häkchen; Klick springt zum Abschnitt #}
-{% macro aufgabe(anker, anzahl, titel, hinweis) %}
-{# erledigte Aufgaben haben keinen Abschnitt – daher keine Verlinkung #}
-{% if anzahl %}<a class="kachel aufgabe offen" href="#{{ anker }}">{% else %}<div class="kachel aufgabe erledigt">{% endif %}
-  <span class="kachel-zahl">{% if anzahl %}{{ anzahl }}{% else %}{{ icon("haken") }}{% endif %}</span>
-  <strong>{{ titel }}</strong>
-  <small>{% if anzahl %}{{ hinweis }}{% else %}nichts zu tun{% endif %}</small>
-{% if anzahl %}</a>{% else %}</div>{% endif %}
-{% endmacro %}
-<nav class="kacheln aufgaben-uebersicht" aria-label="Übersicht der Aufgaben">
-  {{ aufgabe("fristen", fristen | length, "Fristen", "Datum beim Fahrzeug bzw. der Person aktualisieren") }}
-  {{ aufgabe("karten-je-fahrzeug", karten_befunde | length, "Ladekarten je Fahrzeug", "Kartenzuordnung beim Fahrzeug prüfen") }}
-  {{ aufgabe("ohne-fahrzeug", request.state.offen.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug",
-             "Karte zuordnen oder Vorgänge manuell zuweisen") }}
-  {{ aufgabe("gebuehren", gebuehren | length, "Gebühren ohne Ladekarte", "einer Ladekarte zuweisen") }}
-  {{ aufgabe("unplausibel", unplausible | length, "Unplausible AC/DC-Angaben",
-             "Stromart korrigieren oder ausnehmen") }}
-  {{ aufgabe("stromart", request.state.offen.ohne_stromart, "Ladevorgänge ohne AC/DC-Angabe",
-             "Stromart je MSP setzen") }}
-  {% if geo_vorhanden %}
-  {{ aufgabe("ladeorte", ladeorte | length, "Ladeorte ohne Koordinaten", "PLZ eintragen") }}
-  {% else %}
-  <a class="kachel aufgabe nicht-verfuegbar" href="#ladeorte"><span class="kachel-zahl">–</span>
-    <strong>Ladeorte ohne Koordinaten</strong><small>nicht prüfbar: PLZ-Verzeichnis fehlt</small></a>
-  {% endif %}
-</nav>
 {% if not (request.state.offen.ohne_fahrzeug or vorgaenge or gebuehren or unplausible or request.state.offen.ohne_stromart
            or stromart_msp or ladeorte or fristen or luecken or karten_befunde) %}<p class="meldung meldung-info">{{ icon("ok") }} Alles erledigt – nichts zu klären.</p>{% endif %}
 

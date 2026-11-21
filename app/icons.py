@@ -9,19 +9,19 @@ from markupsafe import Markup, escape
 # eigener Name -> MDI-Name (https://pictogrammers.com/library/mdi/)
 SYMBOLE = {
     # Arten
-    "auto": "car-electric",
+    "auto": "car",
     "person": "account",
     "karte": "credit-card-outline",
     "msp": "lightning-bolt",
     "zuordnung": "link-variant",
     "zeitleiste": "chart-gantt",
     "ladevorgaenge": "ev-station",
+    "liste": "format-list-bulleted",
     # Zustände
     "warnung": "alert",
     "ok": "check-circle",
     "haken": "check",
     "offen": "clock-outline",
-    "frist": "alarm",
     "info": "information-outline",
     "email": "email-outline",
     "schloss": "lock-outline",

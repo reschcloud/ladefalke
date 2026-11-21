@@ -124,7 +124,7 @@ def test_ungespeichert_und_fristen_kachel(angemeldet, db):
     assert 'id="einstellungen-form" data-verfolgen' in seite
     assert seite.count('data-erst-speichern="einstellungen-form"') >= 3  # Testmail, Testmeldung, Jetzt sichern
     aufgaben = angemeldet.get("/aufgaben").text
-    assert "Fristen</strong>" in aufgaben  # Kachel immer da (✓ wenn nichts fällig)
+    assert "Leasing-Ende</strong>" in aufgaben  # Kachel je Frist-Art immer da (✓ wenn nichts fällig)
 
 
 # ------------------------------------------------------------------ Review-Runde 2 (17.11.2026)

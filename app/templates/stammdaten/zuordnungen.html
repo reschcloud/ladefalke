@@ -1,13 +1,11 @@
 {% extends "base.html" %}
 {% import "_makros.html" as m %}
-{% block titel %}Zuordnungen{% endblock %}
+{% import "stammdaten/_zuordnungen_kopf.html" as zk with context %}
+{% block titel %}Zuordnungen · Liste{% endblock %}
 {% block inhalt %}
-<div class="kopf">
-  <h1>Zuordnungen</h1>
-  <a href="/stammdaten/zuordnungen/zeitleiste" role="button" class="outline secondary klein nav-knopf">Als Zeitleiste anzeigen</a>
-</div>
+{{ zk.kopf("liste") }}
 <p>Wer wann welche Ladekarte und welches Fahrzeug hatte – daraus ermittelt die App für jeden Ladevorgang Fahrzeug und
-  Person am Ladetag. Neue Zuordnungen legt man bei der Ladekarte, dem Fahrzeug oder der Person an.</p>
+  Person am Ladetag. Neue Zuordnungen: Ladekarten bei der Ladekarte, Fahrzeuge bei der Person.</p>
 <form method="get" action="/stammdaten/zuordnungen" class="filterzeile sofort">
   <label>Gültig am
     <input type="date" name="stichtag" value="{{ stichtag.isoformat() if stichtag else '' }}"

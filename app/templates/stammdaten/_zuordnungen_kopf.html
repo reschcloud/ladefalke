@@ -1,0 +1,13 @@
+{# Gemeinsamer Kopf der Seite „Zuordnungen“: eine Seite, zwei Ansichten – Zeitleiste (Standard, Menü) und Liste
+   (alle Zuordnungen als Tabellen, auch Ladekarten, mit Filter „Gültig am“). aktiv: "zeitleiste" | "liste" #}
+{% macro kopf(aktiv) %}
+<div class="kopf">
+  <h1 class="seiten-titel art-zuordnung">{{ icon("zuordnung") }}Zuordnungen</h1>
+</div>
+<nav class="zuordnungen-ansicht" aria-label="Ansicht">
+  <span class="arten umschalter">
+    <a href="/stammdaten/zuordnungen/zeitleiste" {% if aktiv == "zeitleiste" %}aria-current="page"{% endif %}>{{ icon("zeitleiste") }} Zeitleiste</a>
+    <a href="/stammdaten/zuordnungen" {% if aktiv == "liste" %}aria-current="page"{% endif %}>{{ icon("liste") }} Liste</a>
+  </span>
+</nav>
+{% endmacro %}

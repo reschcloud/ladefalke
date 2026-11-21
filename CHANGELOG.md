@@ -15,6 +15,17 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Geändert
 
+- „Zuordnungen“ und „Zeitleiste“ sind eine Seite mit den Ansichten Zeitleiste (Standard) und Liste; im Menü
+  „Stammdaten“ nur noch ein Eintrag „Zuordnungen“.
+- Das Fahrzeug-Symbol ist ein einfaches Auto (statt E-Auto); Fristen unter „Aufgaben“ und im Report zeigen Auto bzw.
+  Person.
+- Aufgaben und Report „Offene Aufgaben“: Fristen je Art in eigenen Abschnitten (Leasing-Ende,
+  Führerscheinkontrolle, Vignette, Streckenmaut FLEX), unter „Aufgaben“ mit eigener Kachel je Art.
+- Meldungen stehen immer unter den Kacheln: unter „Aufgaben“ die Fristen, „Ladekarten je Fahrzeug“ und Lücken; auf den
+  Seiten von Fahrzeug, Fahrer:in und Ladekarte „Offen: …“.
+- Menü: Am Punkt „Aufgaben“ steht statt des roten Punkts die Zahl der offenen Punkte (Tooltip: Aufschlüsselung).
+- Report „Zuordnungen am Stichtag“ dichter: je Karte höchstens zwei Zeilen (Name · „über …“, darunter Kennung und
+  Vertrag), kleinere Abstände – etwa doppelt so viele Personen je Seite.
 - Zuordnungen haben je eine zuständige Seite, auf der Überschneidungen sichtbar sind: Ladekarten werden nur bei der
   Karte zugeordnet, Fahrzeuge nur bei der Person (dort jetzt auch „Fahrerwechsel“). Auf der Fahrzeugseite öffnet
   „Fahrer:in zuordnen →“ die Person mit vorbelegtem Fahrzeug und kehrt danach zurück; „Ohne Fahrer:in“ hat dort ein

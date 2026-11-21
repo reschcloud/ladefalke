@@ -75,7 +75,7 @@ label.haken:has(+ small.haken-hinweis) { margin-bottom: .2rem; }
 small.haken-hinweis { display: block; margin: -.4rem 0 .9rem 1.9rem; color: var(--pico-muted-color); }
 small.haken-hinweis.fehler { color: var(--pico-del-color); }
 
-/* Roter Punkt in der Menüleiste für offene Punkte */
+/* Roter Punkt in der Menüleiste (offene Import-Vorschauen); Aufgaben: Zahl als rotes Badge (.menue-anzahl.offen) */
 nav a .punkt { display: inline-block; width: .5rem; height: .5rem; margin-left: .25rem; vertical-align: super;
   border-radius: 50%; background: #e53935; }
 .unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -683,6 +683,8 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
   margin-right: .4em; color: var(--art); }
 .abschnitt-titel { margin-top: 2.2rem; padding-bottom: .3rem;
   border-bottom: 2px solid color-mix(in srgb, var(--art) 45%, transparent); }
+/* Seite „Zuordnungen“: Umschalter Zeitleiste | Liste unter dem Titel */
+.zuordnungen-ansicht { margin-bottom: .9rem; }
 /* In farbigen Meldungen und Kennzeichnungen nehmen Zustandssymbole die Farbe des Texts */
 :is(.hinweis, .fehler, .fehler-text, .ok-text, .block-status, .schritt-nr, .kachel-zahl, .luecken-zeile, .alles-ok)
   svg:is(.symbol-warnung, .symbol-ok, .symbol-haken) { color: inherit; }
@@ -1168,6 +1170,10 @@ details.syslog-erweitert > summary { font-size: .95rem; }
 /* Menü → Stammdaten: Anzahl aktiver Einträge rechts neben dem Namen */
 nav .menue-anzahl { margin-left: auto; padding-left: .75rem; font-size: .8rem; color: var(--pico-muted-color);
   font-variant-numeric: tabular-nums; }
+nav .menue-anzahl.offen { padding: 0 .45rem; border-radius: 999px; background: #e53935; color: #fff; font-weight: 600;
+  line-height: 1.45; margin-left: auto; }
+nav a:has(> .menue-anzahl.offen), body.menue-links > header.container > nav li > a:has(> .menue-anzahl.offen) {
+  display: flex; align-items: center; gap: .5rem; }
 nav li:has(> a > .menue-anzahl) > a { display: flex; align-items: center; gap: 0; width: 100%; box-sizing: border-box; }
 body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { display: flex; align-items: center; gap: 0; }
 /* Letzter Kasten einer Einstellungsgruppe (z. B. Reports → Offene Aufgaben): Luft zum Rand der Gruppe */

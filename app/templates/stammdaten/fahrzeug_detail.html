@@ -7,12 +7,12 @@
 <p class="nav-leiste"><a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrzeuge' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrzeuge</a>{{ m.blaettern(blaettern) }}</p>
 {% call m.titel("auto", "h1") %}{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}{% endcall %}
 {% if fahrzeug %}
-{{ m.offene_punkte(offen, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
 {{ m.querverweise("Auswertung", [
      ("/auswertungen/fahrzeug/%d" % fahrzeug.id, "Vormonat", "Auswertung des Vormonats"),
      ("/auswertungen/fahrzeug/%d?art=jahr&jahr=%d" % (fahrzeug.id, heute_datum().year), heute_datum().year, "Auswertung des laufenden Jahres"),
      ("/ladevorgaenge?fahrzeug_id=%d" % fahrzeug.id, "Ladevorgänge", "Alle Ladevorgänge dieses Fahrzeugs")]) }}
 {{ m.gesamt_kacheln(gesamt, "dieses Fahrzeugs") }}
+{{ m.offene_punkte(offen, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}{# Meldungen immer unter den Kacheln #}
 {% endif %}
 
 <form method="post" class="formular" action="{{ '/stammdaten/fahrzeuge/%d' % fahrzeug.id if fahrzeug else '/stammdaten/fahrzeuge/neu' }}">

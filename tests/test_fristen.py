@@ -73,7 +73,11 @@ def test_fristen_und_aufgaben(angemeldet, db):
     assert zaehlen(db).fristen == len(gemeldet) and zaehlen(db).zu_klaeren >= len(gemeldet)
 
     seite = angemeldet.get("/aufgaben").text
-    assert seite.index('class="meldung meldung-warnung fristen"') < seite.index("aufgaben-uebersicht")
+    assert seite.index("aufgaben-uebersicht") < seite.index('class="meldung meldung-warnung fristen"')  # erst Kacheln
+    leasing = seite.split('id="frist-leasing"')[1].split("</section>")[0]  # je Art ein eigener Abschnitt
+    fuehrerschein = seite.split('id="frist-fuehrerschein"')[1].split("</section>")[0]
+    assert "F-ALT" in leasing and "Ohne Kontrolle" not in leasing and "Ohne Kontrolle" in fuehrerschein
+    assert 'href="#frist-leasing"' in seite and 'href="#frist-fuehrerschein"' in seite  # Kacheln je Art
     assert "F-ALT</a> <strong>abgelaufen</strong>" in seite and "endet am" in seite
     assert "Ohne Kontrolle</a> <strong>fehlt</strong>" in seite and "Überfällig</a> <strong>überfällig</strong>" in seite
 

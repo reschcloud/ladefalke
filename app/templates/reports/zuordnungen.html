@@ -1,34 +1,35 @@
 {% extends "reports/_basis.html" %}
 {% import "reports/_basis.html" as r with context %}
 {# Report „Zuordnungen am Stichtag“ (services/stichtag_zuordnungen): A4 quer, je Fahrer:in eine Zeile mit Kennzeichen
-   und den Karten je MSP-Spalte; Texte werden umgebrochen, nie abgeschnitten. #}
+   und den Karten je MSP-Spalte; Texte werden umgebrochen, nie abgeschnitten. Dicht: je Karte höchstens zwei Zeilen
+   (Name · „über …“, darunter Kennung · Vertrag). #}
 {% block titel %}Ladefalke – Zuordnungen am {{ d.stichtag | datum }}{% endblock %}
 {% block kopf %}Zuordnungen am Stichtag{% endblock %}
 {% block kopf_rechts %}Stichtag {{ d.stichtag | datum }}{% endblock %}
 {% block seite %}
   @page { size: A4 landscape; }
-  table.zuordnungen { table-layout: fixed; width: 100%; font-size: 8pt; }
+  table.zuordnungen { table-layout: fixed; width: 100%; font-size: 7.5pt; line-height: 1.25; }
   table.zuordnungen th, table.zuordnungen td { overflow-wrap: anywhere; word-break: break-word; hyphens: auto;
-    border: .5pt solid #c5ccd5; padding: 1.6mm 2mm; }
+    border: .5pt solid #c5ccd5; padding: .8mm 1.5mm; }
   table.zuordnungen thead th { background: #e8eef4; border-bottom: .9pt solid #9aa5b1; }
   table.zuordnungen tbody tr:nth-child(even) td { background: #f5f7fa; }
   table.zuordnungen tbody td.wer { background: #eef2f6; }
   table.zuordnungen tbody tr:nth-child(even) td.wer { background: #e6ebf1; }
-  table.zuordnungen th.wer, table.zuordnungen td.wer { width: 42mm; }
-  table.zuordnungen td.wer strong { display: block; font-size: 8.5pt; }
+  table.zuordnungen th.wer, table.zuordnungen td.wer { width: 38mm; }
+  table.zuordnungen td.wer strong { font-size: 8pt; }
   table.zuordnungen td.wer .klein { display: block; }
-  .karte-eintrag { display: block; margin-bottom: 1.4mm; }
+  .karte-eintrag { display: block; margin-bottom: .8mm; }
   .karte-eintrag:last-child { margin-bottom: 0; }
-  .karte-eintrag .name { display: block; font-weight: 700; }
-  .karte-eintrag .klein { display: block; line-height: 1.25; }
-  .karte-eintrag .ueber { color: var(--blau); }
+  .karte-eintrag .name { font-weight: 700; }
+  .karte-eintrag .details { display: block; }
+  .karte-eintrag .ueber { color: var(--blau); font-weight: 400; }
   .marke-gast { display: inline-block; padding: 0 1mm; border-radius: .6mm; background: #eef1f4; color: var(--grau);
                 font-size: 6.5pt; font-weight: 400; }
   td.leer { color: var(--grau); }
 {% endblock %}
 {% macro tabelle(zeilen, erste, ohne_karte="–") %}
 <table class="zuordnungen">
-  <colgroup><col style="width: 42mm">{% for m in d.msp %}<col>{% endfor %}</colgroup>
+  <colgroup><col style="width: 38mm">{% for m in d.msp %}<col>{% endfor %}</colgroup>
   <thead><tr><th class="wer">{{ erste }}</th>{% for m in d.msp %}<th>{{ m.name }}</th>{% endfor %}</tr></thead>
   <tbody>
   {% for z in zeilen %}
@@ -37,10 +38,10 @@
       {% for m in d.msp %}{% set karten = z.karten.get(m.id, []) %}
       <td{% if not karten %} class="leer"{% endif %}>
         {%- for e in karten %}{% set k = e.karte %}<span class="karte-eintrag">
-          <span class="name">{{ k.bezeichnung or k.kennung }}{% if k.ist_gastkarte %} <span class="marke-gast">Gast</span>{% endif %}</span>
-          {%- if k.bezeichnung %}<span class="klein">{{ k.kennung }}</span>{% endif %}
-          {%- if k.vertragsnummer %}<span class="klein">Vertrag {{ k.vertragsnummer }}</span>{% endif %}
-          {%- if e.ueber %}<span class="klein ueber">über {{ e.ueber }}</span>{% endif %}</span>
+          <span class="name">{{ k.bezeichnung or k.kennung }}</span>{% if k.ist_gastkarte %} <span class="marke-gast">Gast</span>{% endif %}
+          {%- if e.ueber %} <span class="klein ueber">· über {{ e.ueber }}</span>{% endif %}
+          {%- set details = ([k.kennung] if k.bezeichnung else []) + (["Vertrag " ~ k.vertragsnummer] if k.vertragsnummer else []) %}
+          {%- if details %}<span class="klein details">{{ details | join(" · ") }}</span>{% endif %}</span>
         {%- else %}{{ ohne_karte }}{% endfor %}</td>
       {% endfor %}</tr>
   {% endfor %}

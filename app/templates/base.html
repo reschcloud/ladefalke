@@ -683,8 +683,9 @@
             title="{{ offene_punkte.vorschauen }} offene Vorschau{{ 'en' if offene_punkte.vorschauen != 1 }}"><span class="unsichtbar">{{ offene_punkte.vorschauen }} offen</span></span>{% endif %}</a></li>
         <li><a href="/ladevorgaenge" {% if pfad.startswith("/ladevorgaenge") %}aria-current="page"{% endif %}>Ladevorgänge</a></li>
         <li><a href="/aufgaben" {% if pfad.startswith("/aufgaben") %}aria-current="page"{% endif %}>Aufgaben
-          {%- if offene_punkte and offene_punkte.zu_klaeren %}<span class="punkt" role="status"
-            title="{{ offene_punkte.beschreibung }}"><span class="unsichtbar">{{ offene_punkte.zu_klaeren }} offen</span></span>{% endif %}</a></li>
+          {%- if offene_punkte and offene_punkte.zu_klaeren %}{% set n = offene_punkte.zu_klaeren %}<span class="menue-anzahl offen"
+            role="status" title="{{ n }} offene Punkte: {{ offene_punkte.beschreibung }}">{{ "999+" if n > 999 else n }}<span
+            class="unsichtbar"> offen</span></span>{% endif %}</a></li>
         <li>
           {# Seitenleiste (links, breit): per CSS aufklappbare Gruppe statt Dropdown – Skript „Seitenleiste“ unten #}
           <details class="dropdown">
@@ -696,8 +697,7 @@
               <li><a href="/stammdaten/ladekarten">{{ m.symbol("karte") }}Ladekarten{{ menue_anzahl(bs.get("ladekarten"), "aktive Ladekarten") }}</a></li>
               <li><a href="/stammdaten/fahrzeuge">{{ m.symbol("auto") }}Fahrzeuge{{ menue_anzahl(bs.get("fahrzeuge"), "aktive Fahrzeuge") }}</a></li>
               <li><a href="/stammdaten/fahrer">{{ m.symbol("person") }}Fahrer:innen{{ menue_anzahl(bs.get("fahrer"), "aktive Fahrer:innen") }}</a></li>
-              <li><a href="/stammdaten/zuordnungen">{{ m.symbol("zuordnung") }}Zuordnungen</a></li>
-              <li><a href="/stammdaten/zuordnungen/zeitleiste">{{ m.symbol("zeitleiste") }}Zeitleiste</a></li>
+              <li><a href="/stammdaten/zuordnungen/zeitleiste">{{ m.symbol("zuordnung") }}Zuordnungen</a></li>{# Zeitleiste und Liste #}
             </ul>
           </details>
         </li>

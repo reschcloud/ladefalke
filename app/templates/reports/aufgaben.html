@@ -16,7 +16,10 @@
 {% set gesamt = zn.zu_klaeren + zn.vorschauen + (luecken | length) %}
 <div class="kacheln drei">
   <div class="kachel"><span class="zahl">{{ fristen | length }}</span><span class="text">Fristen</span>
-    <span class="vgl">{{ fristen | selectattr("ueberfaellig") | list | length }} überfällig bzw. fehlend</span></div>
+    <span class="vgl">{% set teile = [] %}{% for art, kurz in [("leasing", "Leasing"), ("fuehrerschein", "Führerschein"),
+      ("vignette", "Vignette"), ("streckenmaut", "Streckenmaut")] %}{% set n = fristen | selectattr("art", "eq", art) | list | length %}
+      {%- if n %}{% set _ = teile.append(n ~ " " ~ kurz) %}{% endif %}{% endfor %}{{ teile | join(", ") if teile else "keine" }}
+      · {{ fristen | selectattr("ueberfaellig") | list | length }} überfällig bzw. fehlend</span></div>
   <div class="kachel"><span class="zahl">{{ zn.ohne_fahrzeug }}</span><span class="text">Ladevorgänge ohne Fahrzeug</span>
     <span class="vgl">{{ gruppen | length }} Karte{{ "n" if gruppen | length != 1 }} bzw. Kennungen</span></div>
   <div class="kachel"><span class="zahl">{{ (luecken | length) + (karten_befunde | length) }}</span><span class="text">Zuordnungen</span>
@@ -30,28 +33,30 @@
 </div>
 {% if not gesamt %}<div class="vollstaendig"><strong>{{ icon("ok") }} Alles erledigt</strong> – nichts zu klären.</div>{% endif %}
 
-{% if fristen %}
-<h2>Fristen</h2>
+{# Fristen je Art ein eigener Abschnitt (wie unter „Aufgaben“) #}
+{% for art, titel in [("leasing", "Leasing-Ende"), ("fuehrerschein", "Führerscheinkontrolle"), ("vignette", "Vignette"),
+                      ("streckenmaut", "Streckenmaut FLEX")] %}{% set liste = fristen | selectattr("art", "eq", art) | list %}
+{% if liste %}
+<h2>{{ icon("person" if art == "fuehrerschein" else "auto") }} {{ titel }}</h2>
 <table>
-  <thead><tr><th>Art</th><th>Fahrzeug / Fahrer:in</th><th>Stand</th><th class="r">Datum</th></tr></thead>
+  <thead><tr><th>{{ "Fahrer:in" if art == "fuehrerschein" else "Fahrzeug" }}</th><th>Stand</th><th class="r">Datum</th></tr></thead>
   <tbody>
-  {% for f in fristen %}
-    {% set art = {"leasing": "Leasing", "fuehrerschein": "Führerscheinkontrolle", "vignette": "Vignette",
-                  "streckenmaut": "Streckenmaut FLEX"}[f.art] %}
-    <tr><td>{{ art }}</td><td>{{ f.name }}</td>
-      <td>{% if f.art in ("vignette", "streckenmaut") %}
+  {% for f in liste %}
+    <tr><td>{{ f.name }}</td>
+      <td>{% if art in ("vignette", "streckenmaut") %}
             {%- if f.zustand == "fehlt" %}<span class="warnung">Gültigkeit fehlt</span>
             {%- elif f.zustand == "noch_nicht" %}<span class="warnung">noch nicht gültig</span>
             {%- elif f.zustand == "abgelaufen" %}<span class="warnung">abgelaufen</span>
             {%- else %}läuft in {{ tage(f.tage) }} ab{% endif %}
           {%- elif f.faellig is none %}<span class="warnung">keine Kontrolle eingetragen</span>
-          {%- elif f.ueberfaellig %}<span class="warnung">{{ "abgelaufen" if f.art == "leasing" else "überfällig" }}</span>
+          {%- elif f.ueberfaellig %}<span class="warnung">{{ "abgelaufen" if art == "leasing" else "überfällig" }}</span>
           {%- else %}in {{ tage(f.tage) }}{% endif %}</td>
       <td class="r">{% if f.zustand == "noch_nicht" %}ab {{ f.ab | datum }}{% elif f.faellig %}{{ f.faellig | datum }}{% else %}–{% endif %}</td></tr>
   {% endfor %}
   </tbody>
 </table>
 {% endif %}
+{% endfor %}
 
 {% if luecken %}
 <h2>Lücken in der Fahrer:innen-Zuordnung</h2>
