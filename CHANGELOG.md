@@ -11,6 +11,14 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   blau, Person violett, Ladekarte türkis, MSP orange; Warnung, Erledigt, Frist, E-Mail, Schloss usw. als Symbol statt
   Zeichen, auch in den PDF-Reports.
 
+### Geändert
+
+- Zuordnungen haben je eine zuständige Seite, auf der Überschneidungen sichtbar sind: Ladekarten werden nur bei der
+  Karte zugeordnet, Fahrzeuge nur bei der Person (dort jetzt auch „Fahrerwechsel“). Auf der Fahrzeugseite öffnet
+  „Fahrer:in zuordnen →“ die Person mit vorbelegtem Fahrzeug und kehrt danach zurück; „Ohne Fahrer:in“ hat dort ein
+  eigenes Formular. Die übrigen Seiten zeigen „bei Person ändern →“ bzw. „bei Karte ändern →“, und die
+  Bearbeitungsseite einer Zuordnung zeigt die übrigen Zeiträume derselben Person bzw. Karte.
+
 ### Beim Update beachten
 
 - nichts

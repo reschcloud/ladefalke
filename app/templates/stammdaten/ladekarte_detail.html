@@ -35,7 +35,7 @@
 {% if karte %}
 {{ m.entfernen_knopf("/stammdaten/ladekarten/%d" % karte.id, "Ladekarte %s" % karte.kennung, karte.aktiv, referenziert) }}
 
-<h2>Zuordnungshistorie</h2>
+<h2 id="zuordnungen">Zuordnungshistorie {{ m.hilfe("Karten werden nur hier zugeordnet und geändert (eine Karte gehört zu jeder Zeit höchstens einer Person oder einem Fahrzeug – so sind Überschneidungen sichtbar). Auf Fahrzeug- und Personenseite führt „Karte zuordnen →“ hierher.") }}</h2>
 {% if karte.ist_gastkarte %}
   <p>Gastkarte – Ladungen werden dem Topf <strong>„Gäste“</strong> zugerechnet und keinem Fahrzeug zugeordnet.</p>
 {% else %}

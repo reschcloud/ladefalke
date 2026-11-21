@@ -4,7 +4,8 @@
 {% import "_zuordnung.html" as zo %}
 {% block titel %}{{ fahrer.name if fahrer else "Neue Fahrer:in" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrer' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrer:innen</a>{{ m.blaettern(blaettern) }}</p>
+<p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
+  {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrer' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrer:innen</a>{{ m.blaettern(blaettern) }}</p>
 <h1>{{ fahrer.name if fahrer else "Neue Fahrer:in" }}</h1>
 {% if fahrer %}
 {{ m.offene_punkte(offen, "/stammdaten/fahrer/%d" % fahrer.id) }}
@@ -39,19 +40,26 @@
 {% if fahrer %}
 {{ m.entfernen_knopf("/stammdaten/fahrer/%d" % fahrer.id, fahrer.name, fahrer.aktiv, referenziert) }}
 
-<h2>Fahrzeug</h2>
+<h2 id="fahrzeug">Fahrzeug {{ m.hilfe("Fahrzeuge werden nur hier zugeordnet und geändert (eine Person hat zu jeder Zeit höchstens ein Fahrzeug – so sind Überschneidungen sichtbar). Auf der Fahrzeugseite führt „Fahrer:in zuordnen →“ hierher.") }}</h2>
 {{ zo.abschnitt(fahrzeug_mini, "Fahrzeug", "Modell", formular="neue-fahrzeug-zuordnung") }}
 
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
   <header><strong>Neue Fahrzeug-Zuordnung</strong></header>
   <form method="post" action="/stammdaten/fahrer/{{ fahrer.id }}/fahrzeug" id="neue-fahrzeug-zuordnung">
     {% if zuordnung_fehler %}<p class="meldung meldung-fehler" role="alert">{{ zuordnung_fehler }}</p>{% endif %}
+    {% if zurueck %}<input type="hidden" name="zurueck" value="{{ zurueck }}">{% endif %}
     <div class="grid">
       {{ m.auswahl("fahrzeug_id", "Fahrzeug", fahrzeuge | optionen("id", "kennzeichen"), zuordnung_werte, {}, pflicht=true) }}
       {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
       {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
     </div>
     {{ m.leasing_knoepfe(leasing_daten(fahrzeuge), "fahrzeug_id") }}
+    <label class="haken">
+      <input type="checkbox" name="bisherige_austragen" {% if zuordnung_werte.get("bisherige_austragen") %}checked{% endif %}
+             aria-describedby="austragen-hinweis">
+      Bisherige Fahrer:in(nen) des Fahrzeugs zum Vortag austragen (Fahrerwechsel)
+    </label>
+    <small id="austragen-hinweis" class="haken-hinweis">Bei Poolfahrzeugen mit mehreren Fahrer:innen leer lassen.</small>
     {{ m.neu_zuordnen_haken(zuordnung_werte) }}
     <p class="zuordnung-hinweis"><small>Eine offene bisherige Zuordnung wird automatisch zum Vortag beendet.</small></p>
     <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>

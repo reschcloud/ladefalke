@@ -75,9 +75,13 @@ def _karten_zuordnung(db: Session, zuordnung_id: int) -> ZuordnungKarte:
 
 
 def _karten_formular(request, db, z, werte, fehler=None, status_code=200):
+    # übrige Zeiträume derselben Karte: eine Karte hat zu jeder Zeit höchstens ein Ziel – Überschneidungen hier sichtbar
+    weitere = db.scalars(select(ZuordnungKarte).where(ZuordnungKarte.ladekarte_id == z.ladekarte_id,
+                                                      ZuordnungKarte.id != z.id)
+                         .order_by(ZuordnungKarte.gueltig_ab.desc())).all()
     return render(request, "stammdaten/zuordnung_karte_formular.html",
                   {"z": z, "werte": werte, "fehler": fehler, "zurueck": _zurueck(request, "/stammdaten/zuordnungen"),
-                   **ziele(db, z.fahrer_id, z.fahrzeug_id)}, status_code)
+                   "weitere": weitere, **ziele(db, z.fahrer_id, z.fahrzeug_id)}, status_code)
 
 
 @router.get("/karte/{zuordnung_id}")
@@ -144,8 +148,12 @@ def _fahrer_zuordnung(db: Session, zuordnung_id: int) -> ZuordnungFahrerFahrzeug
 def _fahrer_formular(request, db, z, werte, fehler=None, status_code=200):
     fahrzeuge = db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv | (Fahrzeug.id == z.fahrzeug_id))
                            .order_by(Fahrzeug.kennzeichen)).all()
+    # übrige Fahrzeuge derselben Person: höchstens eines zu jeder Zeit – Überschneidungen hier sichtbar
+    weitere = db.scalars(select(ZuordnungFahrerFahrzeug).where(ZuordnungFahrerFahrzeug.fahrer_id == z.fahrer_id,
+                                                               ZuordnungFahrerFahrzeug.id != z.id)
+                         .order_by(ZuordnungFahrerFahrzeug.gueltig_ab.desc())).all()
     return render(request, "stammdaten/zuordnung_fahrer_formular.html",
-                  {"z": z, "werte": werte, "fehler": fehler, "fahrzeuge": fahrzeuge,
+                  {"z": z, "werte": werte, "fehler": fehler, "fahrzeuge": fahrzeuge, "weitere": weitere,
                    "zurueck": _zurueck(request, "/stammdaten/zuordnungen")}, status_code)
 
 

@@ -23,9 +23,10 @@ class Eintrag:
     name: str
     link: str | None = None  # zum Objekt (Person, Fahrzeug, Karte)
     zusatz: str = ""  # z. B. MSP
-    bearbeiten: str | None = None  # Link zum Bearbeiten der Zuordnung
+    bearbeiten: str | None = None  # Link zum Bearbeiten der Zuordnung (bzw. zur Seite, auf der sie geändert wird)
     art: str = ""  # Symbol vor dem Namen: „auto“, „person“ oder „karte“ (_makros.symbol)
     stil: str = ""  # zusätzliche CSS-Klasse, z. B. „ohne“ für Zeiträume „ohne Fahrer:in“ (grau)
+    bearbeiten_text: str = "bearbeiten"  # z. B. „bei Karte ändern →“, wenn die Zuordnung woanders geändert wird
 
     @property
     def zeitraum(self) -> str:

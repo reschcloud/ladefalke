@@ -99,26 +99,40 @@
 <h2>Fahrer:innen</h2>
 {{ zo.abschnitt(fahrer_mini, "Fahrer:in", formular="neue-fahrer-zuordnung", ohne_fahrer="/stammdaten/fahrzeuge/%d/ohne-fahrer" % fahrzeug.id, grafik=false) }}
 
+{# Fahrer:innen werden bei der Person zugeordnet (eine Person hat höchstens ein Fahrzeug – Überschneidungen sind dort
+   sichtbar); hier nur die Auswahl, die die Person mit vorbelegtem Fahrzeug öffnet. „Ohne Fahrer:in“ gehört zum Fahrzeug. #}
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
-  <header><strong>Neue Fahrer:in-Zuordnung</strong></header>
-  <form method="post" action="/stammdaten/fahrzeuge/{{ fahrzeug.id }}/fahrer" id="neue-fahrer-zuordnung">
-    {% if zuordnung_fehler %}<p class="meldung meldung-fehler" role="alert">{{ zuordnung_fehler }}</p>{% endif %}
+  <header><strong>Fahrer:in zuordnen</strong></header>
+  <form method="get" action="/stammdaten/fahrer/zuordnen" class="filterzeile" id="neue-fahrer-zuordnung">
+    <input type="hidden" name="fahrzeug_id" value="{{ fahrzeug.id }}">
+    <input type="hidden" name="zurueck" value="/stammdaten/fahrzeuge/{{ fahrzeug.id }}">
+    <input type="hidden" name="ab" value="{{ zuordnung_werte.get('ab', '') }}">
+    <input type="hidden" name="bis" value="{{ zuordnung_werte.get('bis', '') }}">
+    <select name="fahrer_id" required aria-label="Fahrer:in">
+      <option value="">– Fahrer:in wählen –</option>
+      {% for f in fahrer_liste %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="outline klein">Fahrer:in zuordnen →</button>
+  </form>
+  <p class="zuordnung-hinweis"><small>Öffnet die Person mit diesem Fahrzeug vorbelegt – dort sieht man ihre übrigen
+    Fahrzeuge, ein Fahrerwechsel ist dort ankreuzbar. Danach geht es hierher zurück.</small></p>
+</article>
+
+<article data-schreiben>
+  <header><strong>Ohne Fahrer:in</strong> {{ m.hilfe("Das Fahrzeug ist im Zeitraum bewusst niemandem zugeordnet (z. B. Werkstatt, Reserve) – das ist dann keine Lücke.") }}</header>
+  <form method="post" action="/stammdaten/fahrzeuge/{{ fahrzeug.id }}/ohne-fahrer" id="ohne-fahrer">
     <div class="grid">
-      {{ m.auswahl("fahrer_id", "Fahrer:in", [("ohne", "– ohne Fahrer:in –")] + (fahrer_liste | optionen("id", "name")), zuordnung_werte, {}, pflicht=true) }}
       {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
       {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
     </div>
     {{ m.leasing_knoepfe({"*": leasing_daten([fahrzeug]).get(fahrzeug.id | string, [none, none])}) }}
     <label class="haken">
-      <input type="checkbox" name="bisherige_austragen" {% if zuordnung_werte.get("bisherige_austragen") %}checked{% endif %}
-             aria-describedby="austragen-hinweis">
-      Bisherige Fahrer:in(nen) dieses Fahrzeugs zum Vortag austragen (Fahrerwechsel)
+      <input type="checkbox" name="bisherige_austragen" checked aria-describedby="ohne-austragen-hinweis">
+      Bisherige Fahrer:in(nen) zum Vortag austragen
     </label>
-    <small id="austragen-hinweis" class="haken-hinweis">Bei Poolfahrzeugen mit mehreren Fahrer:innen abwählen.</small>
+    <small id="ohne-austragen-hinweis" class="haken-hinweis">Sonst muss der Zeitraum frei von Fahrer:innen sein.</small>
     {{ m.neu_zuordnen_haken(zuordnung_werte) }}
-    <p class="zuordnung-hinweis"><small>Ein offenes bisheriges Fahrzeug der gewählten Person wird automatisch zum Vortag beendet.
-      „– ohne Fahrer:in –“: Das Fahrzeug ist im Zeitraum bewusst niemandem zugeordnet (z. B. Werkstatt, Reserve) – das ist dann keine Lücke.</small></p>
-    <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel outline">Ohne Fahrer:in eintragen</button></div>
   </form>
 </article>
 

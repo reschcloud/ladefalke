@@ -172,21 +172,25 @@ def _ff(db, fahrzeug_id):
         select(ZuordnungFahrerFahrzeug).where(ZuordnungFahrerFahrzeug.fahrzeug_id == fahrzeug_id))}
 
 
-def test_fahrerwechsel_vom_fahrzeug(angemeldet, db, daten):
+def test_fahrerwechsel_bei_der_person(angemeldet, db, daten):
+    """Fahrerwechsel wird bei der neuen Person angekreuzt; zurück zur Fahrzeugseite, wenn man von dort kam."""
     fz, alt, neu = daten["fz1"], daten["f1"], daten["f2"]
     fahrer_fahrzeug_zuordnen(db, alt, fz, ab=date(2026, 1, 1), heute=HEUTE)
-    antwort = angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/fahrer", data={
-        "fahrer_id": str(neu.id), "ab": "2026-11-01", "bisherige_austragen": "on"})
-    assert antwort.status_code == 200
+    antwort = angemeldet.post(f"/stammdaten/fahrer/{neu.id}/fahrzeug", data={
+        "fahrzeug_id": str(fz.id), "ab": "2026-11-01", "bisherige_austragen": "on",
+        "zurueck": f"/stammdaten/fahrzeuge/{fz.id}"})
+    assert antwort.status_code == 200 and str(antwort.url).endswith(f"/stammdaten/fahrzeuge/{fz.id}")
     assert "Test Zwei ist ab 01.11.2026 Fahrzeug S-TEST 1 zugeordnet" in antwort.text
     assert "Test Eins wurde zum 31.10.2026 aus dem Fahrzeug S-TEST 1 ausgetragen" in antwort.text
+    assert "(Pool)" not in antwort.text  # kein Pool-Hinweis nach bewusstem Wechsel
     assert _ff(db, fz.id) == {("Test Eins", date(2026, 1, 1), date(2026, 10, 31)), ("Test Zwei", date(2026, 11, 1), None)}
 
 
 def test_poolfahrzeug_ohne_austragen(angemeldet, db, daten):
     fz, alt, neu = daten["fz1"], daten["f1"], daten["f2"]
     fahrer_fahrzeug_zuordnen(db, alt, fz, ab=date(2026, 1, 1), heute=HEUTE)
-    angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/fahrer", data={"fahrer_id": str(neu.id), "ab": "2026-11-01"})
+    antwort = angemeldet.post(f"/stammdaten/fahrer/{neu.id}/fahrzeug", data={"fahrzeug_id": str(fz.id), "ab": "2026-11-01"})
+    assert "(Pool)" in antwort.text and "Bisherige austragen" in antwort.text
     assert _ff(db, fz.id) == {("Test Eins", date(2026, 1, 1), None), ("Test Zwei", date(2026, 11, 1), None)}
     assert [f.name for f in fahrer_von_fahrzeug_am(db, fz.id, date(2026, 11, 2))] == ["Test Eins", "Test Zwei"]
 
@@ -196,21 +200,63 @@ def test_austragen_nicht_moeglich(angemeldet, db, daten):
     fz, alt, neu = daten["fz1"], daten["f1"], daten["f2"]
     fahrer_fahrzeug_zuordnen(db, alt, fz, ab=date(2026, 12, 1), heute=HEUTE)
     db.commit()  # wie im Betrieb bereits gespeichert (Rollback der Route betrifft nur die neue Änderung)
-    antwort = angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/fahrer", data={
-        "fahrer_id": str(neu.id), "ab": "2026-11-01", "bisherige_austragen": "on"})
+    antwort = angemeldet.post(f"/stammdaten/fahrer/{neu.id}/fahrzeug", data={
+        "fahrzeug_id": str(fz.id), "ab": "2026-11-01", "bisherige_austragen": "on", "zurueck": "/aufgaben"})
     assert antwort.status_code == 422 and "ab 01.12.2026 zugeordnet" in antwort.text
+    assert 'name="zurueck" value="/aufgaben"' in antwort.text  # Rücksprung bleibt erhalten
     assert _ff(db, fz.id) == {("Test Eins", date(2026, 12, 1), None)}
 
 
-def test_fahrer_fehlt(angemeldet, db, daten):
-    antwort = angemeldet.post(f"/stammdaten/fahrzeuge/{daten['fz1'].id}/fahrer", data={"fahrer_id": "", "ab": "2026-11-01"})
-    assert antwort.status_code == 422 and "Bitte eine Fahrer:in wählen" in antwort.text
+def test_fahrzeug_fehlt(angemeldet, daten):
+    antwort = angemeldet.post(f"/stammdaten/fahrer/{daten['f1'].id}/fahrzeug", data={"fahrzeug_id": "", "ab": "2026-11-01"})
+    assert antwort.status_code == 422 and "Bitte ein Fahrzeug wählen" in antwort.text
 
 
-def test_formular_auf_fahrzeugseite(angemeldet, daten):
-    text = angemeldet.get(f"/stammdaten/fahrzeuge/{daten['fz1'].id}").text
-    assert "Neue Fahrer:in-Zuordnung" in text and 'name="bisherige_austragen" checked' not in text
-    assert 'name="neu_zuordnen" checked' in text  # Vorauswahl: neu zuordnen ja, bisherige austragen nein
+def test_fahrzeugseite_fuehrt_zur_person(angemeldet, daten):
+    """Person ↔ Fahrzeug wird nur bei der Person zugeordnet; die Fahrzeugseite öffnet sie mit vorbelegtem Fahrzeug."""
+    fz, f = daten["fz1"], daten["f1"]
+    text = angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text
+    assert 'action="/stammdaten/fahrer/zuordnen"' in text and "Fahrer:in zuordnen →" in text
+    assert f'action="/stammdaten/fahrzeuge/{fz.id}/fahrer"' not in text
+    assert angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/fahrer", data={"fahrer_id": str(f.id)}).status_code in (404, 405)
+    antwort = angemeldet.get(f"/stammdaten/fahrer/zuordnen?fahrer_id={f.id}&fahrzeug_id={fz.id}&ab=2026-11-01"
+                             f"&zurueck=/stammdaten/fahrzeuge/{fz.id}", follow_redirects=False)
+    ort = antwort.headers["location"]
+    assert ort.startswith(f"/stammdaten/fahrer/{f.id}?") and ort.endswith("#neue-fahrzeug-zuordnung")
+    seite = angemeldet.get(ort).text
+    assert f'<option value="{fz.id}" selected' in seite and 'value="2026-11-01"' in seite
+    assert f'name="zurueck" value="/stammdaten/fahrzeuge/{fz.id}"' in seite and "← Zurück" in seite
+    assert 'name="neu_zuordnen" checked' in seite and 'name="bisherige_austragen" checked' not in seite
+
+
+def test_aendern_links_zur_zustaendigen_seite(angemeldet, db, daten):
+    """Auf Fahrzeug- und Personenseite führen Fahrer- bzw. Kartenzeilen zur Seite, auf der geändert wird."""
+    fz, f, karte = daten["fz1"], daten["f1"], daten["karte"]
+    fahrer_fahrzeug_zuordnen(db, f, fz, ab=date(2026, 1, 1), heute=HEUTE)
+    karte_zuordnen(db, karte, ab=date(2026, 1, 1), fahrzeug_id=fz.id, heute=HEUTE)
+    db.flush()
+    text = angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text
+    assert f'href="/stammdaten/fahrer/{f.id}#fahrzeug" role="button" data-schreiben class="outline klein">bei Person ändern →' in text
+    assert f'href="/stammdaten/ladekarten/{karte.id}#zuordnungen" role="button" data-schreiben class="outline klein">bei Karte ändern →' in text
+    text = angemeldet.get(f"/stammdaten/fahrer/{f.id}").text
+    assert "/stammdaten/zuordnungen/fahrer/" in text  # Fahrzeug-Zuordnung wird hier bearbeitet
+    assert f"/stammdaten/ladekarten/{karte.id}#zuordnungen" in text and "/stammdaten/zuordnungen/karte/" not in text
+
+
+def test_bearbeiten_zeigt_weitere_zeitraeume(angemeldet, db, daten):
+    """Bearbeitungsseite zeigt die übrigen Zeiträume derselben Person bzw. Karte (dort entstehen Überschneidungen)."""
+    fz1, fz2, f, karte = daten["fz1"], daten["fz2"], daten["f1"], daten["karte"]
+    z1, _ = fahrer_fahrzeug_zuordnen(db, f, fz1, ab=date(2026, 1, 1), bis=date(2026, 5, 31), heute=HEUTE)
+    fahrer_fahrzeug_zuordnen(db, f, fz2, ab=date(2026, 6, 1), heute=HEUTE)
+    k1, _ = karte_zuordnen(db, karte, ab=date(2026, 1, 1), bis=date(2026, 5, 31), fahrzeug_id=fz1.id, heute=HEUTE)
+    karte_zuordnen(db, karte, ab=date(2026, 6, 1), fahrer_id=f.id, heute=HEUTE)
+    db.flush()
+    text = angemeldet.get(f"/stammdaten/zuordnungen/fahrer/{z1.id}").text
+    teil = text.split("Weitere Fahrzeuge von")[1]
+    assert f">{fz2.kennzeichen}</a>" in teil and "01.06.2026" in teil
+    text = angemeldet.get(f"/stammdaten/zuordnungen/karte/{k1.id}").text
+    teil = text.split("Weitere Zuordnungen dieser Karte")[1]
+    assert f">{f.name}</a>" in teil and "01.06.2026" in teil
 
 
 def test_bearbeiten_neu_zuordnen_vorausgewaehlt(angemeldet, daten, db):

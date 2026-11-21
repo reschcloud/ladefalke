@@ -139,11 +139,11 @@ def test_migration_fasst_bestehende_zusammen(db, fz_anna):
 def test_oberflaeche(angemeldet, db, fz_anna):
     fz, anna = fz_anna
     seite = angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text
-    assert '<option value="ohne"' in seite and "– ohne Fahrer:in –" in seite
-    assert f'action="/stammdaten/fahrzeuge/{fz.id}/ohne-fahrer"' in seite  # Knopf an der Lücke
+    assert 'id="ohne-fahrer"' in seite and "Ohne Fahrer:in eintragen" in seite  # eigenes Formular beim Fahrzeug
+    assert f'action="/stammdaten/fahrzeuge/{fz.id}/ohne-fahrer"' in seite  # Formular und Knopf an der Lücke
     # Neue Zuordnung „ohne Fahrer:in“ über das Formular
-    angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/fahrer", data={"fahrer_id": "ohne", "ab": "2026-01-01",
-                                                                   "bis": "2026-03-31"})
+    angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/ohne-fahrer", data={"ab": "2026-01-01", "bis": "2026-03-31",
+                                                                        "bisherige_austragen": "on"})
     assert _ohne(db, fz) == [(D(2026, 1, 1), D(2026, 3, 31))]
     # Lücke danach per Knopf (Aufgaben) markieren – grenzt an und wird zusammengefasst
     assert "/ohne-fahrer" in angemeldet.get("/aufgaben").text

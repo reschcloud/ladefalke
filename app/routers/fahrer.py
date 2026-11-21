@@ -1,5 +1,6 @@
 """Stammdaten: Fahrer:innen inkl. Fahrzeug-Zuordnung."""
 from datetime import date, timedelta
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy import func, or_, select
@@ -15,7 +16,8 @@ from app.services.kartenanzeige import kurz as kurz_kennung
 from app.services.aufloesung import neu_zuordnen_fahrer
 from app.services.fristen import naechste_kontrolle
 from app.services.ladevorgaenge import letzte_vorgaenge_von_fahrer
-from app.services.zuordnung import ZuordnungsFehler, fahrer_fahrzeug_zuordnen, fahrzeug_von_fahrer_am, gueltig_am
+from app.services.zuordnung import (ZuordnungsFehler, bisherige_fahrer_austragen, fahrer_fahrzeug_zuordnen,
+                                    fahrzeug_von_fahrer_am, gueltig_am)
 from app.web import blaettern, liste_merken, meldung, render, weiter, zuordnung_vorbelegung
 
 router = APIRouter(prefix="/stammdaten/fahrer")
@@ -58,13 +60,14 @@ def _pruefen(werte: dict, mit_fuehrerschein: bool = True) -> tuple[dict, dict]:
     return daten, fehler
 
 
-def _detail(request, db, fahrer, werte, fehler=None, status_code=200, zuordnung_werte=None, zuordnung_fehler=None):
+def _detail(request, db, fahrer, werte, fehler=None, status_code=200, zuordnung_werte=None, zuordnung_fehler=None,
+            zurueck=""):
     e = app_einstellungen.laden(db)
     kontext = {"fahrer": fahrer, "werte": werte, "fehler": fehler or {},
                "intervall": e.fuehrerschein_intervall_monate, "fuehrerschein_an": e.feature_fuehrerschein,
                "naechste_kontrolle": naechste_kontrolle(fahrer, e) if fahrer else None,
                "zuordnung_werte": zuordnung_werte or {"ab": heute().isoformat(), "neu_zuordnen": "on"},  # Vorauswahl
-               "zuordnung_fehler": zuordnung_fehler,
+               "zuordnung_fehler": zuordnung_fehler, "zurueck": _lokal(zurueck),
                "referenziert": fahrer is not None and _ist_referenziert(db, fahrer.id)}
     if fahrer is not None:
         kontext["fahrzeug_historie"] = db.scalars(
@@ -82,7 +85,8 @@ def _detail(request, db, fahrer, werte, fehler=None, status_code=200, zuordnung_
         karten = [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.ladekarte.msp.name,
                                           f"/stammdaten/ladekarten/{z.ladekarte.id}",
                                           f"…{kurz_kennung(z.ladekarte.kennung)} · persönlich",
-                                          f"/stammdaten/zuordnungen/karte/{z.id}{zurueck}", art="karte")
+                                          f"/stammdaten/ladekarten/{z.ladekarte.id}#zuordnungen", art="karte",
+                                          bearbeiten_text="bei Karte ändern →")
                   for z in kontext["karten_historie"]]
         # dazu die Karten der Fahrzeuge, die die Person gefahren ist – für die gemeinsame Zeit
         fz_ids = {z.fahrzeug_id for z in kontext["fahrzeug_historie"]}
@@ -100,7 +104,8 @@ def _detail(request, db, fahrer, werte, fehler=None, status_code=200, zuordnung_
                     ab, bis, f"{zk.ladekarte.msp.name} · {zf.fahrzeug.kennzeichen}",
                     f"/stammdaten/ladekarten/{zk.ladekarte.id}",
                     f"…{kurz_kennung(zk.ladekarte.kennung)} · über Fahrzeug {zf.fahrzeug.kennzeichen}",
-                    f"/stammdaten/zuordnungen/karte/{zk.id}{zurueck}", art="karte"))
+                    f"/stammdaten/ladekarten/{zk.ladekarte.id}#zuordnungen", art="karte",
+                    bearbeiten_text="bei Karte ändern →"))
         kontext["karten_mini"] = mini_zeitleiste.berechnen(karten, heute())
         kontext["karten_auswahl"] = kartenanzeige.zuordenbare_karten(db)
         kontext["fahrzeuge"] = db.scalars(
@@ -164,11 +169,32 @@ def neu(request: Request, name: str = Form(""), aktiv: str | None = Form(None),
     return weiter(f"/stammdaten/fahrer/{fahrer.id}")
 
 
+def _lokal(ziel: str) -> str:
+    """Rücksprungziel nur als lokaler Pfad (sonst leer)."""
+    return ziel if ziel.startswith("/") and not ziel.startswith("//") else ""
+
+
+@router.get("/zuordnen")
+def zuordnen_auswahl(fahrer_id: str = "", fahrzeug_id: str = "", ab: str = "", bis: str = "", zurueck: str = ""):
+    """Von der Fahrzeugseite („Fahrer:in zuordnen →“): gewählte Person mit vorbelegtem Fahrzeug öffnen, danach
+    zurück. Zugeordnet wird nur bei der Person – dort sind ihre übrigen Fahrzeuge (mögliche Überschneidungen) sichtbar."""
+    if not fahrer_id.isdigit():
+        return weiter(_lokal(zurueck) or "/stammdaten/fahrer")
+    parameter = {"fahrzeug": fahrzeug_id, "ab": ab, "bis": bis, "zurueck": _lokal(zurueck)}
+    return weiter(f"/stammdaten/fahrer/{fahrer_id}?" + urlencode({k: v for k, v in parameter.items() if v})
+                  + "#neue-fahrzeug-zuordnung")
+
+
 @router.get("/{fahrer_id}")
-def detail(request: Request, fahrer_id: int, ab: str = "", bis: str = "", db: Session = Depends(get_db)):
-    """`ab`/`bis`: Vorbelegung „Neue Zuordnung“ (z. B. aus einer Lücke in der Zeitleiste)."""
+def detail(request: Request, fahrer_id: int, ab: str = "", bis: str = "", fahrzeug: str = "", zurueck: str = "",
+           db: Session = Depends(get_db)):
+    """`ab`/`bis`: Vorbelegung „Neue Zuordnung“ (z. B. aus einer Lücke in der Zeitleiste); `fahrzeug`: vorbelegtes
+    Fahrzeug, `zurueck`: nach dem Zuordnen dorthin (beides von „Fahrer:in zuordnen →“ auf der Fahrzeugseite)."""
     fahrer = _laden(db, fahrer_id)
-    return _detail(request, db, fahrer, zuordnung_werte=zuordnung_vorbelegung(ab, bis) if ab else None, werte={"name": fahrer.name, "aktiv": fahrer.aktiv, "fuehrerschein_kontrolle":
+    zuordnung_werte = zuordnung_vorbelegung(ab, bis) if ab else None
+    if fahrzeug.isdigit():
+        zuordnung_werte = (zuordnung_werte or {"ab": heute().isoformat(), "neu_zuordnen": "on"}) | {"fahrzeug_id": fahrzeug}
+    return _detail(request, db, fahrer, zuordnung_werte=zuordnung_werte, zurueck=zurueck, werte={"name": fahrer.name, "aktiv": fahrer.aktiv, "fuehrerschein_kontrolle":
                                          fahrer.fuehrerschein_kontrolle.isoformat() if fahrer.fuehrerschein_kontrolle
                                          else "", "email": fahrer.email or ""})
 
@@ -189,10 +215,10 @@ def bearbeiten(request: Request, fahrer_id: int, name: str = Form(""), aktiv: st
     return weiter(f"/stammdaten/fahrer/{fahrer.id}")
 
 
-def _pool_hinweis(request, db: Session, fahrer: Fahrer, fahrzeug: Fahrzeug, ab, bis) -> None:
+def _pool_hinweis(request, db: Session, fahrer: Fahrer, fahrzeug: Fahrzeug, ab, bis, ziel: str) -> None:
     """Hat das Fahrzeug im neuen Zeitraum noch andere Fahrer:innen, ist es jetzt ein Poolfahrzeug. Das kann gewollt
-    sein (bisherige werden von der Personenseite aus bewusst nicht ausgetragen); die Meldung bietet das Austragen
-    zum Vortag an, sofern alle anderen Zuordnungen vorher beginnen."""
+    sein (Haken „Fahrerwechsel“ nicht gesetzt); die Meldung bietet das Austragen zum Vortag nachträglich an, sofern
+    alle anderen Zuordnungen vorher beginnen. `ziel`: Seite, auf die es danach zurückgeht."""
     andere = db.scalars(select(ZuordnungFahrerFahrzeug).where(
         ZuordnungFahrerFahrzeug.fahrzeug_id == fahrzeug.id, ZuordnungFahrerFahrzeug.fahrer_id != fahrer.id,
         or_(ZuordnungFahrerFahrzeug.gueltig_bis.is_(None), ZuordnungFahrerFahrzeug.gueltig_bis >= ab),
@@ -203,19 +229,25 @@ def _pool_hinweis(request, db: Session, fahrer: Fahrer, fahrzeug: Fahrzeug, ab, 
     text = f"{fahrzeug.kennzeichen} hat damit {len({z.fahrer_id for z in andere}) + 1} Fahrer:innen (Pool) – außerdem {namen}."
     aktion = None
     if not all(z.gueltig_ab < ab for z in andere):
-        text += " Bei einem Fahrerwechsel bitte die anderen Zuordnungen beim Fahrzeug anpassen."
+        text += " Bei einem Fahrerwechsel bitte die Zuordnungen bei den anderen Personen anpassen."
     else:
         text += f" Bei einem Fahrerwechsel die bisherigen zum {ab - timedelta(days=1):%d.%m.%Y} austragen:"
         aktion = {"url": f"/stammdaten/fahrzeuge/{fahrzeug.id}/bisherige-austragen", "text": "Bisherige austragen",
-                  "felder": {"ab": ab.isoformat(), "fahrer_id": fahrer.id, "zurueck": f"/stammdaten/fahrer/{fahrer.id}"}}
+                  "felder": {"ab": ab.isoformat(), "fahrer_id": fahrer.id, "zurueck": ziel}}
     meldung(request, text, "info", aktion)
 
 
 @router.post("/{fahrer_id}/fahrzeug")
 def fahrzeug_zuordnen(request: Request, fahrer_id: int, fahrzeug_id: str = Form(""), ab: str = Form(""),
-                      bis: str = Form(""), neu_zuordnen: str | None = Form(None), db: Session = Depends(get_db)):
+                      bis: str = Form(""), neu_zuordnen: str | None = Form(None),
+                      bisherige_austragen: str | None = Form(None), zurueck: str = Form(""),
+                      db: Session = Depends(get_db)):
+    """Fahrzeug zuordnen – die einzige Stelle für neue Zuordnungen Person ↔ Fahrzeug. Optional Fahrerwechsel:
+    die bisherigen Fahrer:innen des Fahrzeugs zum Vortag austragen."""
     fahrer = _laden(db, fahrer_id)
-    zuordnung_werte = {"fahrzeug_id": fahrzeug_id, "ab": ab, "bis": bis, "neu_zuordnen": neu_zuordnen}
+    zuordnung_werte = {"fahrzeug_id": fahrzeug_id, "ab": ab, "bis": bis, "neu_zuordnen": neu_zuordnen,
+                       "bisherige_austragen": bisherige_austragen}
+    ausgetragen = []
     try:
         fahrzeug = db.get(Fahrzeug, int(fahrzeug_id)) if fahrzeug_id.isdigit() else None
         if fahrzeug is None:
@@ -224,22 +256,29 @@ def fahrzeug_zuordnen(request: Request, fahrer_id: int, fahrzeug_id: str = Form(
         if ab_datum is None:
             raise ZuordnungsFehler("Bitte ein Beginndatum angeben.")
         bis_datum = datum_lesen(bis)
-        _, hinweise = fahrer_fahrzeug_zuordnen(db, fahrer, fahrzeug, ab=ab_datum, bis=bis_datum, heute=heute())
+        hinweise = []
+        if bisherige_austragen:
+            ausgetragen, hinweise = bisherige_fahrer_austragen(db, fahrzeug, ab_datum, fahrer.id)
+        _, weitere = fahrer_fahrzeug_zuordnen(db, fahrer, fahrzeug, ab=ab_datum, bis=bis_datum, heute=heute())
+        hinweise += weitere
     except ValueError as e:  # ZuordnungsFehler oder ungültiges Datum
         db.rollback()
         return _detail(request, db, fahrer, {"name": fahrer.name, "aktiv": fahrer.aktiv}, status_code=422,
-                       zuordnung_werte=zuordnung_werte, zuordnung_fehler=str(e))
+                       zuordnung_werte=zuordnung_werte, zuordnung_fehler=str(e), zurueck=zurueck)
     if neu_zuordnen:
-        neu_info = (f"{neu_zuordnen_fahrer(db, fahrer.id, ab_datum, bis_datum)} bereits importierte "
-                         "Ladevorgänge wurden neu zugeordnet.")
+        n = neu_zuordnen_fahrer(db, fahrer.id, ab_datum, bis_datum)
+        n += sum(neu_zuordnen_fahrer(db, fid, ab_datum, None) for fid in ausgetragen)
+        neu_info = f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet."
     db.commit()
     meldung(request, f"{fahrer.name} ist ab {ab_datum:%d.%m.%Y} Fahrzeug {fahrzeug.kennzeichen} zugeordnet.")
     if neu_zuordnen:
         meldung(request, neu_info)
     for h in hinweise:
         meldung(request, h, "warnung")
-    _pool_hinweis(request, db, fahrer, fahrzeug, ab_datum, bis_datum)
-    return weiter(f"/stammdaten/fahrer/{fahrer.id}")
+    ziel = _lokal(zurueck) or f"/stammdaten/fahrer/{fahrer.id}"
+    if not bisherige_austragen:
+        _pool_hinweis(request, db, fahrer, fahrzeug, ab_datum, bis_datum, ziel)
+    return weiter(ziel)
 
 
 @router.post("/{fahrer_id}/aktivieren")

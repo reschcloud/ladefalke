@@ -17,5 +17,21 @@
   {{ m.neu_zuordnen_haken(werte, vorsatz="Beim Speichern:") }}
   <button type="submit">Speichern</button>
 </form>
+<h2>Weitere Fahrzeuge von {{ z.fahrer.name }}</h2>
+<p><small>Eine Person hat zu jeder Zeit höchstens ein Fahrzeug – der geänderte Zeitraum darf sich mit diesen nicht
+  überschneiden; ggf. zuerst dort das Ende anpassen.</small></p>
+<div class="tabelle"><table>
+  <thead><tr><th>Fahrzeug</th><th>Zeitraum</th><th></th></tr></thead>
+  <tbody>
+  {% for w in weitere %}
+    <tr><td>{{ m.symbol("auto") }} <a href="/stammdaten/fahrzeuge/{{ w.fahrzeug.id }}">{{ w.fahrzeug.kennzeichen }}</a></td>
+      <td>{{ m.zeitraum_zelle(w) }}</td>
+      <td class="rechts"><a href="/stammdaten/zuordnungen/fahrer/{{ w.id }}?zurueck={{ zurueck | urlencode }}" role="button"
+        data-schreiben class="outline klein">bearbeiten</a></td></tr>
+  {% else %}
+    <tr><td colspan="3">Keine weiteren.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
 {{ m.zuordnung_loeschen(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode)) }}
 {% endblock %}

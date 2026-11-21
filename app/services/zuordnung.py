@@ -19,9 +19,6 @@ from app.formatierung import datum, zeitraum
 from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
 
 
-OHNE_FAHRER = "ohne"  # Auswahlwert „– ohne Fahrer:in –“ im Formular „Neue Fahrer:in-Zuordnung“
-
-
 class ZuordnungsFehler(ValueError):
     pass
 

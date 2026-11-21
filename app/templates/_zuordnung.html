@@ -73,7 +73,7 @@
         {% if e.link %}<a href="{{ e.link }}">{{ e.name }}</a>{% else %}{{ e.name }}{% endif %}</td>
       {% if zusatz %}<td>{{ e.zusatz }}</td>{% endif %}
       <td>{{ e.zeitraum }}{% if e.ab <= heute_datum() and (e.bis is none or e.bis >= heute_datum()) %} <span class="marker">aktuell</span>{% endif %}</td>
-      <td class="rechts">{% if e.bearbeiten %}<a href="{{ e.bearbeiten }}" role="button" data-schreiben class="outline klein">bearbeiten</a>{% endif %}</td>
+      <td class="rechts">{% if e.bearbeiten %}<a href="{{ e.bearbeiten }}" role="button" data-schreiben class="outline klein">{{ e.bearbeiten_text }}</a>{% endif %}</td>
     </tr>
     {% else %}
     <tr class="luecken-zeile {{ mini.luecken_art }}">

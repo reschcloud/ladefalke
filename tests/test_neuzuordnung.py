@@ -169,13 +169,13 @@ def test_ladevorgang_fahrzeug_manuell_und_automatisch(angemeldet, db, basis):
     assert v.zuordnung_quelle == ZuordnungQuelle.automatisch and v.kwh == D("28.000")
 
 
-def test_fahrerwechsel_vom_fahrzeug_mit_neuzuordnung(angemeldet, db, basis):
+def test_fahrerwechsel_mit_neuzuordnung(angemeldet, db, basis):
     """Fahrzeugkarte an W-NEU 1; Wechsel rückwirkend: Vorgänge werden der neuen Situation nach neu ermittelt."""
     karte, fz, fahrer = basis["karte"], basis["fz"], basis["fahrer"]
     db.add(ZuordnungKarte(ladekarte_id=karte.id, fahrer_id=fahrer.id, gueltig_ab=date(2026, 1, 1)))
     db.flush()
-    antwort = angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/fahrer", data={
-        "fahrer_id": str(fahrer.id), "ab": "2026-09-01", "bisherige_austragen": "on", "neu_zuordnen": "on"})
+    antwort = angemeldet.post(f"/stammdaten/fahrer/{fahrer.id}/fahrzeug", data={
+        "fahrzeug_id": str(fz.id), "ab": "2026-09-01", "bisherige_austragen": "on", "neu_zuordnen": "on"})
     assert "2 bereits importierte Ladevorgänge wurden neu zugeordnet" in antwort.text
     for v in basis["v"]:
         db.refresh(v)
