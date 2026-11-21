@@ -15,6 +15,7 @@ SYMBOLE = {
     "msp": "lightning-bolt",
     "zuordnung": "link-variant",
     "zeitleiste": "chart-gantt",
+    "ladevorgaenge": "ev-station",
     # Zustände
     "warnung": "alert",
     "ok": "check-circle",

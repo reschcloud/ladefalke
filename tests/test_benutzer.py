@@ -148,7 +148,7 @@ def test_viewer_sieht_keine_eingabebereiche(rollen, db):
     rollen["admin"].post("/stammdaten/fahrzeuge/neu", data={"kennzeichen": "V-1", "aktiv": "on"})
     fz = db.scalar(select(Fahrzeug).where(Fahrzeug.kennzeichen == "V-1"))
     seite = rollen["viewer"].get(f"/stammdaten/fahrzeuge/{fz.id}").text
-    assert '<article data-schreiben>' in seite and seite.count("<h1>V-1</h1>") == 1
+    assert '<article data-schreiben>' in seite and seite.count("</svg>V-1</h1>") == 1  # Titel mit Fahrzeug-Symbol
 
 
 def test_loeschen_nur_deaktiviert(rollen, db):

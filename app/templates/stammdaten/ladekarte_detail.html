@@ -6,7 +6,7 @@
 {% block inhalt %}
 <p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
   {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/ladekarten' }}" role="button" class="outline secondary klein nav-knopf">← Alle Ladekarten</a>{{ m.blaettern(blaettern) }}</p>
-<h1>{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}</h1>
+{% call m.titel("karte", "h1") %}{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}{% endcall %}
 {% if karte %}{{ m.offene_punkte(offen, "/stammdaten/ladekarten/%d" % karte.id) }}
 {{ m.gesamt_kacheln(gesamt, "dieser Karte") }}
 {% if erster %}<p class="erster-letzter"><small title="Zeitpunkt nach {{ STICHTAG[request.state.stichtag] }} (Einstellungen)">
@@ -35,7 +35,7 @@
 {% if karte %}
 {{ m.entfernen_knopf("/stammdaten/ladekarten/%d" % karte.id, "Ladekarte %s" % karte.kennung, karte.aktiv, referenziert) }}
 
-<h2 id="zuordnungen">Zuordnungshistorie {{ m.hilfe("Karten werden nur hier zugeordnet und geändert (eine Karte gehört zu jeder Zeit höchstens einer Person oder einem Fahrzeug – so sind Überschneidungen sichtbar). Auf Fahrzeug- und Personenseite führt „Karte zuordnen →“ hierher.") }}</h2>
+{% call m.titel("zuordnung", id="zuordnungen") %}Zuordnungshistorie {{ m.hilfe("Karten werden nur hier zugeordnet und geändert (eine Karte gehört zu jeder Zeit höchstens einer Person oder einem Fahrzeug – so sind Überschneidungen sichtbar). Auf Fahrzeug- und Personenseite führt „Karte zuordnen →“ hierher.") }}{% endcall %}
 {% if karte.ist_gastkarte %}
   <p>Gastkarte – Ladungen werden dem Topf <strong>„Gäste“</strong> zugerechnet und keinem Fahrzeug zugeordnet.</p>
 {% else %}

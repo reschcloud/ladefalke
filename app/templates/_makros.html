@@ -236,6 +236,13 @@
    In Auswahllisten (option) gehen keine Grafiken – dort 🚗 / 👤 (siehe stammdaten/_ziel_auswahl.html). #}
 {% macro symbol(name, titel="") -%}{{ icon(name, titel) }}{%- endmacro %}
 
+{# Überschrift mit Symbol der Art (Farbe wie im Menü „Stammdaten“), damit man Seiten und Abschnitte auf einen Blick
+   zuordnet: h1 auf Detailseiten, h2 für Abschnitte (mit Linie in der Farbe der Art). Inhalt per {% call %}. #}
+{% macro titel(art, ebene="h2", id="") -%}
+<{{ ebene }} class="{{ 'seiten-titel' if ebene == 'h1' else 'abschnitt-titel' }} art-{{ art }}"{% if id %} id="{{ id }}"{% endif %}>
+  {{- icon(art) }}{{ caller() }}</{{ ebene }}>
+{%- endmacro %}
+
 {# Ziel einer Karten-Zuordnung mit Symbol: Auto = fahrzeuggebundene Karte, Person = personengebundene Karte #}
 {# personen: bei Fahrzeugkarten die Fahrer:innen des Fahrzeugs (Liste) – dann „Kennzeichen (Person)“; none = weglassen #}
 {% macro karten_ziel(z, link=true, personen=none) -%}

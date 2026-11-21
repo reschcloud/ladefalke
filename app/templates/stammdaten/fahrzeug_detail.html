@@ -5,7 +5,7 @@
 {% block titel %}{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}{% endblock %}
 {% block inhalt %}
 <p class="nav-leiste"><a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrzeuge' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrzeuge</a>{{ m.blaettern(blaettern) }}</p>
-<h1>{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}</h1>
+{% call m.titel("auto", "h1") %}{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}{% endcall %}
 {% if fahrzeug %}
 {{ m.offene_punkte(offen, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
 {{ m.querverweise("Auswertung", [
@@ -93,10 +93,10 @@
 </article>
 
 
-<h2 id="zeitleiste">Zeitleiste</h2>
+{% call m.titel("zeitleiste", id="zeitleiste") %}Zeitleiste{% endcall %}
 {{ zo.fahrzeug_zeitleiste(fahrer_mini, karten_mini, karten_markierungen, fahrer_markierungen) }}
 
-<h2>Fahrer:innen</h2>
+{% call m.titel("person", id="fahrer") %}Fahrer:innen{% endcall %}
 {{ zo.abschnitt(fahrer_mini, "Fahrer:in", formular="neue-fahrer-zuordnung", ohne_fahrer="/stammdaten/fahrzeuge/%d/ohne-fahrer" % fahrzeug.id, grafik=false) }}
 
 {# Fahrer:innen werden bei der Person zugeordnet (eine Person hat höchstens ein Fahrzeug – Überschneidungen sind dort
@@ -136,7 +136,7 @@
   </form>
 </article>
 
-<h2 id="ladekarten">Direkt zugeordnete Ladekarten</h2>
+{% call m.titel("karte", id="ladekarten") %}Direkt zugeordnete Ladekarten{% endcall %}
 {{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine direkt zugeordneten Karten.", grafik=false) }}
 {{ zo.karte_zuordnen(karten_auswahl, "fahrzeug:%d" % fahrzeug.id, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
 

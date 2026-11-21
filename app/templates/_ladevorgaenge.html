@@ -3,7 +3,7 @@
 {% import "_makros.html" as mk %}
 {% macro letzte_ladevorgaenge(zeilen, alle_link=none, mit_karte=false, mit_fahrzeug=false, mit_fahrer=true,
                               anzahl=15, art="ende") %}
-<h2 id="ladevorgaenge">Letzte Ladevorgänge</h2>
+{% call mk.titel("ladevorgaenge", id="ladevorgaenge") %}Letzte Ladevorgänge{% endcall %}
 {% if zeilen %}
 <div class="tabelle">
 <table class="striped">

@@ -6,7 +6,7 @@
 {% block inhalt %}
 <p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
   {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrer' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrer:innen</a>{{ m.blaettern(blaettern) }}</p>
-<h1>{{ fahrer.name if fahrer else "Neue Fahrer:in" }}</h1>
+{% call m.titel("person", "h1") %}{{ fahrer.name if fahrer else "Neue Fahrer:in" }}{% endcall %}
 {% if fahrer %}
 {{ m.offene_punkte(offen, "/stammdaten/fahrer/%d" % fahrer.id) }}
 {{ m.querverweise("Auswertung", [
@@ -40,7 +40,7 @@
 {% if fahrer %}
 {{ m.entfernen_knopf("/stammdaten/fahrer/%d" % fahrer.id, fahrer.name, fahrer.aktiv, referenziert) }}
 
-<h2 id="fahrzeug">Fahrzeug {{ m.hilfe("Fahrzeuge werden nur hier zugeordnet und geändert (eine Person hat zu jeder Zeit höchstens ein Fahrzeug – so sind Überschneidungen sichtbar). Auf der Fahrzeugseite führt „Fahrer:in zuordnen →“ hierher.") }}</h2>
+{% call m.titel("auto", id="fahrzeug") %}Fahrzeug {{ m.hilfe("Fahrzeuge werden nur hier zugeordnet und geändert (eine Person hat zu jeder Zeit höchstens ein Fahrzeug – so sind Überschneidungen sichtbar). Auf der Fahrzeugseite führt „Fahrer:in zuordnen →“ hierher.") }}{% endcall %}
 {{ zo.abschnitt(fahrzeug_mini, "Fahrzeug", "Modell", formular="neue-fahrzeug-zuordnung") }}
 
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
@@ -66,7 +66,7 @@
   </form>
 </article>
 
-<h2>Ladekarten {{ m.hilfe("Persönliche Karten der Person und die Karten der Fahrzeuge, die sie gefahren ist – diese jeweils für die Zeit, in der sie das Fahrzeug hatte.") }}</h2>
+{% call m.titel("karte", id="ladekarten") %}Ladekarten {{ m.hilfe("Persönliche Karten der Person und die Karten der Fahrzeuge, die sie gefahren ist – diese jeweils für die Zeit, in der sie das Fahrzeug hatte.") }}{% endcall %}
 {{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine Karten – weder persönlich noch über ein Fahrzeug.") }}
 {{ zo.karte_zuordnen(karten_auswahl, "fahrer:%d" % fahrer.id, "/stammdaten/fahrer/%d" % fahrer.id) }}
 

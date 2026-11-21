@@ -672,6 +672,17 @@ svg.symbol-karte { color: var(--sym-karte); }
 svg.symbol-msp { color: var(--sym-msp); }
 svg.symbol-warnung { color: var(--sym-warnung); }
 svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
+/* Überschriften mit Symbol der Art (_makros.titel): Detailseiten (h1) und ihre Abschnitte (h2, mit Linie in der Farbe
+   der Art) – Fahrzeug blau, Person violett, Ladekarte türkis, MSP orange, sonst grau */
+:is(.seiten-titel, .abschnitt-titel) { --art: var(--pico-muted-color); }
+:is(.seiten-titel, .abschnitt-titel).art-auto { --art: var(--sym-auto); }
+:is(.seiten-titel, .abschnitt-titel).art-person { --art: var(--sym-person); }
+:is(.seiten-titel, .abschnitt-titel).art-karte { --art: var(--sym-karte); }
+:is(.seiten-titel, .abschnitt-titel).art-msp { --art: var(--sym-msp); }
+:is(.seiten-titel, .abschnitt-titel) > svg.symbol:first-child { width: .95em; height: .95em; vertical-align: -.1em;
+  margin-right: .4em; color: var(--art); }
+.abschnitt-titel { margin-top: 2.2rem; padding-bottom: .3rem;
+  border-bottom: 2px solid color-mix(in srgb, var(--art) 45%, transparent); }
 /* In farbigen Meldungen und Kennzeichnungen nehmen Zustandssymbole die Farbe des Texts */
 :is(.hinweis, .fehler, .fehler-text, .ok-text, .block-status, .schritt-nr, .kachel-zahl, .luecken-zeile, .alles-ok)
   svg:is(.symbol-warnung, .symbol-ok, .symbol-haken) { color: inherit; }
