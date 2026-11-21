@@ -21,8 +21,26 @@ def zahl(wert: Decimal | int | float | None, stellen: int = 2) -> str:
     return text.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
 
 
+def spanne(tage: int, fall: str = "dativ") -> str:
+    """Zeitspanne aus Tagen, bei längeren Zeiträumen gröber: unter 30 Tagen in Tagen, ab 30 Tagen in ganzen Monaten
+    (gerundet, Monat = 30,44 Tage), ab einem Jahr nur „1 Jahr“ (365/366 Tage) bzw. „über 1 Jahr“.
+    `fall`: „dativ“ nach „in“/„vor“ („in 12 Tagen“, „vor 3 Monaten“), „nominativ“ allein („12 Tage“, „3 Monate“)."""
+    tage = abs(tage)
+    if tage > 366:
+        return "über 1 Jahr"
+    if tage >= 365:
+        return "1 Jahr"
+    if tage >= 30:
+        n, einheit = max(1, min(12, round(tage / 30.44))), ("Monat", "Monaten" if fall == "dativ" else "Monate")
+        if n == 12:
+            return "1 Jahr"
+    else:
+        n, einheit = tage, ("Tag", "Tagen" if fall == "dativ" else "Tage")
+    return f"{n} {einheit[0] if n == 1 else einheit[1]}"
+
+
 def vor_tagen(wert: date | datetime | None, heute: date | None = None) -> str:
-    """Abstand zu heute in Tagen: „heute“, „gestern“, „vor 12 Tagen“ (Zukunft: „in 3 Tagen“)."""
+    """Abstand zu heute: „heute“, „gestern“, „vor 12 Tagen“, „vor 3 Monaten“, „vor über 1 Jahr“ (Zukunft: „in 3 Tagen“)."""
     if wert is None:
         return ""
     if heute is None:
@@ -34,8 +52,8 @@ def vor_tagen(wert: date | datetime | None, heute: date | None = None) -> str:
     if tage == 1:
         return "gestern"
     if tage < 0:
-        return "morgen" if tage == -1 else f"in {-tage} Tagen"
-    return f"vor {tage} Tagen"
+        return "morgen" if tage == -1 else f"in {spanne(tage)}"
+    return f"vor {spanne(tage)}"
 
 
 def dauer(start: datetime | None, ende: datetime | None) -> str:
@@ -67,8 +85,9 @@ def prozent(anteil: Decimal | None, stellen: int = 0) -> str:
     return f"{zahl(Decimal(anteil) * 100, stellen)} %" if anteil is not None else "–"
 
 
-def geld(wert: Decimal | None) -> str:
-    return f"{zahl(wert, 2)} €" if wert is not None else ""
+def geld(wert: Decimal | None, stellen: int = 2) -> str:
+    """1234.5 -> '1.234,50 €'; `stellen=0` für Summen in Kacheln („1.235 €“)."""
+    return f"{zahl(wert, stellen)} €" if wert is not None else ""
 
 
 def zeitraum(ab: date, bis: date | None) -> str:

@@ -154,7 +154,7 @@ def test_kachel_reihenfolge(angemeldet, db, daten):
 
     for url in (f"/?{SEP}", f"/auswertungen?{SEP}", f"/auswertungen/fahrer/{daten['anna'].id}?{SEP}"):
         seite = angemeldet.get(url).text
-        kacheln = seite.split('<div class="kacheln">')[1].split("</div>\n</div>")[0]
+        kacheln = seite.split('<div class="kacheln kennzahlen"')[1].split("</div>\n</div>")[0]
         assert in_reihenfolge(kacheln, reihe), url
     seite = angemeldet.get(f"/stammdaten/fahrer/{daten['anna'].id}").text
     assert in_reihenfolge(seite.split('class="kacheln kacheln-klein"')[1], reihe)

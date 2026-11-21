@@ -20,9 +20,9 @@
 {% set oeff_kosten = details | sum(attribute="summe.kosten") %}
 {% set mit_potenzial = details | selectattr("ersparnis") | list %}
 <div class="kacheln">
-  <div class="kachel"><span class="zahl">{{ a.ersparnis_gesamt | geld }}</span><span class="text">Sparpotenzial im Zeitraum</span>
+  <div class="kachel"><span class="zahl">{{ a.ersparnis_gesamt | geld(0) }}</span><span class="text">Sparpotenzial im Zeitraum</span>
     <span class="vgl">{% if oeff_kosten %}{{ (a.ersparnis_gesamt / oeff_kosten) | prozent(1) }} der öffentlichen Ladekosten{% endif %}</span></div>
-  <div class="kachel"><span class="zahl">{{ oeff_kosten | geld }}</span><span class="text">öffentliche Ladekosten</span>
+  <div class="kachel"><span class="zahl">{{ oeff_kosten | geld(0) }}</span><span class="text">öffentliche Ladekosten</span>
     <span class="vgl">bei {{ details | length }} CPO</span></div>
   <div class="kachel"><span class="zahl">{{ mit_potenzial | length }}</span><span class="text">CPO mit Sparpotenzial</span>
     <span class="vgl">{{ potenziale | length }} Posten (Person · Karte · Stromart)</span></div>

@@ -43,7 +43,7 @@
 </nav>
 {# Fristen je Art eigener Abschnitt (Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut FLEX); Vorwarnzeiten in
    den Einstellungen. Steht wie alle Meldungen unter den Kacheln. #}
-{% macro in_tagen(f) %}<small>(in {{ f.tage }} Tag{{ "en" if f.tage != 1 }})</small>{% endmacro %}
+{% macro in_tagen(f) %}<small>(in {{ f.tage | spanne }})</small>{% endmacro %}
 <div id="fristen">
 {% for art, titel, aktiv, vorwarnung, erledigt in frist_arten %}{% set liste = fristen | selectattr("art", "eq", art) | list %}
 {% if liste %}
@@ -104,7 +104,7 @@
   {% for l in luecken %}
     <li><a href="/stammdaten/fahrzeuge/{{ l.fahrzeug.id }}">{{ l.fahrzeug.kennzeichen }}</a>
       {{ l.text }}{% if l.kuenftig %} <small>(künftig)</small>{% endif %}
-      <small>({{ l.tage }} Tag{{ "e" if l.tage != 1 }}
+      <small>({{ l.tage | spanne("nominativ") }}
         {%- if l.ladevorgaenge %}, <a href="/ladevorgaenge?fahrzeug_id={{ l.fahrzeug.id }}&amp;von={{ l.von.isoformat() }}&amp;bis={{ l.bis.isoformat() }}">{{ l.ladevorgaenge }} {{ "Ladevorgang" if l.ladevorgaenge == 1 else "Ladevorgänge" }}</a> ohne Fahrer:in{% endif %})</small>
       <form method="post" action="/stammdaten/fahrzeuge/{{ l.fahrzeug.id }}/ohne-fahrer" class="inline">
         <input type="hidden" name="ab" value="{{ l.von.isoformat() }}"><input type="hidden" name="bis" value="{{ '' if l.endlos else l.bis.isoformat() }}">

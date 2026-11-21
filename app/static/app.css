@@ -40,6 +40,9 @@ td.rechts, th.rechts { text-align: right; white-space: nowrap; }
 .meldung-fehler { border-color: var(--pico-del-color); background: color-mix(in srgb, var(--pico-del-color) 12%, transparent); }
 
 .kacheln { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+/* Kennzahlen (Dashboard, Auswertungen): gleichmäßig auf zwei Reihen; schmal zwei Spalten */
+.kacheln.kennzahlen { grid-template-columns: repeat(var(--spalten, 3), minmax(0, 1fr)); }
+@media (max-width: 900px) { .kacheln.kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .kachel { display: flex; flex-direction: column; padding: 1rem; border: 1px solid var(--pico-muted-border-color);
   border-radius: var(--pico-border-radius); text-decoration: none; }
 .kachel-zahl { font-size: 2rem; font-weight: bold; }

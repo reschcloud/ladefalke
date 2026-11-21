@@ -60,7 +60,9 @@
 {% macro kennzahlen(g, vergleich=none, zeitraum=none, schnitt=none, dc=none, co2e=none, tank=none) %}
 {% set v = vergleich %}
 {% set sn = schnitt %}
-<div class="kacheln">
+{# auf zwei Reihen verteilt (Spaltenzahl = halbe Kachelzahl, aufgerundet), damit Texte nicht umbrechen #}
+{% set anzahl = 5 + (1 if dc else 0) + (1 if co2e is not none else 0) + (1 if tank is not none else 0) %}
+<div class="kacheln kennzahlen" style="--spalten: {{ (anzahl + 1) // 2 }}">
   <div class="kachel"><span class="kachel-zahl">{{ g.anzahl }}</span><span>Ladevorgänge</span>
     {%- set pro_tag = zeitraum.pro_tag(g.anzahl) if zeitraum else none %}
     {% if pro_tag is not none %}<small class="pro-tag" title="Ø Ladevorgänge je Tag über {{ zeitraum.tage_bisher }} Tage
@@ -70,7 +72,7 @@
   <div class="kachel"><span class="kachel-zahl">{{ geschaetzt_hinweis(g) }}{{ g.kwh | zahl(0) }}</span><span>kWh</span>
     {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kwh | zahl(0) }} kWh {{ sn.text }}</small>{% endif %}
     {% if v %}{{ abweichung(v.kwh, "Ø %s: %s kWh" % (v.basis, v.kwh_schnitt | zahl(0))) }}{% endif %}</div>
-  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld }}</span><span>Kosten netto</span>
+  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld(0) }}</span><span>Kosten netto</span>
     {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kosten | geld }} {{ sn.text }}</small>{% endif %}
     {% if v %}{{ abweichung(v.kosten, "Ø %s: %s" % (v.basis, v.kosten_schnitt | geld)) }}{% endif %}</div>
   <div class="kachel"><span class="kachel-zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span>
@@ -91,7 +93,7 @@
     <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
   {% endif %}
   {% if tank is not none %}
-  <div class="kachel"><span class="kachel-zahl">{{ tank | geld }}</span>
+  <div class="kachel"><span class="kachel-zahl">{{ tank | geld(0) }}</span>
     <span>Tankkosten gespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Tankkosten eines Verbrenners (Verbrauch und Spritpreis netto laut Einstellungen), abzüglich der tatsächlichen Kosten netto.") }}</span>
     <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
   {% endif %}
@@ -100,8 +102,8 @@
   ({{ v.perioden }} {{ "Zeitraum" if v.perioden == 1 else "Zeiträume" }} mit Daten); Ø €/kWh und Anteil öffentlich gewichtet.</small></p>{% endif %}
 {% endmacro %}
 
-{# CO₂e in kg, ab 1.000 kg in t #}
-{% macro co2e_text(kg) %}{{ (kg / 1000) | zahl(1) ~ " t" if kg | abs >= 1000 else (kg | zahl(0)) ~ " kg" }}{% endmacro %}
+{# CO₂e in ganzen kg (Summen in Kacheln ohne Nachkommastellen) #}
+{% macro co2e_text(kg) %}{{ kg | zahl(0) }} kg{% endmacro %}
 
 {% macro oeffentlich_privat(g) %}
 <div class="tabelle">

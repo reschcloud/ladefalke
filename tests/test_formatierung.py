@@ -80,6 +80,19 @@ def test_vor_tagen():
     heute = date(2026, 11, 19)
     assert vor_tagen(datetime(2026, 11, 19, 7, 0), heute) == "heute"
     assert vor_tagen(date(2026, 11, 18), heute) == "gestern"
-    assert vor_tagen(datetime(2026, 9, 3, 9, 30), heute) == "vor 77 Tagen"
+    assert vor_tagen(datetime(2026, 9, 3, 9, 30), heute) == "vor 3 Monaten"  # 77 Tage
+    assert vor_tagen(date(2026, 10, 25), heute) == "vor 25 Tagen" and vor_tagen(date(2025, 6, 1), heute) == "vor über 1 Jahr"
     assert vor_tagen(date(2026, 11, 20), heute) == "morgen" and vor_tagen(date(2026, 11, 25), heute) == "in 6 Tagen"
     assert vor_tagen(None, heute) == ""
+
+
+@pytest.mark.parametrize("tage, dativ, nominativ", [
+    (1, "1 Tag", "1 Tag"), (29, "29 Tagen", "29 Tage"), (30, "1 Monat", "1 Monat"), (45, "1 Monat", "1 Monat"),
+    (46, "2 Monaten", "2 Monate"), (-90, "3 Monaten", "3 Monate"), (350, "11 Monaten", "11 Monate"),
+    (360, "1 Jahr", "1 Jahr"), (365, "1 Jahr", "1 Jahr"), (366, "1 Jahr", "1 Jahr"), (367, "über 1 Jahr", "über 1 Jahr"),
+    (1000, "über 1 Jahr", "über 1 Jahr"),
+])
+def test_spanne(tage, dativ, nominativ):
+    """Unter 30 Tagen in Tagen, ab 30 Tagen in ganzen Monaten, ab einem Jahr nur „1 Jahr“ bzw. „über 1 Jahr“."""
+    from app.formatierung import spanne
+    assert spanne(tage) == dativ and spanne(tage, "nominativ") == nominativ

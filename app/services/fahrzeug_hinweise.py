@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.formatierung import datum
+from app.formatierung import datum, spanne
 from app.config import heute
 from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
 from app.services import kartenpruefung, leasingpruefung, luecken, stromart
@@ -133,7 +133,7 @@ def _maut_hinweis(f, name: str, seite: str) -> Hinweis:
         return Hinweis("rot", f"{name} erst ab {datum(f.ab)}", seite, "Aktuell keine gültige " + name)
     if f.zustand == "abgelaufen":
         return Hinweis("rot", f"{name} abgelaufen ({datum(f.faellig)})", seite)
-    return Hinweis("gelb", f"{name} läuft ab {datum(f.faellig)}", seite, f"in {f.tage} Tag{'en' if f.tage != 1 else ''}")
+    return Hinweis("gelb", f"{name} läuft ab {datum(f.faellig)}", seite, f"in {spanne(f.tage)}")
 
 
 def fuer_fahrer(fahrer: list, e: AppEinstellungen) -> dict[int, tuple[list[Hinweis], str]]:

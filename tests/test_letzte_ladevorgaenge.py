@@ -130,5 +130,5 @@ def test_gesamt_kacheln(angemeldet, db, daten):
     assert kennzahlen.fahrer(db, daten["quirin"].id).anzahl == 2 and kennzahlen.fahrer(db, daten["paula"].id).anzahl == 1
     seite = angemeldet.get(f"/stammdaten/fahrzeuge/{daten['fz_b'].id}").text
     kacheln = seite.split('class="kacheln kacheln-klein"')[1].split("</div>\n</div>")[0]
-    assert "Ladevorgänge seit 10/2026" in kacheln and "7,00 €" in kacheln and "0,35" in kacheln
+    assert "Ladevorgänge seit 10/2026" in kacheln and "7 €</span><span>Kosten netto" in kacheln and "0,35" in kacheln
     assert 'class="kacheln kacheln-klein"' in angemeldet.get(f"/stammdaten/fahrer/{daten['paula'].id}").text

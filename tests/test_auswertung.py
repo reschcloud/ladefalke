@@ -599,7 +599,7 @@ def test_tankkosten_ersparnis(angemeldet, db, daten):
     assert a.tank_ersparnis(a.gesamt) == D(245) * D("0.518") - D("113.17")  # 126,91 € Sprit − 113,17 € Kosten
     assert a.tank_ersparnis(a.fahrzeug(daten["fz1"].id).summe) == D("51.80") - D("42.25")
     seite = angemeldet.get(dashboard).text
-    assert "Tankkosten gespart" in seite and "13,74 €" in seite and "CO₂e" not in seite
+    assert "Tankkosten gespart" in seite and "14 €" in seite and "CO₂e" not in seite
     assert 'value="1,400"' in angemeldet.get("/einstellungen").text
     angemeldet.post("/einstellungen", data=basis)
     assert app_einstellungen.laden(db).tankkosten_je_kwh is None and "Tankkosten" not in angemeldet.get(dashboard).text

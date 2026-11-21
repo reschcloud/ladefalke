@@ -151,7 +151,7 @@
   <div class="kachel"><span class="zahl">{{ s.kwh | zahl(0) }}</span><span class="text">kWh{% if s.kwh_geschaetzt %} (≈ {{ s.anteil_geschaetzt | prozent }} geschätzt){% endif %}</span>
     {% if sn %}<span class="vgl">Ø {{ sn.kwh | zahl(0) }} kWh {{ sn.text }}</span>{% endif %}
     {% if v %}{{ abweichung(v.kwh, v.basis) }}{% endif %}</div>
-  <div class="kachel"><span class="zahl">{{ s.kosten | geld }}</span><span class="text">Kosten netto</span>
+  <div class="kachel"><span class="zahl">{{ s.kosten | geld(0) }}</span><span class="text">Kosten netto</span>
     {% if sn %}<span class="vgl">Ø {{ sn.kosten | geld }} {{ sn.text }}</span>{% endif %}
     {% if v %}{{ abweichung(v.kosten, v.basis) }}{% endif %}</div>
   <div class="kachel"><span class="zahl">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span>

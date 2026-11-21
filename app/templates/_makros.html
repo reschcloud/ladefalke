@@ -366,7 +366,7 @@
   <div class="kachel"><span class="kachel-zahl">{{ g.anzahl | zahl(0) }}</span><span>Ladevorgänge
     {%- if g.erste %} seit {{ g.erste | monat }}{% endif %}</span></div>
   <div class="kachel"><span class="kachel-zahl">{% if g.geschaetzt %}<abbr class="geschaetzt" title="teilweise geschätzt">≈</abbr>{% endif %}{{ g.kwh | zahl(0) }}</span><span>kWh</span></div>
-  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld }}</span><span>Kosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld(0) }}</span><span>Kosten netto</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span></div>
   <div class="kachel" title="{{ g.dc_anzahl }} DC-Ladung{{ 'en' if g.dc_anzahl != 1 }} mit kWh-Angabe"><span class="kachel-zahl">{{ minuten(g.dc_minuten) }}</span><span>Ø Ladedauer DC</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ g.anteil_oeffentlich | prozent }}</span><span>öffentlich (kWh)</span></div>

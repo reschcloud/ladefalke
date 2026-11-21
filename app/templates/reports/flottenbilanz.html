@@ -68,14 +68,14 @@
       <div class="kachel"><span class="zahl">{{ laender }} / {{ cpo_anzahl }}</span><span class="text">Länder / Betreiber (CPO)</span></div>
       <div class="kachel"><span class="zahl">{{ fahrzeuge }}</span><span class="text">Fahrzeuge mit Ladungen</span></div>
       {% if co2e is not none %}
-      <div class="kachel"><span class="zahl">{{ (co2e / 1000) | zahl(1) ~ " t" if co2e | abs >= 1000 else (co2e | zahl(0)) ~ " kg" }}</span>
+      <div class="kachel"><span class="zahl">{{ co2e | zahl(0) }} kg</span>
         <span class="text">CO₂e eingespart</span><span class="vgl">geschätzt ggü. Verbrennern</span></div>
       {% else %}
       <div class="kachel"><span class="zahl">{{ fahrer }}</span><span class="text">Fahrer:innen mit Ladungen</span></div>
       {% endif %}
       {% if tank is not none %}
-      <div class="kachel"><span class="zahl">{{ tank | zahl(0) }} €</span>
-        <span class="text">Tankkosten gespart</span><span class="vgl">geschätzt ggü. Verbrennern, netto</span></div>
+      <div class="kachel"><span class="zahl">{{ tank | geld(0) }}</span>
+        <span class="text">Tankkosten gespart</span><span class="vgl">geschätzt ggü. Verbrennern</span></div>
       {% else %}
       <div class="kachel"><span class="zahl">{{ kwh_je_fahrzeug | zahl(0) if kwh_je_fahrzeug is not none else "–" }}</span>
         <span class="text">Ø kWh je Fahrzeug</span></div>

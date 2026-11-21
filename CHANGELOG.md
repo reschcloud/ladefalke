@@ -26,6 +26,13 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Geändert
 
+- Kennzahlen-Kacheln in Dashboard und Auswertungen gleichmäßig auf zwei Reihen (bei 7–8 Kacheln vier Spalten,
+  schmal zwei), damit Zahlen und Beschriftungen nicht umbrechen.
+- Summen in Kacheln (Dashboard, Auswertungen, CPO, Detailseiten, PDF-Reports, Flottenbilanz) ohne Nachkommastellen:
+  Kosten, Einsparungen und CO₂e (immer in kg) ganzzahlig; Durchschnitte wie Ø €/kWh unverändert. Einzelne
+  Ladevorgänge und Importe zeigen weiter Cent-genau.
+- Zeitangaben in Tagen (Fristen, letzter Ladevorgang, Lücken) bei längeren Zeiträumen gröber: ab 30 Tagen in ganzen
+  Monaten, ab einem Jahr nur „1 Jahr“ bzw. „über 1 Jahr“.
 - „Zuordnungen“ und „Zeitleiste“ sind eine Seite mit den Ansichten Zeitleiste (Standard) und Liste; im Menü
   „Stammdaten“ nur noch ein Eintrag „Zuordnungen“.
 - Das Fahrzeug-Symbol ist ein einfaches Auto (statt E-Auto); Fristen unter „Aufgaben“ und im Report zeigen Auto bzw.

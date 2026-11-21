@@ -45,9 +45,9 @@
     {% if pro_tag is not none %}<small class="pro-tag" title="Ø Ladevorgänge je Tag über {{ a.zeitraum.tage_bisher }} Tage">Ø {{ pro_tag | zahl(1) }} pro Tag</small>{% endif %}
     {% if d.code %}<small>{{ vorgaenge_link() }} alle anzeigen</small>{% endif %}</div>
   <div class="kachel"><span class="kachel-zahl">{{ b.geschaetzt_hinweis(s) }}{{ s.kwh | zahl(0) }}</span><span>kWh</span></div>
-  <div class="kachel"><span class="kachel-zahl">{{ s.kosten | geld }}</span><span>Kosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ s.kosten | geld(0) }}</span><span>Kosten netto</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span>Ø €/kWh</span></div>
-  <div class="kachel"><span class="kachel-zahl">{{ d.ersparnis | geld }}</span><span>Sparpotenzial
+  <div class="kachel"><span class="kachel-zahl">{{ d.ersparnis | geld(0) }}</span><span>Sparpotenzial
     {{ m.hilfe("Was dieselben kWh mit dem günstigsten " ~ "MSP bei " ~ name ~ " weniger gekostet hätten – getrennt nach AC und DC; Maßstab nur, wenn dieser MSP hier mindestens " ~ (mindest | zahl(0)) ~ " kWh der Stromart hat.") }}</span></div>
 </div>
 

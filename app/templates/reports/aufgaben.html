@@ -7,7 +7,7 @@
 {% block kopf_rechts %}Stand {{ stand | datum }}{% endblock %}
 {% block inhalt %}
 {% set zn = zahlen %}
-{% macro tage(n) %}{{ n }} Tag{{ "en" if n != 1 }}{% endmacro %}{# nur nach „in“ verwendet #}
+{% macro tage(n) %}{{ n | spanne }}{% endmacro %}{# nur nach „in“ verwendet #}
 {% macro gekuerzt(liste) %}{% if liste | length > max_zeilen %}<p class="klein">… und {{ liste | length - max_zeilen }} weitere –
   vollständig unter „Aufgaben“ in der App.</p>{% endif %}{% endmacro %}
 <h1>Offene Aufgaben</h1>
@@ -61,13 +61,13 @@
 {% if luecken %}
 <h2>Lücken in der Fahrer:innen-Zuordnung</h2>
 <table>
-  <thead><tr><th>Fahrzeug</th><th>Zeitraum ohne Fahrer:in</th><th class="r">Tage</th><th class="r">Ladevorgänge ohne Fahrer:in</th></tr></thead>
+  <thead><tr><th>Fahrzeug</th><th>Zeitraum ohne Fahrer:in</th><th class="r">Dauer</th><th class="r">Ladevorgänge ohne Fahrer:in</th></tr></thead>
   <tbody>
   {% for l in luecken %}
     <tr><td>{{ l.fahrzeug.kennzeichen }}</td>
       <td>{% if l.offen %}seit {{ l.von | datum }}{% if not l.endlos %} bis {{ l.bis | datum }}{% endif %} <span class="warnung">(aktuell)</span>
         {%- else %}{{ l.von | datum }} – {{ l.bis | datum }}{% if l.kuenftig %} (künftig){% endif %}{% endif %}</td>
-      <td class="r">{{ l.tage }}</td><td class="r">{{ l.ladevorgaenge or "" }}</td></tr>
+      <td class="r">{{ l.tage | spanne("nominativ") }}</td><td class="r">{{ l.ladevorgaenge or "" }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
