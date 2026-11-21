@@ -235,7 +235,7 @@
   {% set k = mail.konfig %}
   <section class="einstellung-gruppe mail-gruppe">
     {{ gruppe_kopf("email", "E-Mail", "Zugang zum Mailserver (SMTP) für Mails der App, z. B. Reports. Das Passwort wird verschlüsselt gespeichert und nie angezeigt.") }}
-    {% if k and k.passwort_unlesbar %}<p class="meldung meldung-warnung">⚠ Das gespeicherte Passwort lässt sich nicht lesen
+    {% if k and k.passwort_unlesbar %}<p class="meldung meldung-warnung">{{ icon("warnung") }} Das gespeicherte Passwort lässt sich nicht lesen
       (die Installation hat einen anderen SECRET_KEY, z. B. nach einem Umzug) – bitte neu eingeben.</p>{% endif %}
     <div class="einstellung-felder">
       {{ textfeld("mail_server", "SMTP-Server", platzhalter="smtp.example.com") }}
@@ -267,7 +267,7 @@
       {{ textfeld("mail_absender_name", "Absendername", empfehlung="Ladefalke") }}
       {{ textfeld("mail_antwort_an", "Antworten an", "email", platzhalter="optional", hilfe="Optional: Adresse für Antworten, wenn sie nicht an den Absender gehen sollen.") }}
     </div>
-    <p class="mail-status"><small>{% if k and k.fehlt %}⚠ {{ k.fehlt }}{% elif k %}✓ Bereit zum Senden über {{ k.server }}:{{ k.port }}.{% endif %}
+    <p class="mail-status"><small>{% if k and k.fehlt %}{{ icon("warnung") }} {{ k.fehlt }}{% elif k %}{{ icon("ok") }} Bereit zum Senden über {{ k.server }}:{{ k.port }}.{% endif %}
       Änderungen erst speichern, dann testen.</small></p>
     <div class="mail-test" data-nur-admin>
       <input type="email" name="an" form="mail-test" value="{{ mail.an }}" placeholder="Empfänger der Testmail"
@@ -343,8 +343,8 @@
     {% set st = sl.status %}
     <p class="syslog-status"><small>
       {%- if not werte.get("syslog_server") %}Syslog ist aus.
-      {%- elif st.fehler %}<strong class="fehler">⚠ Zuletzt nicht zugestellt ({{ st.zeit | datumzeit_lokal }}): {{ st.fehler }}</strong>
-      {%- else %}✓ Aktiv: {{ werte.get("syslog_server") }}:{{ werte.get("syslog_port") }}{% if st.gesendet %}, seit dem Start {{ st.gesendet }} Meldungen gesendet{% endif %}.{% endif %}
+      {%- elif st.fehler %}<strong class="fehler">{{ icon("warnung") }} Zuletzt nicht zugestellt ({{ st.zeit | datumzeit_lokal }}): {{ st.fehler }}</strong>
+      {%- else %}{{ icon("ok") }} Aktiv: {{ werte.get("syslog_server") }}:{{ werte.get("syslog_port") }}{% if st.gesendet %}, seit dem Start {{ st.gesendet }} Meldungen gesendet{% endif %}.{% endif %}
       {%- if st.verworfen %} {{ st.verworfen }} Meldungen konnten nicht zugestellt werden.{% endif %}
       Änderungen erst speichern, dann testen.</small></p>
     <div class="backup-aktionen" data-nur-admin>
@@ -357,9 +357,9 @@
   {% set bk = backup %}
   <section class="einstellung-gruppe backup-gruppe">
     {{ gruppe_kopf("backup", "Backup", "Sichert Daten, Einstellungen, Benutzer:innen, Originaldateien und Parser in eine Datei – auch zum Umziehen auf einen anderen Server. Wiederherstellen per Kommando (README „Backup und Umzug“).") }}
-    {% if bk.passwort %}<p><small>🔒 Sicherungen werden verschlüsselt (BACKUP_PASSWORT aus <code>.env</code>).
+    {% if bk.passwort %}<p><small>{{ icon("schloss") }} Sicherungen werden verschlüsselt (BACKUP_PASSWORT aus <code>.env</code>).
       Ohne dieses Passwort lassen sie sich nicht wiederherstellen – bitte sicher aufbewahren.</small></p>
-    {% else %}<p class="meldung meldung-warnung">⚠ Kein <code>BACKUP_PASSWORT</code> in <code>.env</code> gesetzt:
+    {% else %}<p class="meldung meldung-warnung">{{ icon("warnung") }} Kein <code>BACKUP_PASSWORT</code> in <code>.env</code> gesetzt:
       Sicherungen sind unverschlüsselt, enthalten aber Personendaten.</p>{% endif %}
     <div class="einstellung-felder">
       <div class="einstellung">
@@ -386,7 +386,7 @@
     {% set st = bk.status %}
     <p class="backup-status"><small>
       {% if st.letzter_lauf %}Letzte automatische Sicherung: {{ st.letzter_lauf | datumzeit_lokal }} –
-        {% if st.erfolg %}✓ {{ st.meldung }}{% else %}<strong class="fehler">⚠ fehlgeschlagen: {{ st.meldung }}</strong>{% endif %}
+        {% if st.erfolg %}{{ icon("ok") }} {{ st.meldung }}{% else %}<strong class="fehler">{{ icon("warnung") }} fehlgeschlagen: {{ st.meldung }}</strong>{% endif %}
       {% else %}Noch keine automatische Sicherung gelaufen.{% endif %}</small></p>
     <div class="backup-aktionen" data-nur-admin>
       <button type="submit" form="backup-erstellen" class="outline" title="Sicherung sofort erstellen"
@@ -398,7 +398,7 @@
       <tbody>
       {% for s in bk.liste %}
         <tr><td>{{ s.datum.strftime("%d.%m.%Y %H:%M") }}</td>
-          <td>{{ s.art }}{% if s.verschluesselt %} <span title="verschlüsselt">🔒</span>{% endif %}</td>
+          <td>{{ s.art }}{% if s.verschluesselt %} <span title="verschlüsselt">{{ icon("schloss") }}</span>{% endif %}</td>
           <td class="rechts">{{ (s.groesse / 1048576) | zahl(1) }} MB</td>
           <td><small>{% if s.anzahlen %}{{ s.anzahlen.get("ladevorgaenge", 0) | zahl(0) }} Ladevorgänge,
             {{ s.anzahlen.get("originaldateien", 0) }} Originaldateien{% endif %}{% if s.app_version %} · Version {{ s.app_version }}{% endif %}</small></td>
@@ -420,7 +420,7 @@
   <div class="speichern-leiste">
     {% if nur_lesen %}
     <button type="submit" class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen">Speichern</button>
-    <small>🔒 Unzureichende Berechtigungen – nur lesen.</small>
+    <small>{{ icon("schloss") }} Unzureichende Berechtigungen – nur lesen.</small>
     {% else %}
     <button type="submit" data-speichern {% if not fehler %}class="ausgegraut" aria-disabled="true"
             title="Noch keine Änderungen – erst nach einer Änderung speicherbar"{% endif %}>Speichern</button>

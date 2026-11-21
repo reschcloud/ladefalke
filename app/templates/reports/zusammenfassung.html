@@ -12,14 +12,14 @@
 {% set v = vollstaendigkeit %}
 {% if v.monate %}
 <div class="vollstaendig {{ v.status }}">
-  {% if v.status == "fehlt" %}<strong>⚠ Daten unvollständig</strong> – in {{ v.unvollstaendig | length }} von {{ v.monate | length }} Monat{{ "en" if v.monate | length != 1 }} fehlen Rechnungsdaten:
+  {% if v.status == "fehlt" %}<strong>{{ icon("warnung") }} Daten unvollständig</strong> – in {{ v.unvollstaendig | length }} von {{ v.monate | length }} Monat{{ "en" if v.monate | length != 1 }} fehlen Rechnungsdaten:
   <table class="luecken">
     {% for st in v.unvollstaendig %}
     <tr><td>{{ st.label }}</td><td>{% for l in st.luecken %}{{ l.msp.name }}{% if l.karten %} <span class="klein">({{ l.karten | length }} von {{ l.karten_erwartet }} Karten)</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
     {% endfor %}
   </table>
-  {% elif v.status == "offen" %}<strong>◷ Laufender Monat</strong> – Rechnungen folgen erst im Folgemonat.
-  {% else %}<strong>✓ Alle erwarteten Rechnungsdaten sind vorhanden.</strong>{% endif %}
+  {% elif v.status == "offen" %}<strong>{{ icon("offen") }} Laufender Monat</strong> – Rechnungen folgen erst im Folgemonat.
+  {% else %}<strong>{{ icon("ok") }} Alle erwarteten Rechnungsdaten sind vorhanden.</strong>{% endif %}
   {% if v.hinweise %}<span class="klein">{{ v.hinweise }} Hinweis{{ "e" if v.hinweise != 1 }} zur Prüfung in der App (Dashboard → Vollständigkeit).</span>{% endif %}
 </div>
 {% endif %}

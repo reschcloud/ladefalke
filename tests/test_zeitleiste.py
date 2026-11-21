@@ -79,7 +79,7 @@ def test_seite_standard_kalenderjahr(angemeldet, db, daten):
     assert "Person hervorheben" not in text
     text = angemeldet.get("/stammdaten/zuordnungen/zeitleiste?jahr=2026").text
     assert "Zeitleiste Fahrzeuge · Fahrer:innen" in text and "2 Fahrzeuge mit Lücken" in text
-    assert 'title="Bernd: 01.05.2026 – offen"' in text and "⚠ noch nie zugeordnet" in text
+    assert 'title="Bernd: 01.05.2026 – offen"' in text and "symbol-warnung" in text and "noch nie zugeordnet</span>" in text
     assert "/stammdaten/zuordnungen/fahrer/" in text and "zurueck=/stammdaten/zuordnungen/zeitleiste%3Fstatus%3Daktiv%26nach%3Dfahrzeug" in text
     assert "Letzte 12 Monate" in text
     assert angemeldet.get("/stammdaten/zuordnungen/zeitleiste?ansicht=12monate").status_code == 200

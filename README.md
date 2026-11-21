@@ -346,6 +346,7 @@ im Footer der Link „Quelltext“; in `.env` mit `QUELLTEXT_URL` auf den eigene
 unveränderten Einsatz (auch intern in einer Firma) ist nichts zu tun.
 
 Mitgelieferte Fremdbestandteile behalten ihre Lizenzen: Leaflet und Leaflet.heat (BSD-2-Clause), htmx (Zero-Clause
-BSD), Pico CSS (MIT), Natural-Earth-Daten (gemeinfrei); die GeoNames-Postleitzahlen (CC-BY 4.0) werden nicht
+BSD), Pico CSS (MIT), Material Design Icons von Pictogrammers (Apache 2.0, ausgewählte Icons in `app/icons_mdi.py`,
+Lizenztexte unter `app/static/mdi/`), Natural-Earth-Daten (gemeinfrei); die GeoNames-Postleitzahlen (CC-BY 4.0) werden nicht
 mitgeliefert, sondern bei Bedarf geladen (siehe „Geodaten“).
 

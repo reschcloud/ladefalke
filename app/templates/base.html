@@ -675,7 +675,7 @@
     <nav>
       <ul><li><a href="/" class="marke" title="Ladefalke – Der elektrische Fuhrpark im Blick">{{ m.falke() }}<span class="marke-text"><strong>Ladefalke</strong><small>resch.cloud</small></span></a></li>
         <li class="menue-knopf-eintrag"><button type="button" class="menue-knopf outline secondary" aria-expanded="false"
-          aria-controls="hauptmenue" onclick="const h = this.closest('header'); this.setAttribute('aria-expanded', String(h.classList.toggle('menue-offen')))">☰ Menü</button></li></ul>
+          aria-controls="hauptmenue" onclick="const h = this.closest('header'); this.setAttribute('aria-expanded', String(h.classList.toggle('menue-offen')))">{{ icon("menue") }}Menü</button></li></ul>
       <ul id="hauptmenue">
         <li><a href="/" {% if pfad == "/" %}aria-current="page"{% endif %}>Dashboard</a></li>
         <li><a href="/import" class="import-ablage" title="Dateien hierher ziehen zum Importieren" {% if pfad.startswith("/import") %}aria-current="page"{% endif %}>Import
@@ -692,12 +692,12 @@
             <ul>
               {% set bs = request.state.bestand or {} %}
               {% macro menue_anzahl(n, text) %}{% if n is not none %}<span class="menue-anzahl" title="{{ n }} {{ text }}">{{ n }}</span>{% endif %}{% endmacro %}
-              <li><a href="/stammdaten/msp">{{ m.symbol("msp") }} {{ MSP }}{{ menue_anzahl(bs.get("msp"), "MSP") }}</a></li>
-              <li><a href="/stammdaten/ladekarten">{{ m.symbol("karte") }} Ladekarten{{ menue_anzahl(bs.get("ladekarten"), "aktive Ladekarten") }}</a></li>
-              <li><a href="/stammdaten/fahrzeuge">{{ m.symbol("auto") }} Fahrzeuge{{ menue_anzahl(bs.get("fahrzeuge"), "aktive Fahrzeuge") }}</a></li>
-              <li><a href="/stammdaten/fahrer">{{ m.symbol("person") }} Fahrer:innen{{ menue_anzahl(bs.get("fahrer"), "aktive Fahrer:innen") }}</a></li>
-              <li><a href="/stammdaten/zuordnungen">{{ m.symbol("zuordnung") }} Zuordnungen</a></li>
-              <li><a href="/stammdaten/zuordnungen/zeitleiste">{{ m.symbol("zeitleiste") }} Zeitleiste</a></li>
+              <li><a href="/stammdaten/msp">{{ m.symbol("msp") }}{{ MSP }}{{ menue_anzahl(bs.get("msp"), "MSP") }}</a></li>
+              <li><a href="/stammdaten/ladekarten">{{ m.symbol("karte") }}Ladekarten{{ menue_anzahl(bs.get("ladekarten"), "aktive Ladekarten") }}</a></li>
+              <li><a href="/stammdaten/fahrzeuge">{{ m.symbol("auto") }}Fahrzeuge{{ menue_anzahl(bs.get("fahrzeuge"), "aktive Fahrzeuge") }}</a></li>
+              <li><a href="/stammdaten/fahrer">{{ m.symbol("person") }}Fahrer:innen{{ menue_anzahl(bs.get("fahrer"), "aktive Fahrer:innen") }}</a></li>
+              <li><a href="/stammdaten/zuordnungen">{{ m.symbol("zuordnung") }}Zuordnungen</a></li>
+              <li><a href="/stammdaten/zuordnungen/zeitleiste">{{ m.symbol("zeitleiste") }}Zeitleiste</a></li>
             </ul>
           </details>
         </li>
@@ -707,13 +707,13 @@
         <li class="benutzer-eintrag">
           <details class="dropdown benutzermenue">
             <summary {% if pfad.startswith(("/konto", "/benutzer", "/protokoll")) %}aria-current="page"{% endif %}
-                     title="Angemeldet als {{ ich.benutzername }} ({{ {"admin": "Admin", "operator": "Operator", "viewer": "Viewer"}[ich.rolle] }})">{{ ich.name }}</summary>
+                     title="Angemeldet als {{ ich.benutzername }} ({{ {"admin": "Admin", "operator": "Operator", "viewer": "Viewer"}[ich.rolle] }})">{{ icon("benutzer") }}{{ ich.name }}</summary>
             <ul{% if not links %} dir="rtl"{% endif %}>
               <li dir="ltr"><a href="/konto">Mein Konto</a></li>
               {% if ich.rolle == "admin" %}<li dir="ltr"><a href="/benutzer">Benutzer:innen</a></li>
-              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Benutzerverwaltung nur für Admins">Benutzer:innen 🔒</span></li>{% endif %}
+              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Benutzerverwaltung nur für Admins">Benutzer:innen {{ icon("schloss", "gesperrt") }}</span></li>{% endif %}
               {% if ich.rolle == "admin" %}<li dir="ltr"><a href="/protokoll">Protokoll</a></li>
-              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Änderungsprotokoll nur für Admins">Protokoll 🔒</span></li>{% endif %}
+              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Änderungsprotokoll nur für Admins">Protokoll {{ icon("schloss", "gesperrt") }}</span></li>{% endif %}
               <li dir="ltr"><form method="post" action="/logout" class="inline" data-immer>
                 <button type="submit" class="outline secondary klein">Abmelden</button></form></li>
             </ul>

@@ -143,7 +143,7 @@ def test_fahrzeug_hinweise(angemeldet, db):
     assert any(x.text.startswith("1 Lücke") or x.text.startswith("ohne Fahrer:in") for x in h[alt.id])
     seite = angemeldet.get("/stammdaten/fahrzeuge").text
     zeile = seite.split(">HW-OK</a>")[1].split("</tr>")[0]
-    assert '<span class="alles-ok" title="Keine offenen Punkte">✓</span>' in zeile
+    assert '<span class="alles-ok" title="Keine offenen Punkte"><svg class="symbol symbol-ok"' in zeile
 
 
 def test_fahrer_liste_ladekarten_msp(angemeldet, db):

@@ -207,7 +207,7 @@ def test_oberflaeche_ablauf(angemeldet, db):
     assert antwort.status_code == 200 and str(antwort.url).endswith("/import#abschluss")  # eine Datei: zurück zur Import-Seite
     assert "oktober.csv übernommen: 6 Ladevorgänge" in antwort.text
     abschluss = antwort.text.split('id="abschluss"')[1].split("</article>")[0]
-    assert "✓ Import abgeschlossen" in abschluss and "1 Datei übernommen" in abschluss
+    assert "Import abgeschlossen</strong>" in abschluss and "1 Datei übernommen" in abschluss
     assert "<strong>6</strong> Ladevorgänge" in abschluss and "Jetzt zuordnen (Aufgaben)" in abschluss
     assert 'aria-current="step"' in antwort.text
     assert 'class="neu-importiert"' in antwort.text

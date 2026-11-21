@@ -158,7 +158,7 @@
         <td class="rechts">{{ zl.summe.anzahl }}</td><td class="rechts">{{ zl.summe.kwh | zahl(0) }}</td>
         <td class="rechts">{{ zl.summe.kosten | geld }}</td>
         <td class="rechts">{{ zl.summe.preis | zahl(2) if zl.summe.preis is not none else "–" }}</td>
-        <td>{% if f.email %}<span title="{{ f.email }}">✉</span>{% else %}<a href="/stammdaten/fahrer/{{ f.id }}" title="Keine E-Mail-Adresse. Bitte bei der Person eintragen."><small>fehlt</small></a>{% endif %}</td>
+        <td>{% if f.email %}<span title="{{ f.email }}">{{ icon("email") }}</span>{% else %}<a href="/stammdaten/fahrer/{{ f.id }}" title="Keine E-Mail-Adresse. Bitte bei der Person eintragen."><small>fehlt</small></a>{% endif %}</td>
         <td>{% if z %}<small title="{{ 'automatisch' if z.ausgeloest == 'automatisch' else 'manuell' }} an {{ z.an }}">{{ z.gesendet_am.strftime("%d.%m.%Y") }}</small>{% else %}<small>–</small>{% endif %}</td>
         <td class="rechts nowrap">
           <a href="/reports/fahrer/{{ f.id }}.pdf?{{ p }}" role="button" class="outline klein download-knopf" hx-boost="false"
@@ -213,7 +213,7 @@
                 "karten_cpo": "Karten und Preise je CPO", "flottenbilanz": "Flottenbilanz",
                 "zuordnungen": "Zuordnungen"}[e.art] }} {{ e.zeitraum_label }}</td>
         <td>{{ e.empfaenger_name }} <small>{{ e.an }}</small></td>
-        <td>{% if e.erfolg %}<span class="ok-text">✓ gesendet</span>{% else %}<span class="fehler-text" title="{{ e.fehler }}">⚠ {{ e.fehler | truncate(70) }}</span>{% endif %}</td></tr>
+        <td>{% if e.erfolg %}<span class="ok-text">{{ icon("ok") }} gesendet</span>{% else %}<span class="fehler-text" title="{{ e.fehler }}">{{ icon("warnung") }} {{ e.fehler | truncate(70) }}</span>{% endif %}</td></tr>
     {% endfor %}
     </tbody>
   </table>

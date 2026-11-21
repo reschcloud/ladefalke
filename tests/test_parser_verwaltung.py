@@ -76,7 +76,7 @@ def test_fehlender_parser_warnung_und_verknuepfung_entfernen(angemeldet, db):
     db.add(msp)
     db.flush()
     liste = angemeldet.get("/stammdaten/msp").text
-    assert "auf einen nicht installierten Parser" in liste and "⚠ fehlt</span>" in liste
+    assert "auf einen nicht installierten Parser" in liste and "</svg> fehlt</span>" in liste
     seite = angemeldet.get(f"/stammdaten/msp/{msp.id}").text
     assert "ist nicht installiert" in seite and "Parser-Verknüpfung entfernen" in seite
     assert 'aria-disabled="true" title="Zuerst den Parser deaktivieren und speichern"' in seite

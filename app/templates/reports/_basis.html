@@ -61,6 +61,8 @@
      Überschriften oben bündig */
   .spalten { break-inside: avoid; align-items: flex-start; margin-top: 4mm; }
   .spalten > * > .block:first-child > h3, .spalten > * > h3:first-child { margin-top: 0; }
+  /* Symbole (app/icons.py) in Textgröße; Farbe kommt aus dem SVG-Attribut „color“ (icons.FARBEN) */
+  svg.symbol { width: 1.1em; height: 1.1em; vertical-align: -.18em; }
   .diagramm { display: flex; gap: 3mm; align-items: flex-start; break-inside: avoid; margin-bottom: 3mm; }
   .diagramm svg { width: 26mm; height: 26mm; flex: none; }
   .diagramm .legende { flex: 1; font-size: 7.5pt; }

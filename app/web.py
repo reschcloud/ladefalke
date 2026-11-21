@@ -8,6 +8,7 @@ from markupsafe import Markup
 
 from app.version import version
 from app import formatierung
+from app.icons import icon
 from app.config import einstellungen, heute
 from app.services.evse import cpo_land, landname
 from app.services.geokodierung import verortung_text
@@ -29,6 +30,7 @@ templates.env.filters.update(
     prozent=formatierung.prozent,
     optionen=_optionen,
 )
+templates.env.globals["icon"] = icon  # Material Design Icons (app/icons.py)
 templates.env.globals["zeitraum"] = formatierung.zeitraum
 templates.env.globals["minuten"] = formatierung.minuten
 # Versionskennung für /static-Links, damit Browser nach Änderungen nicht die alte CSS/JS aus dem Cache nehmen

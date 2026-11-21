@@ -54,7 +54,7 @@
 </div>
 
 {% if grund and not v.profil_ausgenommen %}
-<p class="meldung meldung-warnung" role="alert">⚠ Unplausibel: {{ grund }}. Der Vorgang zählt nicht für das
+<p class="meldung meldung-warnung" role="alert">{{ icon("warnung") }} Unplausibel: {{ grund }}. Der Vorgang zählt nicht für das
   Ladeprofil, bis die Stromart korrigiert oder er ausdrücklich ausgenommen ist (Prüfen: Originaldokument oben).</p>
 {% endif %}
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}

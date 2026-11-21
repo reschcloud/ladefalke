@@ -28,7 +28,7 @@
   <div class="kachel"><span class="zahl">{{ zn.ladeorte + zn.vorschauen }}</span><span class="text">Sonstiges</span>
     <span class="vgl">{{ zn.ladeorte }} Ladeorte ohne Verortung, {{ zn.vorschauen }} offene Import-Vorschau{{ "en" if zn.vorschauen != 1 }}</span></div>
 </div>
-{% if not gesamt %}<div class="vollstaendig"><strong>✓ Alles erledigt</strong> – nichts zu klären.</div>{% endif %}
+{% if not gesamt %}<div class="vollstaendig"><strong>{{ icon("ok") }} Alles erledigt</strong> – nichts zu klären.</div>{% endif %}
 
 {% if fristen %}
 <h2>Fristen</h2>

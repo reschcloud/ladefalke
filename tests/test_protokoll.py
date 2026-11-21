@@ -137,7 +137,7 @@ def test_seite_und_verlauf_nur_admin(rollen, db):  # noqa: F811
     person = db.scalar(select(Fahrer).where(Fahrer.name == "Otto Operator"))
     assert "verlauf-abschnitt" in admin.get(f"/stammdaten/fahrer/{person.id}").text
     assert "verlauf-abschnitt" not in operator.get(f"/stammdaten/fahrer/{person.id}").text
-    assert 'href="/protokoll"' in admin.get("/").text and "Protokoll 🔒" in operator.get("/").text
+    assert 'href="/protokoll"' in admin.get("/").text and "Protokoll <svg class=\"symbol symbol-schloss\"" in operator.get("/").text
 
 
 def test_aufraeumen(db):

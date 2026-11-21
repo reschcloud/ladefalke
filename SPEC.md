@@ -275,6 +275,7 @@ Weitere Festlegungen während der Umsetzung:
   - Importe heißen für Menschen „MSP · Rechnung …“ (sonst „MSP · Monat“, sonst Dateiname), nie nach der Datenbanknummer.
   - Ladekarte von Fahrzeug- und Personenseite aus zuordnen: Auswahl „Karte zuordnen →“ öffnet die Karte mit vorbelegtem Ziel, danach zurück.
   - „Nicht verorten“ mit „Rückgängig“ in der Meldung; unter „Aufgaben“ aufklappbar „Bewusst nicht verortet“ mit „wieder verorten“.
+  - Symbole: Material Design Icons (Apache 2.0, `app/icons.py`), farbig je Art (Fahrzeug, Person, Ladekarte, MSP) sowie Warnung/Erledigt. Hauptmenü bewusst ohne Symbole (zu unruhig), nur Untermenü „Stammdaten“ und Konto. In Auswahllisten weiter 🚗 / 👤.
   - Einheitlich: Querverweise als kleine Knöpfe (ein Makro), Downloads umrandet; „Fahrer:in“ (Stammdaten, „Fahrer:in beim Laden“), „Benutzer:in“ (App-Konto); „MSP“; Spaltenkopf „Ladevorgänge“ (PDF: „Vorgänge“).
   - Nach dem Speichern: MSP bleibt auf seiner Seite, Einstellungen springen zur zuletzt bearbeiteten Gruppe. Zeitleiste filtert Aktive/Inaktive/Alle, das Protokoll filtert sofort.
   - Import-Detail wie die Vorschau: Originaldatei im neuen Tab, Ladekosten und Gebühren getrennt, „ohne Fahrzeug“ verlinkt auf die Aufgaben.
@@ -285,8 +286,6 @@ Noch nicht beauftragt – erst nach Rückfrage umsetzen.
 
 Vorgemerkt für die Woche ab 23.11.2026:
 
-- **Schönere Icons** (Stil wie Home Assistant), evtl. farbig je Art – Personen, Ladekarten, Fahrzeuge usw. sollen auf
-  einen Blick unterscheidbar sein.
 - **Zahl der offenen Aufgaben im Menü** (am Menüpunkt „Aufgaben“).
 - **„Zuordnung anpassen“ in den Aufgaben** führt direkt auf die Seite der Ladekarte statt auf eine eigene Seite.
 - **Report „Zuordnung zum Stichtag“** dichter gestalten.
@@ -295,5 +294,11 @@ Vorgemerkt für die Woche ab 23.11.2026:
 
 Weitere Ideen:
 
+- **Zuordnungen vereinheitlichen**: jede Zuordnung nur noch an einer Stelle anlegen und ändern – dort, wo die Regel
+  gilt, gegen die sie verstoßen kann, damit eine Überschneidung immer auf der Seite sichtbar und behebbar ist, auf
+  der man gerade ist. Karte → Person/Fahrzeug nur auf der Seite der Ladekarte (eine Karte hat höchstens ein Ziel);
+  Person ↔ Fahrzeug nur auf der Seite der Person (eine Person hat höchstens ein Fahrzeug), das Formular zeigt dabei
+  Leasing und „ohne Fahrer:in“ des Fahrzeugs. Die jeweils andere Seite zeigt die Zuordnung nur an, mit Link
+  „ändern →“ zur zuständigen Seite. „Ohne Fahrer:in“ bleibt beim Fahrzeug.
 - **CO₂e genau** über die Electricity Maps API (Strommix am Ort und zur Zeit der Ladung) als Ausbau der vereinfachten
   Variante; in den Einstellungen aktivierbar, braucht einen API-Key (die App verbindet sich nur dann nach außen).

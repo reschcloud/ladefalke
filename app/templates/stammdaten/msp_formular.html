@@ -6,7 +6,7 @@
 <p class="nav-leiste"><a href="/stammdaten/msp" role="button" class="outline secondary klein nav-knopf">← Alle MSP</a>{{ m.blaettern(blaettern) }}</p>
 <h1>{{ msp.name if msp else "Neuer MSP" }}</h1>
 {% if parser_fehlt %}
-<p class="meldung meldung-warnung" role="alert">⚠ Der Parser <code>{{ msp.parser_key }}</code> ist nicht installiert
+<p class="meldung meldung-warnung" role="alert">{{ icon("warnung") }} Der Parser <code>{{ msp.parser_key }}</code> ist nicht installiert
   (sein Modul liegt nicht in der App bzw. wurde beim Start nicht geladen): Dateien dieses Formats werden nicht erkannt. Importierte Daten bleiben vollständig erhalten.
   {% if msp.parser_aktiv %}Zum Aufräumen den Parser unten deaktivieren und speichern; danach lässt sich die Verknüpfung entfernen.{% endif %}</p>
 {% endif %}

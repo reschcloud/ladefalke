@@ -37,7 +37,7 @@
   <span class="legende-balken"></span> Zuordnung ({{ "Name" if nach_fahrzeug else "Kennzeichen · Modell" }} im Balken; Maus darüber hebt
   {{ "die Person" if nach_fahrzeug else "das Fahrzeug" }} überall hervor, Klick zum Bearbeiten)
   {% if nach_fahrzeug %}<span class="legende-ohne"></span> ohne Fahrer:in (bewusst)
-  <span class="legende-luecke"></span> ⚠ Lücke ohne Fahrer:in{% endif %}
+  <span class="legende-luecke"></span> {{ icon("warnung") }} Lücke ohne Fahrer:in{% endif %}
   <span class="legende-heute"></span> heute
   {% if nach_fahrzeug %}<span class="legende-leasing"></span> Leasingbeginn/-ende
   <span class="legende-ausserhalb"></span> außerhalb des Leasings{% endif %}
@@ -78,12 +78,12 @@
       {% if zl.heute is not none %}<span class="zl-heute" style="left: {{ zl.heute }}%"></span>{% endif %}
       {% if zeile.nie_zugeordnet %}
         <a class="zl-luecke" href="{{ zeile.link }}" style="left: 0; width: 100%"
-           title="Noch nie {{ 'einer Fahrer:in' if nach_fahrzeug else 'einem Fahrzeug' }} zugeordnet"><span>⚠ noch nie zugeordnet</span></a>
+           title="Noch nie {{ 'einer Fahrer:in' if nach_fahrzeug else 'einem Fahrzeug' }} zugeordnet"><span>{{ icon("warnung") }} noch nie zugeordnet</span></a>
       {% endif %}
       {% for l in zeile.luecken %}
         <a class="zl-luecke" href="{{ zeile.link }}?ab={{ l.von.isoformat() }}{% if l.bis %}&bis={{ l.bis.isoformat() }}{% endif %}#{{ 'neue-fahrer-zuordnung' if nach_fahrzeug else 'neue-fahrzeug-zuordnung' }}"
            style="left: {{ l.links }}%; width: {{ l.breite }}%; --hoehe: {{ zeile.spuren }}" title="{{ l.text }}">
-          <span>⚠ Lücke</span></a>
+          <span>{{ icon("warnung") }} Lücke</span></a>
       {% endfor %}
       {% for o in zeile.ohne %}
         <a class="zl-ohne" href="/stammdaten/zuordnungen/ohne/{{ o.ohne.id }}?zurueck={{ url() | urlencode }}"

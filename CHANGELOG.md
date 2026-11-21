@@ -3,6 +3,18 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## Unveröffentlicht
+
+### Neu
+
+- Neue Symbole (Material Design Icons, wie in Home Assistant): im Untermenü „Stammdaten“, farbig je Art – Fahrzeug
+  blau, Person violett, Ladekarte türkis, MSP orange; Warnung, Erledigt, Frist, E-Mail, Schloss usw. als Symbol statt
+  Zeichen, auch in den PDF-Reports.
+
+### Beim Update beachten
+
+- nichts
+
 ## v1.2.0 – 20.11.2026
 
 ### Neu

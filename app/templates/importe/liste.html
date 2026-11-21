@@ -9,7 +9,7 @@
 {% set a = abschluss %}
 <article id="abschluss" class="import-abschluss" role="status" data-ausblenden="20">
   <header class="kopf">
-    <strong>✓ Import abgeschlossen</strong>
+    <strong>{{ icon("ok") }} Import abgeschlossen</strong>
     <a href="/import?abschluss=aus" class="filter-weg" title="Ausblenden" aria-label="Meldung ausblenden"><svg viewBox="0 0 10 10"
       aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg></a>
   </header>
@@ -66,7 +66,7 @@
     <input type="file" id="datei-upload" name="datei_upload" accept=".csv,.pdf" multiple required data-feldname="Datei"
            aria-describedby="upload-hinweis">
     <ul id="datei-liste" class="datei-liste" aria-live="polite" hidden></ul>
-    <small id="upload-hinweis" class="mit-tooltip" title="Unterstützte Formate: {{ formate }}. Jede Datei wird danach einzeln geprüft und bestätigt.">Format wird je Datei automatisch erkannt ⓘ</small>
+    <small id="upload-hinweis" class="mit-tooltip" title="Unterstützte Formate: {{ formate }}. Jede Datei wird danach einzeln geprüft und bestätigt.">Format wird je Datei automatisch erkannt {{ icon("info") }}</small>
     <button type="submit">Hochladen und Vorschau anzeigen</button>
   </form>
 </article>
@@ -135,7 +135,7 @@
       <td>
         {% if imp.status.value == "vorschau" %}<span class="marker inaktiv">Vorschau</span>
         {% else %}<span class="marker">importiert</span> <small>{{ imp.importiert_am | datum }}</small>{% endif %}
-        {% if imp.warnungen %}<span title="{{ imp.warnungen | join(' · ') }}">⚠</span>{% endif %}
+        {% if imp.warnungen %}<span title="{{ imp.warnungen | join(' · ') }}">{{ icon("warnung") }}</span>{% endif %}
       </td>
     </tr>
   {% else %}

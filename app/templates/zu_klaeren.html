@@ -6,7 +6,7 @@
 {# Fristen: Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut FLEX (Vorwarnzeiten in den Einstellungen) #}
 {% if fristen %}
 <section class="meldung meldung-warnung fristen" id="fristen" role="status" aria-label="Fristen">
-  <strong>⏰ Fristen</strong>
+  <strong>{{ icon("frist") }} Fristen</strong>
   <ul>
   {% for f in fristen %}
     <li>
@@ -38,7 +38,7 @@
 {# Ladekarten je Fahrzeug: Anzahl außerhalb der Grenzen bzw. Zuordnung außerhalb des Leasings (services/kartenpruefung.py) #}
 {% if karten_befunde %}
 <section class="meldung meldung-warnung karten-befunde" id="karten-je-fahrzeug" role="status" aria-label="Ladekarten je Fahrzeug">
-  <strong>💳 Ladekarten je Fahrzeug</strong>
+  <strong>{{ icon("karte") }} Ladekarten je Fahrzeug</strong>
   <ul>
   {% for b in karten_befunde %}
     <li><a href="/stammdaten/fahrzeuge/{{ b.fahrzeug.id }}#ladekarten">{{ b.fahrzeug.kennzeichen }}</a>:
@@ -61,7 +61,7 @@
 {# Hinweis: Zeiträume, in denen ein aktives Fahrzeug keine Fahrer:in hatte (services/luecken.py) #}
 {% if luecken %}
 <section class="meldung meldung-info luecken" role="status" aria-label="Lücken in der Fahrer:innen-Zuordnung">
-  <strong>ⓘ Lücken in der Fahrer:innen-Zuordnung</strong>
+  <strong>{{ icon("info") }} Lücken in der Fahrer:innen-Zuordnung</strong>
   <ul>
   {% for l in luecken %}
     <li><a href="/stammdaten/fahrzeuge/{{ l.fahrzeug.id }}">{{ l.fahrzeug.kennzeichen }}</a>
@@ -87,7 +87,7 @@
 {% macro aufgabe(anker, anzahl, titel, hinweis) %}
 {# erledigte Aufgaben haben keinen Abschnitt – daher keine Verlinkung #}
 {% if anzahl %}<a class="kachel aufgabe offen" href="#{{ anker }}">{% else %}<div class="kachel aufgabe erledigt">{% endif %}
-  <span class="kachel-zahl">{% if anzahl %}{{ anzahl }}{% else %}✓{% endif %}</span>
+  <span class="kachel-zahl">{% if anzahl %}{{ anzahl }}{% else %}{{ icon("haken") }}{% endif %}</span>
   <strong>{{ titel }}</strong>
   <small>{% if anzahl %}{{ hinweis }}{% else %}nichts zu tun{% endif %}</small>
 {% if anzahl %}</a>{% else %}</div>{% endif %}
@@ -110,7 +110,7 @@
   {% endif %}
 </nav>
 {% if not (request.state.offen.ohne_fahrzeug or vorgaenge or gebuehren or unplausible or request.state.offen.ohne_stromart
-           or stromart_msp or ladeorte or fristen or luecken or karten_befunde) %}<p class="meldung meldung-info">✓ Alles erledigt – nichts zu klären.</p>{% endif %}
+           or stromart_msp or ladeorte or fristen or luecken or karten_befunde) %}<p class="meldung meldung-info">{{ icon("ok") }} Alles erledigt – nichts zu klären.</p>{% endif %}
 
 {% if request.state.offen.ohne_fahrzeug or vorgaenge %}
 <div class="kopf">
@@ -247,7 +247,7 @@
       <td>{{ m.karte_vorgang(v, msp=false) }}</td>
       <td>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}</td>
       <td class="rechts">{{ v.kwh | zahl(3) }}</td>
-      <td>⚠ {{ grund }}</td>
+      <td>{{ icon("warnung") }} {{ grund }}</td>
       <td class="rechts nowrap"><a href="/ladevorgaenge/{{ v.id }}" role="button" data-schreiben class="outline klein">korrigieren</a>
         <form method="post" action="/ladevorgaenge/{{ v.id }}/profil" class="inline">
           <input type="hidden" name="ausnehmen" value="1"><input type="hidden" name="zurueck" value="/aufgaben#unplausibel">

@@ -13,7 +13,7 @@
     <span class="umschalter" role="group" aria-label="Theme" title="Theme">
       {%- for wert, text in themes.items() %}
       <button type="submit" name="theme" value="{{ wert }}" aria-pressed="{{ 'true' if ich.theme == wert else 'false' }}"
-              title="Theme: {{ text }}" aria-label="Theme {{ text }}">{{ {"auto": "◐", "hell": "☀", "dunkel": "☾"}[wert] }}</button>
+              title="Theme: {{ text }}" aria-label="Theme {{ text }}">{{ icon("theme-" ~ wert) }}</button>
       {%- endfor %}
     </span>
     <small>Nur für dich, wirkt sofort. Auto folgt dem Betriebssystem bzw. Browser.</small>

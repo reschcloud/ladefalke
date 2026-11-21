@@ -39,7 +39,7 @@ def test_detailseiten(angemeldet, db):
     db.flush()
     seite = angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text
     assert 'class="mini-zl fzl"' in seite and 'class="mini-zl-leasing beginn"' in seite  # Zeitleiste des Fahrzeugs
-    assert '<tr class="luecken-zeile warnung">' in seite and "⚠ Lücke ohne Fahrer:in" in seite
+    assert '<tr class="luecken-zeile warnung">' in seite and "symbol-warnung" in seite and "Lücke ohne Fahrer:in" in seite
     assert 'data-luecke-fuellen="neue-fahrer-zuordnung"' in seite and 'data-von="2026-01-01" data-bis="2026-02-28"' in seite
     assert 'id="neue-fahrer-zuordnung"' in seite and ">Lücke schließen</button>" in seite
 
@@ -68,5 +68,5 @@ def test_symbole_und_kartenansicht(angemeldet, db):
     liste = angemeldet.get("/stammdaten/ladekarten").text
     zeile = liste.split(">SY-P</a>")[1].split("</tr>")[0]
     assert 'aria-label="Person"' in zeile and ">Symbol Test</a>" in zeile
-    assert '<a href="/stammdaten/fahrzeuge"><svg class="symbol"' in liste  # Menü „Stammdaten“
+    assert '<a href="/stammdaten/fahrzeuge"><svg class="symbol symbol-auto"' in liste  # Menü „Stammdaten“
     assert 'data-kartenfarbe="heat"' in angemeldet.get("/ladevorgaenge").text

@@ -16,14 +16,14 @@
   <tbody>
   {% for f, fz in zeilen %}
     <tr>
-      <td><a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if f.email %} <span class="hat-email" title="E-Mail: {{ f.email }}">✉</span>{% endif %}</td>
+      <td><a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if f.email %} <span class="hat-email" title="E-Mail: {{ f.email }}">{{ icon("email") }}</span>{% endif %}</td>
       <td>{% if fz %}<a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a>{% else %}–{% endif %}</td>
       {% set eigene, ueber_fz, kz = karten_msp[f.id] %}
       <td class="karten-msp">{% for name in eigene %}<span class="msp-marke" title="persönliche Ladekarte">{{ name }}</span>{% endfor %}
         {%- for name in ueber_fz %}<span class="msp-marke fahrzeug" title="über Fahrzeug {{ kz }}">{{ name }}</span>{% endfor %}
         {%- if not eigene and not ueber_fz %}–{% endif %}</td>
       <td class="hinweise">{% if f.aktiv %}{% set liste, ok_text = hinweise[f.id] %}
-        {%- for h in liste %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>{% else %}<span class="alles-ok" title="{{ ok_text or 'Keine offenen Punkte' }}">✓</span>{% endfor %}
+        {%- for h in liste %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>{% else %}<span class="alles-ok" title="{{ ok_text or 'Keine offenen Punkte' }}">{{ icon("ok") }}</span>{% endfor %}
         {%- else %}–{% endif %}</td>
       {% if status == "alle" %}<td>{{ m.aktiv_kennzeichen(f.aktiv) }}</td>{% endif %}
     </tr>

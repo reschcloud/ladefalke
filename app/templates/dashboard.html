@@ -4,9 +4,9 @@
 {% block titel %}Dashboard{% endblock %}
 {% block inhalt %}
 {% macro monat_details(st) %}
-  {% if st.offen %}<p>◷ Laufender Monat – Rechnungen folgen erst im Folgemonat.</p>{% endif %}
+  {% if st.offen %}<p>{{ icon("offen") }} Laufender Monat – Rechnungen folgen erst im Folgemonat.</p>{% endif %}
   {% if st.luecken %}
-  <p><strong>⚠ Fehlende Daten</strong> <a href="/import" role="button" class="outline klein">zum Import</a></p>
+  <p><strong>{{ icon("warnung") }} Fehlende Daten</strong> <a href="/import" role="button" class="outline klein">zum Import</a></p>
   <ul>
     {% for l in st.luecken %}
     <li><a href="/stammdaten/msp/{{ l.msp.id }}">{{ l.msp.name }}</a>:
@@ -26,7 +26,7 @@
     {% if st.ohne_fahrzeug %}<li><a href="/aufgaben#ohne-fahrzeug">{{ st.ohne_fahrzeug }} Ladevorgänge ohne Fahrzeug</a></li>{% endif %}
   </ul>
   {% endif %}
-  {% if st.status == "ok" and not st.hinweise %}<p>✓ Alle erwarteten Daten sind vorhanden.</p>{% endif %}
+  {% if st.status == "ok" and not st.hinweise %}<p>{{ icon("ok") }} Alle erwarteten Daten sind vorhanden.</p>{% endif %}
 {% endmacro %}
 
 {% macro wert(x, einheit) %}{{ x | geld if einheit == "€" else (x | zahl(0)) ~ " " ~ einheit }}{% endmacro %}
@@ -88,16 +88,16 @@
 {% set mehrere = v.monate | length > 1 %}
 <details class="vollstaendigkeit {{ v.status }}">
   <summary>
-    {% if v.status == "fehlt" %}⚠ Daten unvollständig
+    {% if v.status == "fehlt" %}{{ icon("warnung") }} Daten unvollständig
       {%- if mehrere %} in {{ v.unvollstaendig | length }} von {{ v.monate | length }} Monaten{% endif %}
-    {% elif v.status == "offen" %}◷ Noch offen (laufender Monat)
-    {% else %}✓ Daten vollständig{% endif %}
+    {% elif v.status == "offen" %}{{ icon("offen") }} Noch offen (laufender Monat)
+    {% else %}{{ icon("ok") }} Daten vollständig{% endif %}
     {% if v.hinweise %}<small>· {{ v.hinweise }} Hinweis{{ "e" if v.hinweise != 1 }}</small>{% endif %}
   </summary>
   {% if mehrere %}
     {% for st in v.monate %}
     <details class="monat {{ st.status }}">
-      <summary>{{ st.label }}: {{ {"fehlt": "⚠ unvollständig", "offen": "◷ noch offen", "ok": "✓ vollständig"}[st.status] }}
+      <summary>{{ st.label }}: {{ icon({"fehlt": "warnung", "offen": "offen", "ok": "ok"}[st.status]) }} {{ {"fehlt": "unvollständig", "offen": "noch offen", "ok": "vollständig"}[st.status] }}
         {% if st.hinweise %}<small>· {{ st.hinweise }} Hinweis{{ "e" if st.hinweise != 1 }}</small>{% endif %}</summary>
       {{ monat_details(st) }}
     </details>

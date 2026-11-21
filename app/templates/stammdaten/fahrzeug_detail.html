@@ -88,7 +88,7 @@
     Vorgänge bis“ – ab {{ mindestanzahl }} eigenen Vorgängen je Stromart mit diesen Werten, sonst mit dem Flottenschnitt
     bzw. den Vorgaben aus den Einstellungen. Ändern sich die Daten, werden geschätzte kWh neu berechnet; Kosten bleiben.
     {% if profil_ohne_angabe %}<br>{{ profil_ohne_angabe }} Vorgänge ohne AC/DC-Angabe sind nicht enthalten.{% endif %}
-    {% if profil_unplausibel %}<br>⚠ <a href="/ladevorgaenge?fahrzeug_id={{ fahrzeug.id }}&amp;unplausibel=1">{{ profil_unplausibel }}
+    {% if profil_unplausibel %}<br>{{ icon("warnung") }} <a href="/ladevorgaenge?fahrzeug_id={{ fahrzeug.id }}&amp;unplausibel=1">{{ profil_unplausibel }}
     unplausible{{ "r" if profil_unplausibel == 1 }} Vorgang{{ "e" if profil_unplausibel != 1 }}</a> nicht enthalten (AC/DC passt nicht zur Leistung).{% endif %}</small>
 </article>
 

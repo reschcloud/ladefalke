@@ -62,7 +62,7 @@ def test_email_bei_fahrer_und_benutzer(rollen, db):  # noqa: F811
     assert antwort.status_code == 200
     f = db.scalar(select(Fahrer).where(Fahrer.name == "Mail Test"))
     assert f.email == "mail@test.example"
-    assert 'title="E-Mail: mail@test.example">✉</span>' in admin.get("/stammdaten/fahrer").text
+    assert 'title="E-Mail: mail@test.example"><svg class="symbol symbol-email"' in admin.get("/stammdaten/fahrer").text
     assert operator.post(f"/stammdaten/fahrer/{f.id}", data={"name": "Mail Test", "aktiv": "on",
                                                              "email": "kaputt"}).status_code == 422
     # Benutzerverwaltung (Admin) und Mein Konto (Admin, Operator – nicht Viewer)

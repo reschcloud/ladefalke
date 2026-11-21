@@ -15,7 +15,7 @@
 <article>
   {% set parser_name = (parser | selectattr(0, "equalto", imp.parser_key) | map(attribute=1) | first) if imp.parser_key else none %}
   <header class="block-kopf"><strong>1. Format und Ladeart</strong>
-    {% if parser_name and imp.msp_id %}<span class="block-status ok">✓ {{ parser_name }}</span>
+    {% if parser_name and imp.msp_id %}<span class="block-status ok">{{ icon("ok") }} {{ parser_name }}</span>
     {% else %}<span class="block-status offen">bitte Format wählen</span>{% endif %}</header>
   <form method="post" action="/import/{{ imp.id }}/einstellungen" id="vorschau-einstellungen" data-verfolgen>
     <div class="grid">
@@ -42,8 +42,8 @@
 {% set r = vs.ergebnis.rechnung %}
 <article>
   <header class="block-kopf"><strong>2. Prüfen</strong>
-    {% if vs.warnungen %}<span class="block-status offen">⚠ {{ vs.warnungen | length }} Hinweis{{ "e" if vs.warnungen | length != 1 }} – bitte lesen</span>
-    {% else %}<span class="block-status ok">✓ keine Auffälligkeiten</span>{% endif %}</header>
+    {% if vs.warnungen %}<span class="block-status offen">{{ icon("warnung") }} {{ vs.warnungen | length }} Hinweis{{ "e" if vs.warnungen | length != 1 }} – bitte lesen</span>
+    {% else %}<span class="block-status ok">{{ icon("ok") }} keine Auffälligkeiten</span>{% endif %}</header>
   <div class="kacheln">
     <div class="kachel"><span class="kachel-zahl">{{ vs.neue | length }}</span><span>neue Ladevorgänge</span></div>
     <div class="kachel"><span class="kachel-zahl">{{ vs.summe_kwh | zahl(0) }}</span><span>kWh</span></div>
@@ -63,7 +63,7 @@
   {% set neu = vs.unbekannte_karten | length %}
   <header class="block-kopf"><strong>3. Ladekarten</strong>
     {% if neu %}<span class="block-status offen">{{ neu }} neue Karte{{ "n" if neu != 1 }} – bitte entscheiden</span>
-    {% else %}<span class="block-status ok">✓ alle bekannt</span>{% endif %}</header>
+    {% else %}<span class="block-status ok">{{ icon("ok") }} alle bekannt</span>{% endif %}</header>
   <div class="tabelle">
   <table>
     <thead><tr><th>Kennung</th><th>Ladekarte</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>

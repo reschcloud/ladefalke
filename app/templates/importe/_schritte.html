@@ -10,7 +10,7 @@
   {% set nr = loop.index %}
   {% set erledigt = nr < aktiv or aktiv == 3 %}
   <li class="{{ 'erledigt' if erledigt }}{{ ' aktiv' if nr == aktiv }}"{% if nr == aktiv %} aria-current="step"{% endif %}>
-    <span class="schritt-nr" aria-hidden="true">{{ "✓" if erledigt else nr }}</span>
+    <span class="schritt-nr" aria-hidden="true">{% if erledigt %}{{ icon("haken") }}{% else %}{{ nr }}{% endif %}</span>
     <span class="schritt-text"><strong>{{ titel }}</strong>
       <small>
       {%- if nr == 2 and navigation and navigation.anzahl > 1 -%}

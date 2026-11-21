@@ -173,7 +173,7 @@ def test_gesperrtes_sichtbar_statt_versteckt(rollen):
     assert 'role="button" data-schreiben>Neues Fahrzeug</a>' in seite  # Link da, wird per Skript gesperrt
     assert "display: none" not in viewer.get("/static/app.css").text.split("Rollen */")[1].split("Einstellungen für")[0]
     for c in (viewer, operator):  # Benutzerverwaltung im Menü sichtbar, aber gesperrt
-        assert 'title="Benutzerverwaltung nur für Admins">Benutzer:innen 🔒</span>' in c.get("/").text
+        assert 'title="Benutzerverwaltung nur für Admins">Benutzer:innen <svg class="symbol symbol-schloss"' in c.get("/").text
     einst = operator.get("/einstellungen").text
     assert 'class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen">Speichern</button>' in einst
 

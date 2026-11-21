@@ -89,7 +89,7 @@ def test_vor_dem_ersten_eintrag_nichts_erwartet(db, daten):
 
 def test_dashboard_zeigt_vollstaendigkeit(angemeldet, db, daten):
     text = angemeldet.get("/?art=monat&jahr=2026&nr=10").text
-    assert "⚠ Daten unvollständig" in text and "1 von 3 Karten ohne Eintrag" in text
+    assert "Daten unvollständig" in text and "1 von 3 Karten ohne Eintrag" in text
     assert f'<a href="/stammdaten/ladekarten/{daten["k2"].id}">VK2</a>' in text
     text = angemeldet.get("/?art=quartal&jahr=2026&nr=3").text
     assert "in 1 von 3 Monaten" in text  # Juli ok, August ok, September fehlt (Wien Energie)

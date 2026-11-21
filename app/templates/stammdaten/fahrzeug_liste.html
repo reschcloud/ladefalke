@@ -26,7 +26,7 @@
       <td>{{ fz.modell or "" }}</td>
       <td>{% for f in fahrer %}<a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if not loop.last %}, {% endif %}{% else %}{% if fz.id in ohne_heute %}<small class="ohne-fahrer" title="bewusst niemandem zugeordnet">ohne Fahrer:in</small>{% else %}–{% endif %}{% endfor %}</td>
       <td class="hinweise">{% if fz.aktiv %}
-        {%- for h in hinweise.get(fz.id, []) %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>{% else %}<span class="alles-ok" title="Keine offenen Punkte">✓</span>{% endfor %}
+        {%- for h in hinweise.get(fz.id, []) %}<a href="{{ h.link }}" class="hinweis {{ h.stufe }}"{% if h.titel %} title="{{ h.titel }}"{% endif %}>{{ h.text }}</a>{% else %}<span class="alles-ok" title="Keine offenen Punkte">{{ icon("ok") }}</span>{% endfor %}
         {%- else %}–{% endif %}</td>
       {% if status == "alle" %}<td>{{ m.aktiv_kennzeichen(fz.aktiv) }}</td>{% endif %}
     </tr>

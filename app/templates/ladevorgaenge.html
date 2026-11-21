@@ -136,7 +136,7 @@
       <td class="stromart">
         {{- m.stromart(v.stromart) }}
         {%- if v.id in gruende and not v.profil_ausgenommen %} <a href="/ladevorgaenge/{{ v.id }}" class="unplausibel"
-          title="Unplausibel: {{ gruende[v.id] }}">⚠</a>
+          title="Unplausibel: {{ gruende[v.id] }}">{{ icon("warnung") }}</a>
         {%- elif v.profil_ausgenommen %} <small title="aus dem Ladeprofil ausgenommen">ausgen.</small>{% endif -%}
       </td>
       <td>{{ v.ladeart.label }}</td>

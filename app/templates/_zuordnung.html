@@ -6,7 +6,7 @@
 {# Band einer Mini-Zeitleiste: Abschnitte (Spuren), Lücken, außerhalb des Leasings, Leasing-Markierungen, heute;
    markierungen: hervorgehobene Zeiträume (mini_zeitleiste.markierungen, z. B. falsche Kartenanzahl) #}
 {% macro band(mini, markierungen=[]) %}
-{% set luecke_text = "⚠ Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
+{% set luecke_text = "Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
   <div class="mini-zl-band" style="--spuren: {{ mini.spuren }}">
     {% for links, breite in mini.ausserhalb %}<span class="mini-zl-ausserhalb" style="left: {{ links }}%; width: {{ breite }}%"
       title="außerhalb des Leasings"></span>{% endfor %}
@@ -53,7 +53,7 @@
 {% endmacro %}
 
 {% macro abschnitt(mini, spalte, zusatz=none, formular=none, leer="Keine Zuordnungen.", ohne_fahrer=none, grafik=true) %}
-{% set luecke_text = "⚠ Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
+{% set luecke_text = "Lücke ohne Fahrer:in" if mini.luecken_art == "warnung" else "nicht zugeordnet" %}
 <div class="abschnitt-karte">
 {% if grafik and (mini.abschnitte or mini.luecken) %}
 <div class="mini-zl" aria-hidden="true">
@@ -77,7 +77,7 @@
     </tr>
     {% else %}
     <tr class="luecken-zeile {{ mini.luecken_art }}">
-      <td>{{ luecke_text }}</td>{% if zusatz %}<td></td>{% endif %}
+      <td>{% if mini.luecken_art == "warnung" %}{{ icon("warnung") }} {% endif %}{{ luecke_text }}</td>{% if zusatz %}<td></td>{% endif %}
       <td>{{ z.zeitraum }}</td>
       <td class="rechts">{% if ohne_fahrer %}<form method="post" action="{{ ohne_fahrer }}" class="inline">
         <input type="hidden" name="ab" value="{{ z.ab.isoformat() }}"><input type="hidden" name="bis" value="{{ z.bis.isoformat() if z.bis else '' }}">
