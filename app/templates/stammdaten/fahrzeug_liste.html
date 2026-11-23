@@ -3,7 +3,7 @@
 {% block titel %}Fahrzeuge{% endblock %}
 {% block inhalt %}
 <div class="kopf">
-  <h1>Fahrzeuge</h1>
+  {% call m.titel("auto", "h1") %}Fahrzeuge{% endcall %}
   <a href="/stammdaten/fahrzeuge/neu" role="button" data-schreiben>Neues Fahrzeug</a>
 </div>
 <div class="filterleiste">

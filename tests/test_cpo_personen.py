@@ -118,8 +118,9 @@ def test_sortierung_ladevorgaenge(angemeldet, daten):
 
 
 def test_zeitraum_und_preisfilter_ladevorgaenge(angemeldet, daten):
-    """Ladevorgänge: Zeitraumzeile wie im Dashboard (Standard „Alles“), Bereichsregler Ø €/kWh mit Histogramm."""
-    alles = angemeldet.get("/ladevorgaenge").text
+    """Ladevorgänge: Zeitraumzeile wie im Dashboard („Alles“ ausdrücklich bzw. mit Filtern ohne Zeitraum),
+    Bereichsregler Ø €/kWh mit Histogramm."""
+    alles = angemeldet.get("/ladevorgaenge?art=alles").text
     assert 'class="zeitraumwahl"' in alles and 'aria-current="true">Alles</a>' in alles and 'type="date"' not in alles
     sep = angemeldet.get("/ladevorgaenge?art=monat&jahr=2026&nr=9&betreiber=AT*TST").text
     assert '<option value="9" selected>' in sep and '<input type="hidden" name="art" value="monat">' in sep
@@ -165,5 +166,5 @@ def test_flagge_in_ladevorgangsliste(angemeldet, db, daten):
     v = db.scalars(select(Ladevorgang).where(Ladevorgang.betreiber_id == "AT*XYZ")).one()
     v.land = "AT"
     db.flush()
-    liste = angemeldet.get("/ladevorgaenge").text
+    liste = angemeldet.get("/ladevorgaenge?art=alles").text
     assert '<span class="flagge" title="Österreich (AT)" role="img"' in liste and "🇦🇹</span>" in liste

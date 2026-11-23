@@ -5,6 +5,12 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
+### Geändert
+
+- Ladevorgänge: Ohne Filter geöffnet (z. B. über das Menü) gilt der vorausgewählte Zeitraum aus „Mein Konto“
+  statt „Alles“; Links mit Filtern (z. B. von Detailseiten) zeigen ohne Zeitraum weiterhin alles.
+- Listen der Stammdaten (MSP, Ladekarten, Fahrzeuge, Fahrer:innen) mit Symbol und Farbe der Art im Titel.
+
 ### Behoben
 
 - Aufgaben „Ladevorgänge ohne Fahrzeug“: Je Karte steht die Ursache. Gehört die Karte einer Person, die damals kein

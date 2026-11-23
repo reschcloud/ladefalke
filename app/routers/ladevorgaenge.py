@@ -24,7 +24,7 @@ from app.services.geokodierung import geokodieren, plz_setzen, verortung_text
 from app.services.ladeorte import PLZ_MUSTER, ladeort_fuer
 from app.services.export import Spalte, Tabelle
 from app.services.ladeprofil import leistung, unplausibel_grund, unplausibel_sql
-from app.web import meldung, render, weiter
+from app.web import art_vorgabe, meldung, render, weiter
 
 router = APIRouter(prefix="/ladevorgaenge")
 
@@ -204,12 +204,16 @@ def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Qu
           stromart: list[str] = Query([]), fahrer: list[str] = Query([]), bereich: str = "", sortierung: str = "",
           art: str = "", jahr: str = "", nr: str = "", preis_min: str = "", preis_max: str = "",
           db: Session = Depends(get_db)):
-    """Zeitraum wie im Dashboard (`art`/`jahr`/`nr`, Standard „Alles“; `von`/`bis` als fester Zeitraum).
+    """Zeitraum wie im Dashboard (`art`/`jahr`/`nr`; `von`/`bis` als fester Zeitraum). Ohne jeden Parameter (Aufruf
+    aus dem Menü) gilt der vorausgewählte Zeitraum aus „Mein Konto“; mit Filtern (z. B. Links von Detailseiten)
+    ohne Zeitraum „Alles“.
     `preis_min`/`preis_max`: Bereich Ø €/kWh je Vorgang (Regler mit Histogramm).
     `sortierung`: „spalte-auf|ab“ (SORTIERBAR), Standard neueste zuerst.
     `bereich`: Kartenausschnitt „süd,west,nord,ost“ – schränkt nur die Liste ein (die Karte schickt ihn beim
     Verschieben und Zoomen); die Filter oben gelten für Karte und Liste."""
     einst = app_einstellungen.laden(db)
+    if not request.query_params:  # Aufruf ohne Filter (Menü): vorausgewählter Zeitraum aus „Mein Konto“
+        art = art_vorgabe(request)
     z = zeitraum_lesen(db, art, jahr, nr, von, bis)
     datum_von, datum_bis = ("", "") if z.art == "alles" else (z.von.isoformat(), z.bis.isoformat())
     filter_werte, bedingungen, fehler = _filter(datum_von, datum_bis, msp_id, fahrzeug_id, suche, nur_geschaetzt,

@@ -56,7 +56,7 @@ def test_umstellen_auf_ladebeginn(angemeldet, db):
     assert _anzahl(angemeldet.get("/ladevorgaenge?von=2026-10-01&bis=2026-10-31").text) == 0
     assert _anzahl(angemeldet.get(f"/ladevorgaenge?fahrer={anna.id}").text) == 1
     assert _anzahl(angemeldet.get(f"/ladevorgaenge?fahrer={bernd.id}").text) == 0
-    liste = angemeldet.get("/ladevorgaenge").text
+    liste = angemeldet.get("/ladevorgaenge?art=alles").text
     assert ">Ladebeginn<span class=\"sortpfeil\"" in liste and "darunter das Ladeende" in liste
     assert f'<td><a href="/ladevorgaenge/{v.id}">30.09.2026 22:00</a></td>' in liste
     # daneben die Dauer, darunter das Ladeende (anderer Tag: mit Datum)

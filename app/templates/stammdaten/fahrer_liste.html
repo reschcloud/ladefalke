@@ -3,7 +3,7 @@
 {% block titel %}Fahrer:innen{% endblock %}
 {% block inhalt %}
 <div class="kopf">
-  <h1>Fahrer:innen</h1>
+  {% call m.titel("person", "h1") %}Fahrer:innen{% endcall %}
   <a href="/stammdaten/fahrer/neu" role="button" data-schreiben>Neue Fahrer:in</a>
 </div>
 {{ m.status_filter(status, "/stammdaten/fahrer") }}

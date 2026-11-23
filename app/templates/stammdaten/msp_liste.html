@@ -3,7 +3,7 @@
 {% block titel %}MSP{% endblock %}
 {% block inhalt %}
 <div class="kopf">
-  <h1>Mobility Service Provider <small>(Ladekartenanbieter)</small></h1>
+  {% call m.titel("msp", "h1") %}Mobility Service Provider <small>(Ladekartenanbieter)</small>{% endcall %}
   <a href="/stammdaten/msp/neu" role="button" data-schreiben data-nur-admin>Neuer MSP</a>
 </div>
 {% if fehlend %}

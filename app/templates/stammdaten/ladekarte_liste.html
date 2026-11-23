@@ -3,7 +3,7 @@
 {% block titel %}Ladekarten{% endblock %}
 {% block inhalt %}
 <div class="kopf">
-  <h1>Ladekarten</h1>
+  {% call m.titel("karte", "h1") %}Ladekarten{% endcall %}
   <a href="/stammdaten/ladekarten/neu" role="button" data-schreiben>Neue Ladekarte</a>
 </div>
 <div class="filterleiste">

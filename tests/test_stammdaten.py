@@ -340,6 +340,9 @@ def test_zeitraum_vorauswahl(angemeldet):
     for pfad in ("/", "/auswertungen", "/reports"):
         assert quartal.label in angemeldet.get(pfad).text, pfad
     assert monat.label in angemeldet.get("/?art=monat").text  # Adresse geht vor
+    # Ladevorgänge: ohne Parameter (Menü) die Vorauswahl, mit Filter ohne Zeitraum „Alles“
+    assert 'aria-current="true">Quartal</a>' in angemeldet.get("/ladevorgaenge").text
+    assert 'aria-current="true">Alles</a>' in angemeldet.get("/ladevorgaenge?suche=x").text
     angemeldet.post("/konto/zeitraum", data={"zeitraum": "alles"})
     assert "Alles (" in angemeldet.get("/auswertungen").text
     angemeldet.post("/konto/zeitraum", data={"zeitraum": "unsinn"})
