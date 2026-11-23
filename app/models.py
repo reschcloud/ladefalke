@@ -376,6 +376,8 @@ class Benutzer(Base):
     karten_cpo_abo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     flottenbilanz_abo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     zuordnungen_abo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Benachrichtigung per Mail, wenn Fristen in die Hinweisfrist fallen bzw. ablaufen (services/fristen_mail.py)
+    fristen_abo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     rolle: Mapped[str] = mapped_column(String(10))
     passwort_hash: Mapped[str] = mapped_column(String(300))
     aktiv: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
@@ -414,6 +416,21 @@ class Einstellung(Base):
 
     schluessel: Mapped[str] = mapped_column(String(50), primary_key=True)
     wert: Mapped[str] = mapped_column(Text)
+
+
+class FristMeldung(Base):
+    """Gesendete Frist-Benachrichtigung je Benutzer:in (services/fristen_mail.py): je Frist und Stufe („warnung“ =
+    Hinweisfrist erreicht bzw. Angabe fehlt, „ablauf“ = abgelaufen) höchstens einmal; ein neues Datum (verlängert)
+    beginnt von vorn."""
+    __tablename__ = "frist_meldung"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    benutzer_id: Mapped[int] = mapped_column(ForeignKey("benutzer.id", ondelete="CASCADE"), index=True)
+    art: Mapped[str] = mapped_column(String(20))  # leasing | fuehrerschein | vignette | streckenmaut
+    objekt: Mapped[str] = mapped_column(String(100))  # Link der Frist (Fahrzeug bzw. Person)
+    faellig: Mapped[date | None] = mapped_column(Date)
+    stufe: Mapped[str] = mapped_column(String(10))  # warnung | ablauf
+    gesendet_am: Mapped[datetime] = mapped_column(DateTime)
 
 
 class ReportVersand(Base):

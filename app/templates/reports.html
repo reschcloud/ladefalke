@@ -211,7 +211,7 @@
       <tr><td>{{ e.gesendet_am.strftime("%d.%m.%Y %H:%M") }} <small>{{ e.ausgeloest }}</small></td>
         <td>{{ {"fahrer": "Ladereport", "zusammenfassung": "Zusammenfassung", "aufgaben": "Offene Aufgaben",
                 "karten_cpo": "Karten und Preise je CPO", "flottenbilanz": "Flottenbilanz",
-                "zuordnungen": "Zuordnungen"}[e.art] }} {{ e.zeitraum_label }}</td>
+                "zuordnungen": "Zuordnungen", "fristen": "Fristen-Benachrichtigung"}.get(e.art, e.art) }} {{ e.zeitraum_label }}</td>
         <td>{{ e.empfaenger_name }} <small>{{ e.an }}</small></td>
         <td>{% if e.erfolg %}<span class="ok-text">{{ icon("ok") }} gesendet</span>{% else %}<span class="fehler-text" title="{{ e.fehler }}">{{ icon("warnung") }} {{ e.fehler | truncate(70) }}</span>{% endif %}</td></tr>
     {% endfor %}

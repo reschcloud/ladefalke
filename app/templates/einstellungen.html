@@ -66,28 +66,34 @@
 
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("ladevorgaenge", "Import und Ladevorgänge", "Ein Ladevorgang zählt immer nach seinem Ladebeginn (Monat, Zuordnung zu Fahrzeug und Person, Filter). Den Strompreis für Importe ohne Kostenangabe (z. B. eigene Wallboxen) legt der jeweilige MSP fest (Stammdaten → MSP).") }}
-    <h3>Plausibilität AC/DC</h3>
-    <p class="gruppe-text"><small>Geprüft wird die Leistung über den Vorgang (kWh / angesteckte Dauer). Unplausible
-      Vorgänge werden markiert, erscheinen unter „Aufgaben“ und zählen nicht fürs Ladeprofil.</small></p>
-    <div class="einstellung-felder">
-      {{ einstellung("plausibel_ac_max_kw", "AC unplausibel ab", "kW") }}
-      {{ einstellung("plausibel_dc_min_kw", "DC unplausibel unter", "kW") }}
-      {{ einstellung("plausibel_dc_max_kw", "DC unplausibel ab", "kW") }}
-    </div>
-    <h3>kWh-Schätzung – Ersatzwerte</h3>
-    <p class="gruppe-text"><small>Ohne kWh in der Rechnung (z. B. Zeittarif) schätzt die App aus den gemessenen Ladungen
-      (erklärt auf jeder Fahrzeugseite unter „Ladeprofil und kWh-Schätzung“). <strong>Die Werte hier gelten nur</strong>,
-      solange es dafür zu wenige gemessene Ladungen gibt. Nach dem Speichern wird neu geschätzt.</small></p>
-    <div class="einstellung-felder">
-      {{ einstellung("schaetzung_ac_kw", "Leistung AC", "kW") }}
-      {{ einstellung("schaetzung_dc_kw", "Leistung DC", "kW") }}
-      {{ einstellung("schaetzung_obergrenze_kwh", "Obergrenze je Vorgang", "kWh") }}
-    </div>
+    <fieldset class="versand-block">
+      <legend>Plausibilität AC/DC</legend>
+      <small class="versand-hinweis">Geprüft wird die Leistung über den Vorgang (kWh / angesteckte Dauer). Unplausible
+        Vorgänge werden markiert, erscheinen unter „Aufgaben“ und zählen nicht fürs Ladeprofil.</small>
+      <div class="einstellung-felder">
+        {{ einstellung("plausibel_ac_max_kw", "AC unplausibel ab", "kW") }}
+        {{ einstellung("plausibel_dc_min_kw", "DC unplausibel unter", "kW") }}
+        {{ einstellung("plausibel_dc_max_kw", "DC unplausibel ab", "kW") }}
+      </div>
+    </fieldset>
+    <fieldset class="versand-block">
+      <legend>kWh-Schätzung – Ersatzwerte</legend>
+      <small class="versand-hinweis">Ohne kWh in der Rechnung (z. B. Zeittarif) schätzt die App aus den gemessenen Ladungen
+        (erklärt auf jeder Fahrzeugseite unter „Ladeprofil und kWh-Schätzung“). <strong>Die Werte hier gelten nur</strong>,
+        solange es dafür zu wenige gemessene Ladungen gibt. Nach dem Speichern wird neu geschätzt.</small>
+      <div class="einstellung-felder">
+        {{ einstellung("schaetzung_ac_kw", "Leistung AC", "kW") }}
+        {{ einstellung("schaetzung_dc_kw", "Leistung DC", "kW") }}
+        {{ einstellung("schaetzung_obergrenze_kwh", "Obergrenze je Vorgang", "kWh") }}
+      </div>
+    </fieldset>
   </details>
 
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("kosten", "Kosten und Umsatzsteuer", "Alle Kosten sind tatsächliche Kosten: netto plus der Teil der USt., der nicht als Vorsteuer zurückkommt. Inländische USt. (Land des Unternehmens) ist je Fahrzeug abziehbar (Vorsteuerabzug in Prozent, auf der Fahrzeugseite), ausländische USt. zählt immer voll. Nennt eine Rechnung keine USt., wird sie mit dem Steuersatz unten geschätzt (≈). Private Ladungen und Pauschalen sind ohne USt.") }}
     {% set geaendert = werte.get("firmenland") != standard.get("firmenland") %}
+    <fieldset class="versand-block">
+    <legend>Vorsteuer</legend>
     <div class="einstellung-felder">
       <div class="einstellung{{ ' geaendert' if geaendert }}">
         <label for="e-firmenland">Land des Unternehmens {{ m.hilfe("USt. dieses Landes ist als Vorsteuer abziehbar; USt. anderer Länder zählt als Kosten.") }}</label>
@@ -98,10 +104,12 @@
       </div>
       {{ einstellung("vorsteuer_standard", "Vorsteuerabzug ohne Fahrzeug", "%", "Für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnete Karten). Je Fahrzeug auf der Fahrzeugseite.") }}
     </div>
-    <h3 id="steuersaetze">Steuersätze</h3>
-    <p class="gruppe-text"><small>Umsatzsteuer-Normalsatz je Land ab einem Datum – nur für Rechnungen ohne USt.-Angabe.
-      Vorbelegt, bitte prüfen; Änderungen gelten sofort.</small></p>
-    <div class="tabelle"><table class="steuersaetze">
+    </fieldset>
+    <fieldset class="versand-block" id="steuersaetze">
+    <legend>Steuersätze</legend>
+    <small class="versand-hinweis">Umsatzsteuer-Normalsatz je Land ab einem Datum – nur für Rechnungen ohne USt.-Angabe.
+      Vorbelegt, bitte prüfen; Änderungen gelten sofort.</small>
+    <div class="tabelle spritpreis-liste"><table class="steuersaetze">
       <thead><tr><th>Land</th><th>gültig ab</th><th class="rechts">Satz</th><th></th></tr></thead>
       <tbody>
       {% for s in steuersaetze %}
@@ -121,6 +129,7 @@
       einmal nach dem Update erneut und übernimmt die USt.{% if werte.get("ust_nachgetragen") %} (zuletzt am
       {{ werte.ust_nachgetragen }}){% endif %}.</small>
       {% if not nur_lesen %}<button type="submit" form="ust-nachtragen" class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button>{% endif %}</p>
+    </fieldset>
   </details>
 
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
@@ -234,7 +243,8 @@
     {% set aus = nur_lesen %}
     {% set gesperrt %}{% if aus %}disabled title="Unzureichende Berechtigungen"{% endif %}{% endset %}
 
-    <h3>Kennzeichnung</h3>
+    <fieldset class="versand-block">
+    <legend>Kennzeichnung</legend>
     <div class="einstellung-felder">
       <div class="einstellung">
         <label for="e-report_tlp">TLP-Kennzeichnung {{ m.hilfe("Traffic Light Protocol (TLP 2.0): steht in der Fußzeile jeder Seite und sagt, wie weit der Report weitergegeben werden darf.") }}</label>
@@ -244,6 +254,7 @@
         </select>
       </div>
     </div>
+    </fieldset>
 
     <h3>Automatischer Versand per Mail</h3>
     <p class="gruppe-text"><small>Braucht einen Mailserver (Einstellungen → E-Mail). Manuell versenden geht jederzeit unter „Reports“.</small></p>
@@ -373,14 +384,18 @@
   {% set sl = syslog %}
   <details class="einstellung-gruppe protokoll-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("protokoll", "Protokoll", "Das Änderungsprotokoll hält fest, wer was wann geändert hat (Stammdaten, Korrekturen, Importe, Einstellungen, Anmeldungen, Sicherungen). Einsehen können es Admins unter Benutzermenü → Protokoll.") }}
+    <fieldset class="versand-block">
+    <legend>Aufbewahrung</legend>
     <div class="einstellung-felder">
       {{ einstellung("protokoll_aufbewahrung_jahre", "Einträge aufbewahren", "Jahre", "Ältere Einträge löscht die App automatisch (Datenschutz: das Protokoll enthält Namen und geänderte Werte).") }}
     </div>
-    <h3>Syslog (rsyslog)</h3>
-    <p class="gruppe-text"><small>Schickt die Einträge zusätzlich an einen Syslog-Server, z. B. für ein zentrales Log oder
+    </fieldset>
+    <fieldset class="versand-block">
+    <legend>Syslog (rsyslog)</legend>
+    <small class="versand-hinweis">Schickt die Einträge zusätzlich an einen Syslog-Server, z. B. für ein zentrales Log oder
       SIEM. Leer lassen = aus; die App verbindet sich nur mit dem eingetragenen Server. Gesendet wird im Hintergrund – ist der
       Server nicht erreichbar, fehlt der Eintrag nur dort, nicht im Protokoll der App. Auf dem Syslog-Server gilt dessen
-      eigene Aufbewahrung.</small></p>
+      eigene Aufbewahrung.</small>
     <div class="einstellung-felder">
       {{ textfeld("syslog_server", "Server", platzhalter="syslog.example.com") }}
       {{ textfeld("syslog_port", "Port", empfehlung="6514" if werte.get("syslog_protokoll") == "tls" else "514", hilfe="Üblich: 514 für UDP und TCP, 6514 für TLS.") }}
@@ -445,6 +460,7 @@
               data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Testmeldung verwendet die gespeicherten Einstellungen.">Testmeldung senden</button>
       <a href="/protokoll" role="button" class="outline secondary">Protokoll ansehen</a>
     </div>
+    </fieldset>
   </details>
 
   {% set bk = backup %}

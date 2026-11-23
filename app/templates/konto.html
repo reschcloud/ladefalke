@@ -9,6 +9,8 @@
 
 <section class="einstellung-gruppe">
   <header class="kopf"><h2 id="darstellung">Darstellung</h2></header>
+  <fieldset class="versand-block">
+  <legend>Theme</legend>
   <form method="post" action="/konto/theme" class="theme-wahl" hx-boost="false" data-immer>  {# ganze Seite neu laden: hx-boost tauscht nur den body, das Theme steht am html #}
     <span class="umschalter" role="group" aria-label="Theme" title="Theme">
       {%- for wert, text in themes.items() %}
@@ -18,6 +20,9 @@
     </span>
     <small>Nur für dich, wirkt sofort. Auto folgt dem Betriebssystem bzw. Browser.</small>
   </form>
+  </fieldset>
+  <fieldset class="versand-block">
+  <legend>Vorausgewählter Zeitraum</legend>
   <form method="post" action="/konto/zeitraum" class="theme-wahl zeitraum-wahl" data-immer>
     <span class="umschalter" role="group" aria-label="Vorausgewählter Zeitraum">
       {%- for wert, text in zeitraeume.items() %}
@@ -27,6 +32,7 @@
     <small>Vorausgewählter Zeitraum in Dashboard, Auswertungen und Reports – jeweils der, der den Vormonat enthält
       (Quartal also z. B. das Quartal des Vormonats). Nur für dich; gilt auch für die Ladevorgänge, wenn man sie ohne Filter öffnet (z. B. über das Menü).</small>
   </form>
+  </fieldset>
 </section>
 
 <section class="einstellung-gruppe">
@@ -43,31 +49,36 @@
     {% if darf %}<button type="submit">Speichern</button>
     {% else %}<button type="submit" class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin">Speichern</button>{% endif %}
   </form>
-  <form method="post" action="/konto/abo" class="abo" data-immer>
-    <label class="haken"><input type="checkbox" name="abo" {% if ich.zusammenfassung_abo %}checked{% endif %}
-      onchange="this.form.requestSubmit()"> Zusammenfassungen per Mail erhalten</label>
-    <small class="formular-hinweis">Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du im
-      Folgemonat die Zusammenfassung als PDF{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
+  {# Abos: erst die Benachrichtigung, dann Reports nach Zeitplan, dann die Monatsreports #}
+  {% macro abo(aktion, an, titel, hinweis) %}
+  <form method="post" action="{{ aktion }}" class="abo" data-immer>
+    <label class="haken haupt"><input type="checkbox" name="abo" {% if an %}checked{% endif %}
+      onchange="this.form.requestSubmit()"> {{ titel }}</label>
+    <small class="versand-hinweis">{{ hinweis }}{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
     <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
   </form>
-  <form method="post" action="/konto/aufgaben-abo" class="abo" data-immer>
-    <label class="haken"><input type="checkbox" name="abo" {% if ich.aufgaben_abo %}checked{% endif %}
-      onchange="this.form.requestSubmit()"> Offene Aufgaben per Mail erhalten</label>
-    <small class="formular-hinweis">Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den
-      Report „Offene Aufgaben“ nach dessen Zeitplan{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
-    <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
-  </form>
-  {% for art, titel, wann in [("karten_cpo", "Karten und Preise je CPO", "im Folgemonat mit den Monatsreports"),
-                              ("flottenbilanz", "Flottenbilanz", "im Folgemonat mit den Monatsreports"),
-                              ("zuordnungen", "Zuordnungen am Stichtag", "nach dessen Zeitplan, Stichtag ist der Versandtag")] %}
-  <form method="post" action="/konto/report-abo/{{ art }}" class="abo" data-immer>
-    <label class="haken"><input type="checkbox" name="abo" {% if ich[art ~ "_abo"] %}checked{% endif %}
-      onchange="this.form.requestSubmit()"> {{ titel }} per Mail erhalten</label>
-    <small class="formular-hinweis">Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den
-      Report {{ wann }}{% if not ich.email %} – dafür braucht es eine E-Mail-Adresse{% endif %}.</small>
-    <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
-  </form>
-  {% endfor %}
+  {% endmacro %}
+  <fieldset class="versand-block abo-gruppe">
+  <legend>Benachrichtigung</legend>
+  {{ abo("/konto/fristen-abo", ich.fristen_abo, "Bei Fristen benachrichtigen",
+         "Mail, sobald eine Frist (Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut) in die Hinweisfrist fällt und wenn sie abläuft – mit den betroffenen Fahrzeugen bzw. Personen im Text und dem Report „Offene Aufgaben“ im Anhang; geprüft einmal täglich ab 7 Uhr") }}
+  </fieldset>
+  <fieldset class="versand-block abo-gruppe">
+  <legend>Reports nach Zeitplan</legend>
+  {{ abo("/konto/aufgaben-abo", ich.aufgaben_abo, "Offene Aufgaben per Mail erhalten",
+         "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den Report „Offene Aufgaben“ nach dessen Zeitplan") }}
+  {{ abo("/konto/report-abo/zuordnungen", ich.zuordnungen_abo, "Zuordnungen am Stichtag per Mail erhalten",
+         "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den Report nach dessen Zeitplan, Stichtag ist der Versandtag") }}
+  </fieldset>
+  <fieldset class="versand-block abo-gruppe">
+  <legend>Monatsreports</legend>
+  {{ abo("/konto/abo", ich.zusammenfassung_abo, "Zusammenfassungen per Mail erhalten",
+         "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du im Folgemonat die Zusammenfassung als PDF") }}
+  {{ abo("/konto/report-abo/karten_cpo", ich.karten_cpo_abo, "Karten und Preise je CPO per Mail erhalten",
+         "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den Report im Folgemonat mit den Monatsreports") }}
+  {{ abo("/konto/report-abo/flottenbilanz", ich.flottenbilanz_abo, "Flottenbilanz per Mail erhalten",
+         "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den Report im Folgemonat mit den Monatsreports") }}
+  </fieldset>
 </section>
 
 <section class="einstellung-gruppe">

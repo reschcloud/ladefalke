@@ -1286,3 +1286,9 @@ details.einstellung-gruppe > summary.kopf:hover h2 { color: var(--pico-primary);
   border-radius: var(--pico-border-radius); }
 .einstellung-gruppe h3.region { margin-top: 1.25rem; padding-top: .75rem; border-top: 1px dashed var(--pico-muted-border-color);
   color: var(--pico-muted-color); font-size: .95rem; font-weight: 600; }
+/* Mein Konto: Abos in Blöcken wie der Versand in den Einstellungen */
+fieldset.abo-gruppe form.abo { margin: 0 0 .5rem; }
+fieldset.abo-gruppe form.abo label.haken { margin-bottom: .15rem; }
+/* Kästen (versand-block) außerhalb des Versands: Theme-/Zeitraum-Wahl ohne Extra-Abstand, Formulare der Stammdaten */
+fieldset.versand-block .theme-wahl { margin-bottom: .4rem; }
+form.formular > fieldset.versand-block { margin-bottom: 1rem; }

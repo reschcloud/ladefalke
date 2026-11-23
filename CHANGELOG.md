@@ -7,6 +7,11 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Neu
 
+- Benachrichtigung bei Fristen (Mein Konto → „Bei Fristen benachrichtigen“): Mail, sobald eine Frist (Leasing-Ende,
+  Führerscheinkontrolle, Vignette, Streckenmaut FLEX) in die Hinweisfrist fällt und noch einmal, wenn sie abläuft –
+  mit den betroffenen Fahrzeugen bzw. Personen im Text und dem Report „Offene Aufgaben“ im Anhang. Geprüft einmal
+  täglich ab 7 Uhr; je Frist und Stufe eine Mail, ein neues Datum beginnt von vorn. Im Versandprotokoll unter
+  „Reports“.
 - Spritpreise aus dem EU Weekly Oil Bulletin (Europäische Kommission): Monatsmittel für das Land des Unternehmens
   und den gewählten Kraftstoff (Diesel oder Euro-Super 95) als Spritpreise ab dem 1. des Monats. Automatisch einmal
   pro Woche (abschaltbar; nur ein Download von energy.ec.europa.eu, es werden keine Daten gesendet), auf Knopfdruck oder per
@@ -18,6 +23,10 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   (blendet Rubriken ohne Treffer aus, markiert passende Felder). Fristen nach Relevanz: überregional zuerst,
   Österreich-Funktionen (Vignette, Streckenmaut FLEX) darunter.
 - Stichtag eines Ladevorgangs fest auf Ladebeginn; die Auswahl entfällt.
+- Mein Konto: Abos geordnet – Benachrichtigung, Reports nach Zeitplan, Monatsreports.
+- Einheitliche Kästen (wie beim Versand in den Einstellungen) für zusammengehörige Optionen: Mein Konto (Theme,
+  Zeitraum, Abos), Einstellungen (Plausibilität, kWh-Schätzung, Vorsteuer, Steuersätze, Kennzeichnung,
+  Aufbewahrung, Syslog), MSP-Seite (Parser, Vorgaben für Importe). Lange Steuersatz-Liste mit eigenem Bildlauf.
 - „Strompreis private Ladungen“ aus den Einstellungen entfernt: Der Preis für Importe ohne Kostenangabe (has.to.be)
   liegt jetzt beim MSP (Stammdaten → MSP), belegt die Import-Vorschau vor und merkt sich den zuletzt verwendeten.
 - Ladevorgänge: Ohne Filter geöffnet (z. B. über das Menü) gilt der vorausgewählte Zeitraum aus „Mein Konto“

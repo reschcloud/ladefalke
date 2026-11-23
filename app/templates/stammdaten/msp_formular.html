@@ -12,6 +12,8 @@
 {% endif %}
 <form method="post" class="formular" data-nur-admin action="{{ '/stammdaten/msp/%d' % msp.id if msp else '/stammdaten/msp/neu' }}">
   {{ m.feld("name", "Name", werte, fehler, pflicht=true) }}
+  <fieldset class="versand-block">
+  <legend>Parser</legend>
   <label>Parser
     <select name="parser_key" aria-describedby="parser-hinweis"{% if fehler.get("parser_key") %} aria-invalid="true"{% endif %}>
       {% for wert, text in parser_wahl %}<option value="{{ wert }}" {% if (werte.get("parser_key") or "") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
@@ -26,6 +28,9 @@
   {{ m.haken("abrechnung_je_karte", "Abrechnung je Ladekarte", werte) }}
   <small class="haken-hinweis">Monatliche Rechnung je Ladekarte: Die Vollständigkeitsprüfung erwartet dann je aktiver
     Karte einen Eintrag pro Monat statt einen je {{ MSP }}.</small>
+  </fieldset>
+  <fieldset class="versand-block">
+  <legend>Vorgaben für Importe</legend>
   {{ m.auswahl("standard_ladeart", "Standard-Ladeart", ladearten, werte, fehler, pflicht=true) }}
   <label>Standard AC/DC
     <select name="stromart_standard" aria-describedby="stromart-hinweis">
@@ -67,6 +72,7 @@
   <div class="aktionszeile vorgabe"><span>{{ ohne_cpo }} Ladevorgänge dieses {{ MSP }} haben keinen {{ CPO }}.</span>
     <small>(zuerst einen Standard-{{ CPO }} eintragen und speichern)</small></div>
   {% endif %}
+  </fieldset>
   <button type="submit">Speichern</button>
 </form>
 {% if msp %}

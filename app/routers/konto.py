@@ -63,6 +63,17 @@ def abo_setzen(request: Request, abo: str = Form(""), db: Session = Depends(get_
     return weiter("/konto#email")
 
 
+@router.post("/konto/fristen-abo")
+def fristen_abo_setzen(request: Request, abo: str = Form(""), db: Session = Depends(get_db)):
+    """Benachrichtigung per Mail bei Fristen (Hinweisfrist erreicht, abgelaufen) – jede:r für sich, auch Viewer."""
+    b = request.state.benutzer
+    b.fristen_abo = bool(abo)
+    db.commit()
+    meldung(request, "Du wirst per Mail benachrichtigt, wenn Fristen fällig werden oder ablaufen." if b.fristen_abo
+            else "Benachrichtigung bei Fristen abbestellt.")
+    return weiter("/konto#email")
+
+
 @router.post("/konto/aufgaben-abo")
 def aufgaben_abo_setzen(request: Request, abo: str = Form(""), db: Session = Depends(get_db)):
     """Report „Offene Aufgaben“ per Mail erhalten (automatischer Versand) – jede:r für sich, auch Viewer."""
