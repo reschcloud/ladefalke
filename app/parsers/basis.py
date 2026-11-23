@@ -144,6 +144,7 @@ class Parser(ABC):
     name: str
     # Eigenschaften des Formats (neutrale Vorgaben; Parser überschreiben nur, was abweicht)
     liefert_evse: bool = True  # False: Ladepunkt-Angabe ist keine EVSE-ID (z. B. Seriennummer eigener Wallboxen)
+    liefert_kosten: bool = True  # False: Datei ohne Kosten – Strompreis je kWh beim Import (Vorbelegung beim MSP)
     standardland: str | None = None  # ISO-Code, wenn die Rechnung kein Land nennt (Inlandsanbieter)
     abrechnung_je_karte: bool = False  # Vorbelegung des MSP: monatliche Rechnung je Ladekarte (Vollständigkeit)
     msp_name: str | None = None  # Name des automatisch angelegten MSP (sonst `name`)

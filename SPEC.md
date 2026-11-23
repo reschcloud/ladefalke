@@ -54,7 +54,7 @@ Läuft per Docker Compose im lokalen Netz. Auswertungen zeigen **tatsächliche K
 
 **pauschale** – Wallbox mit monatlichem Fixbetrag: id, monat, bezeichnung/standort, kwh, betrag_netto, ladeart (Standard privat), notiz. Manuell erfasst (eindeutig je Monat und Bezeichnung). Wird keinem Fahrzeug zugeordnet, fließt aber in Gesamt-kWh, Gesamtkosten und Gesamt-Ø-Preis ein.
 
-**einstellung** – schluessel, wert: Stichtag für Auswertungen, Topliste (m, Mindestmenge), Strompreis-Vorbelegung.
+**einstellung** – schluessel, wert: Topliste (m, Mindestmenge), Plausibilität, Schätzung, Fristen, Kosten/USt., Schätzungen ggü. Verbrennern, Reports, Mail, Syslog, Backup (Stichtag fest Ladebeginn; der Strompreis für Importe ohne Kosten liegt beim MSP).
 
 ## 4. Import
 
@@ -92,7 +92,7 @@ entfernen“ steht bei jedem MSP mit Parser; solange es nicht geht, ist er ausge
 1. **has.to.be-CSV privat** (Export der Wallbox-Software has.to.be, Parser `hastobe_csv`; früher „Standort-CSV“) (Beispiel `samples/<JJJJMM>_<Firma>.csv`)
    - UTF-8 mit BOM möglich, `;`-getrennt, CRLF, Dezimalkomma.
    - Spalten: Id, StartLocalTime, EndLocalTime, MeterStart, MeterEnd, MeterTotal (**Wh**), ChargePointLabel, ChargePointStreet, ChargePointZip, ChargePointCity, CardLabel, StationOwnerName, DurationTotal (s), TotalCosts, ChargePointSerialnumber, CardCustomerReference, CardNumber.
-   - kWh = MeterTotal / 1000. TotalCosts ist 0 → Kosten = kWh × Strompreis netto, der beim Import angegeben wird (vorbelegt aus den Einstellungen, Standard **0,30 €/kWh netto**).
+   - kWh = MeterTotal / 1000. TotalCosts ist 0 → Kosten = kWh × Strompreis, der beim Import angegeben wird (vorbelegt aus dem MSP – Stammdaten → MSP „Strompreis je kWh“, nur bei Parsern ohne Kosten in der Datei; nach jedem Import gilt der zuletzt verwendete Preis).
    - Karte über `CardLabel`; `CardCustomerReference` ist bei normalen Karten nur „Zutrittschip“ o. ä., `CardNumber` meist leer oder abgeschnitten (nur in den Rohdaten).
    - Vorgänge mit 0 kWh importieren, in Auswertungen aber nicht als Ladevorgang zählen.
    - Datei enthält Vorgänge, die im Vormonat starten (Abrechnung nach Ladeende).
@@ -125,7 +125,7 @@ entfernen“ steht bei jedem MSP mit Parser; solange es nicht geht, ist er ausge
 
 ## 6. Auswertungen
 
-Zeitraumwahl: Monat, Quartal, Halbjahr, Jahr, Alles (+ freie Auswahl). „Alles“ reicht vom Monat der ersten bis zum Monat der letzten Ladung (nach Stichtag); dort gibt es kein Blättern und keinen Vergleich mit Vorperioden. Zuordnung zum Zeitraum nach Stichtag (Einstellung: Ladeende (Standard) oder Ladebeginn). Der Stichtag gilt in der ganzen App: Zeitraum in Auswertungen, Dashboard und Vollständigkeit, Ermittlung von Fahrzeug und Person beim Laden, Datumsfilter, Sortierung und Beschriftungen. Ladeende entspricht der Abrechnung der MSP (Monatssummen stimmen mit den Rechnungen überein), Ladebeginn zeigt, wann geladen wurde. Beim Umstellen werden alle automatisch zugeordneten Ladevorgänge neu zugeordnet; manuelle bleiben.
+Zeitraumwahl: Monat, Quartal, Halbjahr, Jahr, Alles (+ freie Auswahl). „Alles“ reicht vom Monat der ersten bis zum Monat der letzten Ladung (nach Stichtag); dort gibt es kein Blättern und keinen Vergleich mit Vorperioden. Zuordnung zum Zeitraum nach Stichtag = **Ladebeginn** (fest seit 11/2026; vorher wählbar, Standard war Ladeende). Der Stichtag gilt in der ganzen App: Zeitraum in Auswertungen, Dashboard und Vollständigkeit, Ermittlung von Fahrzeug und Person beim Laden, Datumsfilter, Sortierung und Beschriftungen. Ladebeginn zeigt, wann geladen wurde; Monatssummen können daher leicht von Rechnungen abweichen, die nach Ladeende abrechnen. War „Ladeende“ gespeichert, stellt die App beim Start einmal um und ordnet alle automatisch zugeordneten Ladevorgänge neu zu (manuelle bleiben).
 
 - **Pro Fahrzeug:** kWh, Anzahl Vorgänge, Kosten netto (inkl. kartenbezogener Gebühren), Ø €/kWh, Anteil öffentlich/privat, Aufschlüsselung nach MSP/Standort, im Zeitraum gültige und aktuelle Fahrer:in.
 - **Pro Fahrer:in:** kWh, Anzahl, Ladekosten netto (ohne Gebühren), Ø €/kWh, genutzte Fahrzeuge, Aufschlüsselung nach Fahrzeug/MSP/Standort. Jede Ladung zählt für die Person, die zum Ladezeitpunkt gefahren ist (Stichtag laut Einstellungen): personengebundene Karte → deren Person, sonst Fahrer:in des Fahrzeugs. Ladungen mit Fahrzeugkarte an Poolfahrzeugen mit mehreren Fahrer:innen sind keiner Person eindeutig zuzurechnen und zählen hier nicht (Hinweis mit Menge).
@@ -143,6 +143,14 @@ Zeitraumwahl: Monat, Quartal, Halbjahr, Jahr, Alles (+ freie Auswahl). „Alles�
 - **CO₂e-Einsparung (grobe Schätzung):** CO₂e des geladenen Stroms in g/kWh (Pflicht, wenn eingeschaltet), Emissionen Verbrenner (Vorschlag 3,2 kg CO₂e/l). Einsparung = kWh × (l/100 km × kg/l ÷ kWh/100 km − g/kWh ÷ 1000), inklusive Pauschalen. Kachel „CO₂e eingespart“ in Dashboard und Auswertungen (ganze kg, ab 1.000 kg ganze Tonnen); in der Flottenbilanz statt „Fahrer:innen mit Ladungen“.
 - **Gesparte Tankkosten (grobe Schätzung):** Spritpreise als Liste mit „gültig ab“ (was man je Liter tatsächlich zahlen würde; vor dem ersten Eintrag gilt der früheste; ohne Eintrag bleibt die Schätzung aus). Je Ladung Tankkosten = kWh × l/100 km ÷ kWh/100 km × Spritpreis am Tag der Ladung (Pauschalen: ihres Monats); Ersparnis = Summe dieser Tankkosten minus die tatsächlichen Kosten. Kachel „Tankkosten gespart“ in Dashboard und Auswertungen; in der Flottenbilanz statt „Ø kWh je Fahrzeug“. **Spritpreise aus dem EU Weekly Oil Bulletin** (`services/oil_bulletin.py`): Historien-Datei der Europäischen Kommission (Blatt „Prices with taxes“, Spalte „<Land>_price_with_tax_<diesel|euro95>“, € je 1.000 l, je Montag); übernommen werden Monatsmittel für das Land des Unternehmens und den gewählten Kraftstoff (Diesel oder Euro-Super 95) als Spritpreis ab dem 1. des Monats (Quelle „Oil Bulletin“), ab dem ersten Monat mit Ladungen, spätestens ab 2020; händische Einträge an anderen Tagen bleiben, einer am Monatsersten wird überschrieben. Automatisch einmal pro Woche (nach Fehlschlag täglich; Schalter, Standard an, nur mit eingeschalteter Tankkosten-Schätzung), auf Knopfdruck „Jetzt laden“ oder per Hochladen der Datei; Status des letzten Abrufs in den Einstellungen.
 - Export der Tabellen als CSV (Dezimalkomma, `;`, UTF-8 mit BOM) und XLSX; ebenso die gefilterte Ladevorgangsliste.
+
+### Einstellungen (Aufbau, 23.11.2026)
+
+Rubriken grob nach dem Menü, jede einklappbar (offene merkt sich der Browser; Sprungziele und Fehler klappen auf):
+Import und Ladevorgänge (Plausibilität, kWh-Schätzung) · Kosten und Umsatzsteuer · Aufgaben und Fristen (überregional
+zuerst: Leasing, Ladekarten je Fahrzeug, Führerscheinkontrolle; darunter „Nur Österreich“: Vignette, Streckenmaut FLEX)
+· Auswertungen (Topliste, Vergleich mit Verbrennern, CO₂e, Tankkosten) · Reports · E-Mail · Protokoll · Backup. Oben
+eine Suche: blendet Rubriken ohne Treffer aus, klappt passende auf und markiert die Felder (auch Hilfetexte).
 
 ### Kosten und Umsatzsteuer (beschlossen 23.11.2026)
 

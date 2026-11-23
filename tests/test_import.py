@@ -212,13 +212,26 @@ def test_oberflaeche_ablauf(angemeldet, db):
     assert 'aria-current="step"' in antwort.text
     assert 'class="neu-importiert"' in antwort.text
     assert "Import löschen" in angemeldet.get(f"/import/{import_id}").text
+    # Strompreis beim MSP (Parser ohne Kosten): zuletzt verwendeter Preis wird zur Vorbelegung, auf der MSP-Seite änderbar
+    msp = _msp(db, "hastobe_csv")
+    db.refresh(msp)
+    assert msp.strompreis == Decimal("0.25")
+    seite = angemeldet.get(f"/stammdaten/msp/{msp.id}").text
+    assert 'name="strompreis" value="0,2500"' in seite
+    assert 'name="strompreis"' not in angemeldet.get(f"/stammdaten/msp/{_msp(db, 'wien_energie').id}").text
+    formular = {"name": msp.name, "parser_key": "hastobe_csv", "standard_ladeart": "privat", "parser_aktiv": "on"}
+    assert angemeldet.post(f"/stammdaten/msp/{msp.id}", data=formular | {"strompreis": "x"}).status_code == 422
+    angemeldet.post(f"/stammdaten/msp/{msp.id}", data=formular | {"strompreis": "0,32"})
+    db.refresh(msp)
+    assert msp.strompreis == Decimal("0.32")
+    assert hochladen(db, "november.csv", CSV.replace(b"2026", b"2027")).strompreis_netto_kwh == Decimal("0.32")
     assert 'data-ausblenden="20"' in abschluss.split(">")[0] + ">"  # blendet sich nach 20 s aus
     # nur einmal: beim Neuladen ist der Abschluss weg; Ausblenden-Link schadet nicht
     assert 'id="abschluss"' not in angemeldet.get("/import").text
     assert 'id="abschluss"' not in angemeldet.get("/import?abschluss=aus").text
 
     assert angemeldet.get("/import").status_code == 200
-    antwort = angemeldet.get(f"/ladevorgaenge?import_id={import_id}&fahrzeug_id=ohne&von=2026-10-01&bis=2026-10-31")
+    antwort = angemeldet.get(f"/ladevorgaenge?import_id={import_id}&fahrzeug_id=ohne&art=alles")
     assert antwort.status_code == 200
     assert "<strong>6</strong> Vorgänge" in antwort.text
     assert angemeldet.get(f"/import/{import_id}/datei").content == CSV

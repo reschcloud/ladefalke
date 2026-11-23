@@ -14,6 +14,12 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Geändert
 
+- Einstellungen übersichtlicher: Rubriken grob nach dem Menü, einklappbar (Zustand bleibt im Browser), Suche oben
+  (blendet Rubriken ohne Treffer aus, markiert passende Felder). Fristen nach Relevanz: überregional zuerst,
+  Österreich-Funktionen (Vignette, Streckenmaut FLEX) darunter.
+- Stichtag eines Ladevorgangs fest auf Ladebeginn; die Auswahl entfällt.
+- „Strompreis private Ladungen“ aus den Einstellungen entfernt: Der Preis für Importe ohne Kostenangabe (has.to.be)
+  liegt jetzt beim MSP (Stammdaten → MSP), belegt die Import-Vorschau vor und merkt sich den zuletzt verwendeten.
 - Ladevorgänge: Ohne Filter geöffnet (z. B. über das Menü) gilt der vorausgewählte Zeitraum aus „Mein Konto“
   statt „Alles“; Links mit Filtern (z. B. von Detailseiten) zeigen ohne Zeitraum weiterhin alles.
 - Listen der Stammdaten (MSP, Ladekarten, Fahrzeuge, Fahrer:innen) mit Symbol und Farbe der Art im Titel.
@@ -23,6 +29,14 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 - Aufgaben „Ladevorgänge ohne Fahrzeug“: Je Karte steht die Ursache. Gehört die Karte einer Person, die damals kein
   Fahrzeug hatte, führt „Fahrzeug zuordnen“ zur Person (Zeitraum vorbelegt, danach zurück) statt des irreführenden
   „Karte zuordnen“; das bleibt für Tage, an denen die Karte keine Zuordnung hat. Auch im Report „Offene Aufgaben“.
+
+### Beim Update beachten
+
+- Stichtag: War „Ladeende“ eingestellt, ordnet die App beim ersten Start alle automatisch zugeordneten Ladevorgänge
+  nach Ladebeginn neu zu (manuelle bleiben). Monatssummen können danach leicht von den Rechnungen abweichen
+  (Ladungen über Monatsgrenzen).
+- Migration 0034: Der bisherige „Strompreis private Ladungen“ wird zum Strompreis des has.to.be-MSP (bzw. der zuletzt
+  beim Import verwendete Preis).
 
 ## v1.5.0 – 23.11.2026
 

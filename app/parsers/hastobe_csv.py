@@ -35,6 +35,7 @@ class HastobeCsvParser(Parser):
     name = "has.to.be CSV (Wallboxen)"
     msp_name = "Eigene Wallboxen (has.to.be)"
     liefert_evse = False  # Ladepunkt-Angabe ist die Seriennummer der Wallbox
+    liefert_kosten = False  # nur kWh: Kosten = kWh × Strompreis (beim Import, Vorbelegung beim MSP)
     standardland = "AT"
     standard_ladeart = "privat"
 

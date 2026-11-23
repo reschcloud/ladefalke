@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from app import auth
 from app.db import get_db
+from decimal import Decimal
+
+from app.formatierung import decimal_lesen, zahl
 from app.parsers import PARSER
 from app.models import Import, Ladeart, Ladekarte, Ladevorgang, Msp
 from app.services.ladevorgaenge import letzte_vorgaenge
@@ -29,7 +32,7 @@ def _formular(request, msp, werte, fehler=None, status_code=200, db: Session | N
         return db.scalar(select(func.count()).select_from(Ladevorgang).where(
             Ladevorgang.msp_id == msp.id, *bedingungen)) if msp is not None and db is not None else 0
     return render(request, "stammdaten/msp_formular.html",
-                  {"msp": msp, "werte": werte, "fehler": fehler or {}, "vorgaenge": vorgaenge,
+                  {"msp": msp, "werte": werte, "fehler": fehler or {}, "vorgaenge": vorgaenge, "installiert": PARSER,
                    "blaettern": blaettern(request, db, "msp", "/stammdaten/msp",
                                           lambda: select(Msp.id, Msp.name).order_by(Msp.name, Msp.id), msp.id)
                    if msp is not None and db is not None else None,
@@ -72,10 +75,23 @@ def _pruefen(db: Session, werte: dict, msp_id: int | None) -> dict:
 
 
 def _werte(name: str, parser_key: str, standard_ladeart: str, stromart_standard: str = "",
-           cpo_standard: str = "", parser_aktiv: str = "", abrechnung_je_karte: str = "") -> dict:
+           cpo_standard: str = "", parser_aktiv: str = "", abrechnung_je_karte: str = "", strompreis: str = "") -> dict:
     return {"name": name.strip(), "parser_key": parser_key.strip() or None, "standard_ladeart": standard_ladeart,
+            "strompreis": strompreis.strip(),
             "stromart_standard": stromart.wert(stromart_standard), "cpo_standard": cpo.normieren(cpo_standard),
             "parser_aktiv": bool(parser_aktiv), "abrechnung_je_karte": bool(abrechnung_je_karte)}
+
+
+def _strompreis(werte: dict, fehler: dict) -> Decimal | None:
+    """Strompreis je kWh (Vorbelegung für Importe ohne Kosten); leer = keiner."""
+    try:
+        preis = decimal_lesen(werte["strompreis"])
+    except ValueError as e:
+        fehler["strompreis"] = str(e)
+        return None
+    if preis is not None and not 0 <= preis < 10:
+        fehler["strompreis"] = "Bitte einen Preis je kWh zwischen 0 und 10 € angeben."
+    return preis
 
 
 @router.get("")
@@ -94,12 +110,15 @@ def neu_formular(request: Request, db: Session = Depends(get_db)):
 @router.post("/neu")
 def neu(request: Request, name: str = Form(""), parser_key: str = Form(""),
         standard_ladeart: str = Form(""), stromart_standard: str = Form(""), cpo_standard: str = Form(""),
-        parser_aktiv: str = Form(""), abrechnung_je_karte: str = Form(""), db: Session = Depends(get_db)):
+        parser_aktiv: str = Form(""), abrechnung_je_karte: str = Form(""), strompreis: str = Form(""),
+        db: Session = Depends(get_db)):
     werte = _werte(name, parser_key, standard_ladeart, stromart_standard, cpo_standard, parser_aktiv,
-                   abrechnung_je_karte)
-    if fehler := _pruefen(db, werte, None):
+                   abrechnung_je_karte, strompreis)
+    fehler = _pruefen(db, werte, None)
+    preis = _strompreis(werte, fehler)
+    if fehler:
         return _formular(request, None, werte, fehler, 422, db=db)
-    msp = Msp(**werte)
+    msp = Msp(**{k: v for k, v in werte.items() if k != "strompreis"}, strompreis=preis)
     db.add(msp)
     db.commit()
     meldung(request, f"MSP „{msp.name}“ angelegt.")
@@ -111,19 +130,24 @@ def bearbeiten_formular(request: Request, msp_id: int, db: Session = Depends(get
     msp = _laden(db, msp_id)
     werte = {"name": msp.name, "parser_key": msp.parser_key, "standard_ladeart": msp.standard_ladeart.value,
              "stromart_standard": msp.stromart_standard, "cpo_standard": msp.cpo_standard,
-             "parser_aktiv": msp.parser_aktiv, "abrechnung_je_karte": msp.abrechnung_je_karte}
+             "parser_aktiv": msp.parser_aktiv, "abrechnung_je_karte": msp.abrechnung_je_karte,
+             "strompreis": zahl(msp.strompreis, 4) if msp.strompreis is not None else ""}
     return _formular(request, msp, werte, db=db)
 
 
 @router.post("/{msp_id}")
 def bearbeiten(request: Request, msp_id: int, name: str = Form(""), parser_key: str = Form(""),
                standard_ladeart: str = Form(""), stromart_standard: str = Form(""), cpo_standard: str = Form(""),
-               parser_aktiv: str = Form(""), abrechnung_je_karte: str = Form(""), db: Session = Depends(get_db)):
+               parser_aktiv: str = Form(""), abrechnung_je_karte: str = Form(""), strompreis: str = Form(""),
+               db: Session = Depends(get_db)):
     msp = _laden(db, msp_id)
     werte = _werte(name, parser_key, standard_ladeart, stromart_standard, cpo_standard, parser_aktiv,
-                   abrechnung_je_karte)
-    if fehler := _pruefen(db, werte, msp.id):
+                   abrechnung_je_karte, strompreis)
+    fehler = _pruefen(db, werte, msp.id)
+    preis = _strompreis(werte, fehler)
+    if fehler:
         return _formular(request, msp, werte, fehler, 422, db=db)
+    msp.strompreis = preis
     msp.name, msp.parser_key, msp.standard_ladeart = werte["name"], werte["parser_key"], Ladeart(standard_ladeart)
     msp.stromart_standard, msp.cpo_standard = werte["stromart_standard"], werte["cpo_standard"]
     msp.parser_aktiv, msp.abrechnung_je_karte = werte["parser_aktiv"], werte["abrechnung_je_karte"]

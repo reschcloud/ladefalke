@@ -19,7 +19,7 @@ def _anzahl(text):
     return int(re.search(r"<strong>(\d+)</strong> Vorgänge", text).group(1))
 
 
-def test_umstellen_auf_ladebeginn(angemeldet, db):
+def test_fest_ladebeginn(angemeldet, db):
     """Ladung 30.9. 22:00 – 1.10. 02:00; die Karte wechselt am 1.10. von Fahrzeug A (Anna) zu Fahrzeug B (Bernd)."""
     msp = db.scalar(select(Msp).where(Msp.parser_key == "dcs"))
     anna, bernd = Fahrer(name="Anna Stichtag"), Fahrer(name="Bernd Stichtag")
@@ -42,16 +42,28 @@ def test_umstellen_auf_ladebeginn(angemeldet, db):
     db.add(v)
     db.flush()
 
-    # Standard Ladeende: Oktober, Fahrzeug B, Bernd
-    assert _anzahl(angemeldet.get("/ladevorgaenge?von=2026-10-01&bis=2026-10-31").text) == 1
-    assert _anzahl(angemeldet.get(f"/ladevorgaenge?fahrer={bernd.id}").text) == 1
-    assert auswerten(db, zeitraum("monat", 2026, 10), app_einstellungen.laden(db)).gesamt.anzahl == 1
+    # früher „Ladeende“ gespeichert: beim Start einmal auf Ladebeginn umgestellt und neu zugeordnet → A, Anna, September
+    from contextlib import contextmanager
+    from app import db as db_modul
+    from app.models import Einstellung
+    from app.services import aufloesung
 
-    # Umstellen auf Ladebeginn: Neuzuordnung → Fahrzeug A, Anna, September
-    text = angemeldet.post("/einstellungen", data=EINSTELLUNGEN).text
-    assert "Stichtag jetzt Ladebeginn: 1 Ladevorgänge neu zugeordnet." in text
+    @contextmanager
+    def sitzung():
+        yield db
+    import pytest
+    mp = pytest.MonkeyPatch()
+    mp.setattr(db_modul, "SessionLocal", sitzung)
+    mp.setattr(db, "commit", db.flush)
+    db.add(Einstellung(schluessel="stichtag", wert="ende"))
+    db.flush()
+    aufloesung.stichtag_festlegen()
+    mp.undo()
+    assert db.get(Einstellung, "stichtag").wert == "beginn"
     db.refresh(v)
     assert v.fahrzeug_id == fz_a.id
+    assert app_einstellungen.laden(db).stichtag == "beginn"
+    assert "e-stichtag" not in angemeldet.get("/einstellungen").text  # nicht mehr wählbar
     assert _anzahl(angemeldet.get("/ladevorgaenge?von=2026-09-01&bis=2026-09-30").text) == 1
     assert _anzahl(angemeldet.get("/ladevorgaenge?von=2026-10-01&bis=2026-10-31").text) == 0
     assert _anzahl(angemeldet.get(f"/ladevorgaenge?fahrer={anna.id}").text) == 1
@@ -65,9 +77,13 @@ def test_umstellen_auf_ladebeginn(angemeldet, db):
     assert "<th>Ladebeginn</th><th>Dauer</th>" in angemeldet.get(f"/stammdaten/fahrzeuge/{fz_a.id}").text
     assert auswerten(db, zeitraum("monat", 2026, 9), app_einstellungen.laden(db)).gesamt.anzahl == 1
 
-    # Manuelle Zuordnung bleibt beim Zurückstellen
+    # Manuelle Zuordnung bleibt bei einer erneuten Umstellung
     v.fahrzeug_id, v.zuordnung_quelle = fz_b.id, ZuordnungQuelle.manuell
+    db.get(Einstellung, "stichtag").wert = "ende"
     db.flush()
-    angemeldet.post("/einstellungen", data={**EINSTELLUNGEN, "stichtag": "ende"})
+    mp.setattr(db_modul, "SessionLocal", sitzung)
+    mp.setattr(db, "commit", db.flush)
+    aufloesung.stichtag_festlegen()
+    mp.undo()
     db.refresh(v)
     assert (v.fahrzeug_id, v.zuordnung_quelle) == (fz_b.id, ZuordnungQuelle.manuell)

@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import einstellungen
 from app.db import get_db
-from app.services import backup, kosten, neuschaetzung, offen, oil_bulletin, parser_verwaltung, protokoll, syslog, ust_nachtrag, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
+from app.services import aufloesung, backup, kosten, neuschaetzung, offen, oil_bulletin, parser_verwaltung, protokoll, syslog, ust_nachtrag, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
 from app.routers import (auswertungen, benutzer, dashboard, einstellungen as einstellungen_router, fahrer, fahrzeuge,
                          importe, konto, ladekarten, ladevorgaenge, msp, pauschalen, protokoll as protokoll_router, reports,
                          zu_klaeren, zuordnungen)
@@ -37,6 +37,7 @@ async def taktgeber() -> None:
 async def lebenszyklus(_app: FastAPI):
     syslog.einrichten()  # Syslog-Einstellungen laden, App-Meldungen anhängen
     parser_verwaltung.beim_start()  # MSP für neu installierte Parser anlegen
+    aufloesung.stichtag_festlegen()  # Stichtag fest Ladebeginn (früher wählbar): einmal neu zuordnen
     kosten.beim_start()  # tatsächliche Kosten nachtragen (nach Migration 0031)
     ust_nachtrag.beim_start()  # USt. aus den Originalrechnungen nachtragen (einmal, im Hintergrund)
     takt = asyncio.create_task(taktgeber())

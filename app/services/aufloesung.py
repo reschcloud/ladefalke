@@ -126,6 +126,22 @@ def vorgang_aktualisieren(db: Session, v: Ladevorgang, art: str | None = None) -
     return (v.fahrzeug_id, v.zuordnung_quelle) != vorher
 
 
+def stichtag_festlegen() -> None:
+    """Beim Start: Der Stichtag ist fest Ladebeginn (früher wählbar). War „Ladeende“ gespeichert, einmal alle
+    automatisch zugeordneten Ladevorgänge am Ladebeginn neu zuordnen (manuelle bleiben) und umstellen."""
+    from app.db import SessionLocal
+    from app.models import Einstellung
+    with SessionLocal() as db:
+        eintrag = db.get(Einstellung, "stichtag")
+        if eintrag is None or eintrag.wert == "beginn":
+            return
+        anzahl = neu_zuordnen(db)
+        eintrag.wert = "beginn"
+        db.commit()
+        import logging
+        logging.getLogger(__name__).info("Stichtag auf Ladebeginn umgestellt, %s Ladevorgänge neu zugeordnet", anzahl)
+
+
 def neu_zuordnen(db: Session, *bedingungen) -> int:
     """Alle Ladevorgänge, die die Bedingungen erfüllen, neu auflösen. Liefert die Anzahl geänderter Vorgänge.
     Im Änderungsprotokoll ein Sammeleintrag statt eines Eintrags je Vorgang."""

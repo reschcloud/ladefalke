@@ -48,6 +48,9 @@ class Msp(Base):
     standard_ladeart: Mapped[Ladeart] = mapped_column(_enum(Ladeart, "ladeart"))
     stromart_standard: Mapped[str | None] = mapped_column(String(2))  # AC/DC-Vorgabe für Vorgänge ohne Angabe
     cpo_standard: Mapped[str | None] = mapped_column(String(60))  # CPO-Vorgabe (Kennung „AT*XXX“ oder Name)
+    # Strompreis je kWh für Importe ohne Kostenangabe (z. B. has.to.be-Wallboxen): Vorbelegung beim Import, danach der
+    # zuletzt verwendete Preis (Migration 0034; vorher „Strompreis private Ladungen“ in den Einstellungen)
+    strompreis: Mapped[Decimal | None] = mapped_column(Numeric(8, 4))
     # Parser deaktiviert: die App tut, als gäbe es ihn nicht (keine Erkennung, keine Auswahl); Daten bleiben
     parser_aktiv: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     # monatliche Rechnung je Ladekarte (Vollständigkeit erwartet dann je Karte einen Eintrag); Vorbelegung vom Parser

@@ -71,7 +71,7 @@ Das Format wird beim Hochladen am Dateiinhalt erkannt (Parser unter `app/parsers
 
 | MSP | Datei | Besonderheiten |
 |---|---|---|
-| Standort (eigene Wallboxen) | has.to.be CSV | keine Kosten in der Datei → kWh × Strompreis (Vorbelegung in den Einstellungen); Karte über `CardLabel`, Gäste über `GAST` + Referenz |
+| Standort (eigene Wallboxen) | has.to.be CSV | keine Kosten in der Datei → kWh × Strompreis (Vorbelegung beim MSP, zuletzt verwendeter Preis); Karte über `CardLabel`, Gäste über `GAST` + Referenz |
 | Wien Energie | PDF | Zeittarife ohne kWh → kWh geschätzt (aus den Ladedaten je Fahrzeug bzw. Flotte); Brutto → netto exakt auf Rechnungssumme |
 | DCS / BMW Charging | PDF | Teilrechnung je Land; Karte = Vertragsnummer; Uhrzeiten in UTC → Wiener Zeit; ausländische MwSt ignoriert |
 | LINZ AG | PDF | Grundgebühr (Sammelposition) wird auf die Karten der Rechnung aufgeteilt |

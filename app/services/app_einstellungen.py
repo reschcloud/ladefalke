@@ -10,10 +10,9 @@ from app.models import Einstellung
 STICHTAGE = {"ende": "Ladeende", "beginn": "Ladebeginn"}
 
 STANDARD = {
-    "stichtag": "ende",
+    "stichtag": "beginn",  # fest: ein Ladevorgang zählt nach seinem Ladebeginn (früher wählbar, siehe stichtag_festlegen)
     "topliste_m": "",  # leer = Median der Fahrzeug-kWh im Zeitraum
     "topliste_mindestmenge": "20",
-    "strompreis_vorbelegung": "0.30",
     # Kosten und Umsatzsteuer (services/kosten.py): Land des Unternehmens (inländische USt.), Vorsteuerabzug in Prozent
     # für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnet)
     "firmenland": "AT",
@@ -125,7 +124,6 @@ class AppEinstellungen:
     stichtag: str  # "ende" | "beginn" – ordnet Ladevorgänge den Auswertungszeiträumen zu
     topliste_m: Decimal | None  # Gewichtungskonstante in kWh; None = Median
     topliste_mindestmenge: Decimal
-    strompreis_vorbelegung: Decimal  # €/kWh netto für private Importe
     firmenland: str = "AT"  # ISO-Code; USt. dieses Landes ist als Vorsteuer abziehbar (je Fahrzeug)
     vorsteuer_standard: Decimal = Decimal(100)  # Prozent, für Posten ohne Fahrzeug
     ust_nachgetragen: str = ""  # ISO-Datum des letzten Nachtrags der USt. (leer = noch nie)
@@ -237,10 +235,9 @@ def _tag(text: str, standard: int) -> int:
 def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
     """Gespeicherte Texte → Einstellungen; `aus_werten(STANDARD)` liefert die Standardwerte."""
     return AppEinstellungen(
-        stichtag=werte["stichtag"] if werte["stichtag"] in STICHTAGE else "ende",
+        stichtag="beginn",  # fest (seit 11/2026); gespeicherte Werte zählen nicht mehr
         topliste_m=Decimal(werte["topliste_m"]) if werte["topliste_m"] else None,
         topliste_mindestmenge=Decimal(werte["topliste_mindestmenge"]),
-        strompreis_vorbelegung=Decimal(werte["strompreis_vorbelegung"]),
         firmenland=(werte["firmenland"] or "AT").upper()[:2],
         ust_nachgetragen=werte["ust_nachgetragen"],
         vorsteuer_standard=min(Decimal(100), max(Decimal(0), Decimal(werte["vorsteuer_standard"] or 100))),

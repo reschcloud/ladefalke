@@ -303,8 +303,8 @@ def test_ladekarte_erster_und_letzter_ladevorgang(angemeldet, db):
     assert f"03.09.2026 <small class=\"vor-tagen\">({vor_tagen(datetime(2026, 9, 3))})</small>" in liste
     seite = angemeldet.get(f"/stammdaten/ladekarten/{karte.id}").text
     erster, letzter = vorgaenge[1], vorgaenge[2]
-    assert f'href="/ladevorgaenge/{erster.id}">03.02.2026 09:30' in seite
-    assert f'href="/ladevorgaenge/{letzter.id}">03.09.2026 09:30' in seite
+    assert f'href="/ladevorgaenge/{erster.id}">03.02.2026 08:00' in seite  # Zeitpunkt = Ladebeginn
+    assert f'href="/ladevorgaenge/{letzter.id}">03.09.2026 08:00' in seite
     assert '</svg>3</span><span>Ladevorgänge' in seite  # Anzahl in den Kennzahl-Kacheln
     assert "Erster Ladevorgang" not in angemeldet.get(f"/stammdaten/ladekarten/{leer.id}").text
 

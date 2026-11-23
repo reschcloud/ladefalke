@@ -1267,3 +1267,22 @@ body:has(.speichern-leiste) .toasts { bottom: calc(var(--fuss-hoehe) + 5.5rem + 
 .oil-knoepfe input[type="file"] { width: auto; max-width: 100%; margin: 0; padding: .25rem; font-size: .85rem; }
 .oil-knoepfe button { margin: 0; }
 .spritpreis-liste { max-height: 22rem; overflow-y: auto; }
+/* Einstellungen: einklappbare Rubriken (details.einstellung-gruppe), Suche, Treffer, Länder-Abschnitt */
+details.einstellung-gruppe { padding: 0 1.25rem; }
+details.einstellung-gruppe[open] { padding-bottom: .5rem; }
+details.einstellung-gruppe > summary.kopf { display: flex; align-items: center; padding: .9rem 0; margin: 0; cursor: pointer;
+  list-style: none; }
+details.einstellung-gruppe > summary.kopf::-webkit-details-marker { display: none; }
+details.einstellung-gruppe > summary.kopf::after { margin-left: auto; }  /* Pfeil von Pico rechts */
+details.einstellung-gruppe > summary.kopf h2 { font-size: 1.2rem; }
+details.einstellung-gruppe:not([open]) > summary.kopf h2 { color: var(--pico-muted-color); }
+details.einstellung-gruppe > summary.kopf:hover h2 { color: var(--pico-primary); }
+.einstellungen-werkzeug { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; max-width: 56rem;
+  margin-bottom: .75rem; }
+.einstellungen-werkzeug input[type="search"] { flex: 1 1 18rem; margin: 0; }
+.einstellungen-klappen { display: flex; gap: .5rem; }
+.einstellungen-klappen button { margin: 0; }
+.einstellungen .treffer { outline: 2px solid color-mix(in srgb, var(--pico-primary) 55%, transparent); outline-offset: 3px;
+  border-radius: var(--pico-border-radius); }
+.einstellung-gruppe h3.region { margin-top: 1.25rem; padding-top: .75rem; border-top: 1px dashed var(--pico-muted-border-color);
+  color: var(--pico-muted-color); font-size: .95rem; font-weight: 600; }

@@ -21,10 +21,9 @@
     <span class="geaendert-marker">· abweichend</span></small>{% endif %}
 </div>
 {% endmacro %}
+{# Kopf einer einklappbaren Rubrik (<details class="einstellung-gruppe">): Überschrift als <summary> #}
 {% macro gruppe_kopf(anker, titel, text) %}
-<header class="kopf">
-  <h2 id="{{ anker }}">{{ titel }}</h2>
-</header>
+<summary class="kopf"><h2 id="{{ anker }}">{{ titel }}</h2></summary>
 {% if text %}<p class="gruppe-text"><small>{{ text }}</small></p>{% endif %}
 {% endmacro %}
 
@@ -43,32 +42,50 @@
     {% endmacro %}
 <h1>Einstellungen</h1>
 {% if nur_lesen %}<p class="meldung meldung-info">Nur lesen – Einstellungen ändern kann ein Admin.</p>{% endif %}
-<nav class="einstellungen-nav" aria-label="Gruppen">
-  <a href="#allgemein">Allgemein</a><a href="#kosten">Kosten und USt.</a><a href="#datenqualitaet">Datenqualität</a>
-  <a href="#auswertungen">Auswertungen</a><a href="#fristen">Fristen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a>
+<div class="einstellungen-werkzeug">
+  <input type="search" id="einstellungen-suche" placeholder="Einstellung suchen …" aria-label="Einstellungen durchsuchen"
+         autocomplete="off">
+  <span class="einstellungen-klappen">
+    <button type="button" class="outline secondary klein" data-alle="auf">Alle aufklappen</button>
+    <button type="button" class="outline secondary klein" data-alle="zu">Alle zuklappen</button>
+  </span>
+</div>
+<p class="einstellungen-keine" hidden><small>Keine Einstellung gefunden.</small></p>
+<nav class="einstellungen-nav" aria-label="Rubriken">
+  <a href="#ladevorgaenge">Import und Ladevorgänge</a><a href="#kosten">Kosten und USt.</a><a href="#fristen">Aufgaben und Fristen</a>
+  <a href="#auswertungen">Auswertungen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a>
 </nav>
 
 <form method="post" action="/einstellungen" id="einstellungen-form" data-verfolgen{{ '="start"' if fehler }} class="einstellungen{{ ' einstellungen-nur-lesen' if nur_lesen }}">
 <input type="hidden" name="gruppe" value="">
 <fieldset class="einstellungen-felder">
-  <section class="einstellung-gruppe">
-    {{ gruppe_kopf("allgemein", "Allgemein", none) }}
-    {% set geaendert = werte.get("stichtag") != standard.get("stichtag") %}
-    <div class="einstellung-felder">
-  <div class="einstellung stichtag{{ ' geaendert' if geaendert }}">
-    <label for="e-stichtag">Stichtag eines Ladevorgangs {{ m.hilfe("Gilt in der ganzen App: in welchen Monat bzw. Zeitraum ein Ladevorgang fällt, an welchem Tag Fahrzeug und Fahrer:in ermittelt werden, Datumsfilter und Sortierung. Beim Umstellen werden alle automatisch zugeordneten Ladevorgänge neu zugeordnet (manuelle bleiben).") }}</label>
-    <select id="e-stichtag" name="stichtag" form="einstellungen-form" data-standard="{{ standard.stichtag }}"
-            {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
-      {% for wert, text in stichtage %}<option value="{{ wert }}" {% if werte.get("stichtag") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
-    </select>
-    <small class="standardwert">Ladeende = wie die Rechnungen (Monatssummen stimmen überein), Ladebeginn = wann geladen
-      wurde. Empfehlung: Ladeende <span class="geaendert-marker">· abweichend</span></small>
-  </div>
-      {{ einstellung("strompreis_vorbelegung", "Strompreis private Ladungen", "€/kWh", "Vorbelegung beim Import von Dateien ohne Kostenangabe (z. B. Exporte eigener Wallboxen): kWh × Strompreis ergibt die Kosten; beim Import änderbar. Einzutragen ist, was tatsächlich je kWh gezahlt bzw. erstattet wird.") }}
-    </div>
-  </section>
 
-  <section class="einstellung-gruppe">
+
+
+
+
+  <details class="einstellung-gruppe"{{ " open" if fehler }}>
+    {{ gruppe_kopf("ladevorgaenge", "Import und Ladevorgänge", "Ein Ladevorgang zählt immer nach seinem Ladebeginn (Monat, Zuordnung zu Fahrzeug und Person, Filter). Den Strompreis für Importe ohne Kostenangabe (z. B. eigene Wallboxen) legt der jeweilige MSP fest (Stammdaten → MSP).") }}
+    <h3>Plausibilität AC/DC</h3>
+    <p class="gruppe-text"><small>Geprüft wird die Leistung über den Vorgang (kWh / angesteckte Dauer). Unplausible
+      Vorgänge werden markiert, erscheinen unter „Aufgaben“ und zählen nicht fürs Ladeprofil.</small></p>
+    <div class="einstellung-felder">
+      {{ einstellung("plausibel_ac_max_kw", "AC unplausibel ab", "kW") }}
+      {{ einstellung("plausibel_dc_min_kw", "DC unplausibel unter", "kW") }}
+      {{ einstellung("plausibel_dc_max_kw", "DC unplausibel ab", "kW") }}
+    </div>
+    <h3>kWh-Schätzung – Ersatzwerte</h3>
+    <p class="gruppe-text"><small>Ohne kWh in der Rechnung (z. B. Zeittarif) schätzt die App aus den gemessenen Ladungen
+      (erklärt auf jeder Fahrzeugseite unter „Ladeprofil und kWh-Schätzung“). <strong>Die Werte hier gelten nur</strong>,
+      solange es dafür zu wenige gemessene Ladungen gibt. Nach dem Speichern wird neu geschätzt.</small></p>
+    <div class="einstellung-felder">
+      {{ einstellung("schaetzung_ac_kw", "Leistung AC", "kW") }}
+      {{ einstellung("schaetzung_dc_kw", "Leistung DC", "kW") }}
+      {{ einstellung("schaetzung_obergrenze_kwh", "Obergrenze je Vorgang", "kWh") }}
+    </div>
+  </details>
+
+  <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("kosten", "Kosten und Umsatzsteuer", "Alle Kosten sind tatsächliche Kosten: netto plus der Teil der USt., der nicht als Vorsteuer zurückkommt. Inländische USt. (Land des Unternehmens) ist je Fahrzeug abziehbar (Vorsteuerabzug in Prozent, auf der Fahrzeugseite), ausländische USt. zählt immer voll. Nennt eine Rechnung keine USt., wird sie mit dem Steuersatz unten geschätzt (≈). Private Ladungen und Pauschalen sind ohne USt.") }}
     {% set geaendert = werte.get("firmenland") != standard.get("firmenland") %}
     <div class="einstellung-felder">
@@ -104,30 +121,35 @@
       einmal nach dem Update erneut und übernimmt die USt.{% if werte.get("ust_nachgetragen") %} (zuletzt am
       {{ werte.ust_nachgetragen }}){% endif %}.</small>
       {% if not nur_lesen %}<button type="submit" form="ust-nachtragen" class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button>{% endif %}</p>
-  </section>
+  </details>
 
-  <section class="einstellung-gruppe">
-    {{ gruppe_kopf("datenqualitaet", "Datenqualität", none) }}
-    <h3>Plausibilität AC/DC</h3>
-    <p class="gruppe-text"><small>Geprüft wird die Leistung über den Vorgang (kWh / angesteckte Dauer). Unplausible
-      Vorgänge werden markiert, erscheinen unter „Aufgaben“ und zählen nicht fürs Ladeprofil.</small></p>
-    <div class="einstellung-felder">
-      {{ einstellung("plausibel_ac_max_kw", "AC unplausibel ab", "kW") }}
-      {{ einstellung("plausibel_dc_min_kw", "DC unplausibel unter", "kW") }}
-      {{ einstellung("plausibel_dc_max_kw", "DC unplausibel ab", "kW") }}
-    </div>
-    <h3>kWh-Schätzung – Ersatzwerte</h3>
-    <p class="gruppe-text"><small>Ohne kWh in der Rechnung (z. B. Zeittarif) schätzt die App aus den gemessenen Ladungen
-      (erklärt auf jeder Fahrzeugseite unter „Ladeprofil und kWh-Schätzung“). <strong>Die Werte hier gelten nur</strong>,
-      solange es dafür zu wenige gemessene Ladungen gibt. Nach dem Speichern wird neu geschätzt.</small></p>
-    <div class="einstellung-felder">
-      {{ einstellung("schaetzung_ac_kw", "Leistung AC", "kW") }}
-      {{ einstellung("schaetzung_dc_kw", "Leistung DC", "kW") }}
-      {{ einstellung("schaetzung_obergrenze_kwh", "Obergrenze je Vorgang", "kWh") }}
-    </div>
-  </section>
+  <details class="einstellung-gruppe"{{ " open" if fehler }}>
+    {{ gruppe_kopf("fristen", "Aufgaben und Fristen", "Unter „Aufgaben“ erscheint je Art (Leasing, Führerschein, Vignette, Streckenmaut) eine Info, sobald eine Frist in die Hinweisfrist fällt (auch überfällige oder fehlende Angaben). Führerscheinkontrolle, Vignette und Streckenmaut FLEX lassen sich für diese Installation einschalten – ausgeschaltet gibt es dafür weder Felder noch Hinweise oder Aufgaben; eingetragene Daten bleiben erhalten.") }}
+    <fieldset class="versand-block">
+      <legend>Leasing</legend>
+      <div class="einstellung-felder">
+        {{ einstellung("leasing_dauer_monate", "Leasingdauer", "Monate", "Belegt beim Fahrzeug das Leasing-Ende aus dem Beginn vor.", empfehlung=false) }}
+        {{ einstellung("leasing_vorwarnung_tage", "Hinweis vor Leasing-Ende", "Tage", empfehlung=false) }}
+      </div>
+    </fieldset>
+    {% call feature("feature_kartenpruefung", "Ladekarten je Fahrzeug", "Anzahl der Fahrzeugkarten prüfen", "Zeiträume, in denen einem Fahrzeug weniger oder mehr Ladekarten direkt zugeordnet sind als hier erlaubt, erscheinen beim Fahrzeug und unter „Aufgaben“ (geprüft ab Leasingbeginn bis Leasing-Ende, sonst ab der ersten Zuordnung bis heute). Persönliche Karten der Fahrer:innen zählen nicht.") %}
+      {{ einstellung("karten_min", "Mindestens", "Karten", empfehlung=false) }}
+      {{ einstellung("karten_max", "Höchstens", "Karten", empfehlung=false) }}
+    {% endcall %}
+    {% call feature("feature_fuehrerschein", "Führerscheinkontrolle", "Führerscheinkontrolle überwachen", "Regelmäßige Kontrolle je Fahrer:in; ohne eingetragene Kontrolle gilt sie als fällig.") %}
+      {{ einstellung("fuehrerschein_intervall_monate", "Kontrolle alle", "Monate", empfehlung=false) }}
+      {{ einstellung("fuehrerschein_vorwarnung_tage", "Hinweis vor der Kontrolle", "Tage", empfehlung=false) }}
+    {% endcall %}
+    <h3 class="region">Nur Österreich</h3>
+    {% call feature("feature_vignette", "Autobahn-Vignette (Österreich)", "Vignette überwachen", "Gültigkeit je Fahrzeug; neue Fahrzeuge brauchen sie standardmäßig (beim Fahrzeug abwählbar).") %}
+      {{ einstellung("vignette_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
+    {% endcall %}
+    {% call feature("feature_streckenmaut", "Streckenmaut FLEX (Österreich)", "Streckenmaut FLEX überwachen", "Gültigkeit je Fahrzeug; standardmäßig bei keinem Fahrzeug nötig (beim Fahrzeug anwählbar).") %}
+      {{ einstellung("streckenmaut_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
+    {% endcall %}
+  </details>
 
-  <section class="einstellung-gruppe">
+  <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("auswertungen", "Auswertungen", "Topliste: score = (Kosten + m × Ø-Preis der Flotte) / (kWh + m). Je größer m, desto stärker werden Personen mit wenig kWh zum Flottenschnitt gezogen.") }}
     <div class="einstellung-felder">
       {{ einstellung("topliste_m", "Gewichtung m", "kWh", "Leer lassen: Median der kWh je Fahrer:in im Zeitraum.", leer_text="leer (Median im Zeitraum)") }}
@@ -191,32 +213,7 @@
         </table></div>
       </div>
     {% endcall %}
-  </section>
-
-  <section class="einstellung-gruppe">
-    {{ gruppe_kopf("fristen", "Fristen", "Unter „Aufgaben“ erscheint je Art (Leasing, Führerschein, Vignette, Streckenmaut) eine Info, sobald eine Frist in die Hinweisfrist fällt (auch überfällige oder fehlende Angaben). Führerscheinkontrolle, Vignette und Streckenmaut FLEX lassen sich für diese Installation einschalten – ausgeschaltet gibt es dafür weder Felder noch Hinweise oder Aufgaben; eingetragene Daten bleiben erhalten.") }}
-    <fieldset class="versand-block">
-      <legend>Leasing</legend>
-      <div class="einstellung-felder">
-        {{ einstellung("leasing_dauer_monate", "Leasingdauer", "Monate", "Belegt beim Fahrzeug das Leasing-Ende aus dem Beginn vor.", empfehlung=false) }}
-        {{ einstellung("leasing_vorwarnung_tage", "Hinweis vor Leasing-Ende", "Tage", empfehlung=false) }}
-      </div>
-    </fieldset>
-    {% call feature("feature_fuehrerschein", "Führerscheinkontrolle", "Führerscheinkontrolle überwachen", "Regelmäßige Kontrolle je Fahrer:in; ohne eingetragene Kontrolle gilt sie als fällig.") %}
-      {{ einstellung("fuehrerschein_intervall_monate", "Kontrolle alle", "Monate", empfehlung=false) }}
-      {{ einstellung("fuehrerschein_vorwarnung_tage", "Hinweis vor der Kontrolle", "Tage", empfehlung=false) }}
-    {% endcall %}
-    {% call feature("feature_vignette", "Autobahn-Vignette (Österreich)", "Vignette überwachen", "Gültigkeit je Fahrzeug; neue Fahrzeuge brauchen sie standardmäßig (beim Fahrzeug abwählbar).") %}
-      {{ einstellung("vignette_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
-    {% endcall %}
-    {% call feature("feature_kartenpruefung", "Ladekarten je Fahrzeug", "Anzahl der Fahrzeugkarten prüfen", "Zeiträume, in denen einem Fahrzeug weniger oder mehr Ladekarten direkt zugeordnet sind als hier erlaubt, erscheinen beim Fahrzeug und unter „Aufgaben“ (geprüft ab Leasingbeginn bis Leasing-Ende, sonst ab der ersten Zuordnung bis heute). Persönliche Karten der Fahrer:innen zählen nicht.") %}
-      {{ einstellung("karten_min", "Mindestens", "Karten", empfehlung=false) }}
-      {{ einstellung("karten_max", "Höchstens", "Karten", empfehlung=false) }}
-    {% endcall %}
-    {% call feature("feature_streckenmaut", "Streckenmaut FLEX (Österreich)", "Streckenmaut FLEX überwachen", "Gültigkeit je Fahrzeug; standardmäßig bei keinem Fahrzeug nötig (beim Fahrzeug anwählbar).") %}
-      {{ einstellung("streckenmaut_vorwarnung_tage", "Hinweis vor Ablauf", "Tage", empfehlung=false) }}
-    {% endcall %}
-  </section>
+  </details>
 
   {# Textfeld der Gruppe E-Mail: empfehlung = Wert für „Empfehlung: …“ (oder none) #}
   {% macro textfeld(name, label, typ="text", empfehlung=none, platzhalter="", hilfe=none) %}
@@ -232,7 +229,7 @@
   </div>
   {% endmacro %}
 
-  <section class="einstellung-gruppe">
+  <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("reports", "Reports", none) }}
     {% set aus = nur_lesen %}
     {% set gesperrt %}{% if aus %}disabled title="Unzureichende Berechtigungen"{% endif %}{% endset %}
@@ -326,10 +323,10 @@
     {% endcall %}
     {{ zeitplan_block("zuordnungen", "Zuordnungen am Stichtag", "Zuordnungen am Stichtag automatisch versenden",
                       "An alle Benutzer:innen mit Abo („Mein Konto“) und E-Mail-Adresse; Stichtag ist der Versandtag – je Tag höchstens einmal.") }}
-  </section>
+  </details>
 
   {% set k = mail.konfig %}
-  <section class="einstellung-gruppe mail-gruppe">
+  <details class="einstellung-gruppe mail-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("email", "E-Mail", "Zugang zum Mailserver (SMTP) für Mails der App, z. B. Reports. Das Passwort wird verschlüsselt gespeichert und nie angezeigt.") }}
     {% if k and k.passwort_unlesbar %}<p class="meldung meldung-warnung">{{ icon("warnung") }} Das gespeicherte Passwort lässt sich nicht lesen
       (die Installation hat einen anderen SECRET_KEY, z. B. nach einem Umzug) – bitte neu eingeben.</p>{% endif %}
@@ -371,10 +368,10 @@
       <button type="submit" form="mail-test" class="outline" title="Testmail mit den gespeicherten Einstellungen senden"
               data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Testmail verwendet die gespeicherten Einstellungen.">Testmail senden</button>
     </div>
-  </section>
+  </details>
 
   {% set sl = syslog %}
-  <section class="einstellung-gruppe protokoll-gruppe">
+  <details class="einstellung-gruppe protokoll-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("protokoll", "Protokoll", "Das Änderungsprotokoll hält fest, wer was wann geändert hat (Stammdaten, Korrekturen, Importe, Einstellungen, Anmeldungen, Sicherungen). Einsehen können es Admins unter Benutzermenü → Protokoll.") }}
     <div class="einstellung-felder">
       {{ einstellung("protokoll_aufbewahrung_jahre", "Einträge aufbewahren", "Jahre", "Ältere Einträge löscht die App automatisch (Datenschutz: das Protokoll enthält Namen und geänderte Werte).") }}
@@ -448,10 +445,10 @@
               data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Testmeldung verwendet die gespeicherten Einstellungen.">Testmeldung senden</button>
       <a href="/protokoll" role="button" class="outline secondary">Protokoll ansehen</a>
     </div>
-  </section>
+  </details>
 
   {% set bk = backup %}
-  <section class="einstellung-gruppe backup-gruppe">
+  <details class="einstellung-gruppe backup-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("backup", "Backup", "Sichert Daten, Einstellungen, Benutzer:innen, Originaldateien und Parser in eine Datei – auch zum Umziehen auf einen anderen Server. Wiederherstellen per Kommando (README „Backup und Umzug“).") }}
     {% if bk.passwort %}<p><small>{{ icon("schloss") }} Sicherungen werden verschlüsselt (BACKUP_PASSWORT aus <code>.env</code>).
       Ohne dieses Passwort lassen sie sich nicht wiederherstellen – bitte sicher aufbewahren.</small></p>
@@ -510,7 +507,7 @@
       </tbody>
     </table>
     </div>
-  </section>
+  </details>
 </fieldset>
 
   <div class="speichern-leiste">
@@ -536,4 +533,66 @@
 <form method="post" action="/einstellungen/mail/test" id="mail-test" hidden></form>
 <form method="post" action="/einstellungen/syslog/test" id="syslog-test" hidden></form>
 {% for s in backup.liste %}<form method="post" action="/einstellungen/backup/{{ s.name }}/loeschen" id="backup-loeschen-{{ loop.index }}" hidden></form>{% endfor %}
+<script>
+  // Rubriken einklappbar: Zustand je Rubrik im Browser merken; Sprungziel (#anker – Links oben, Rücksprung nach dem
+  // Speichern) aufklappen; bei Fehlern alle offen. Suche: passende Rubriken aufklappen, Treffer markieren, Rubriken
+  // ohne Treffer ausblenden.
+  (() => {
+    const gruppen = [...document.querySelectorAll("details.einstellung-gruppe")];
+    const suche = document.getElementById("einstellungen-suche");
+    const keine = document.querySelector(".einstellungen-keine");
+    const schluessel = (g) => "ladefalke-einstellungen-" + (g.querySelector("h2[id]")?.id || "");
+    const merken = (g) => { try { localStorage.setItem(schluessel(g), g.open ? "1" : "0"); } catch { /* ohne Speicher */ } };
+    if (!document.querySelector(".einstellungen [aria-invalid='true']")) {
+      gruppen.forEach((g) => { try { g.open = localStorage.getItem(schluessel(g)) === "1"; } catch { /* ohne Speicher */ } });
+    }
+    gruppen.forEach((g) => g.addEventListener("toggle", () => { if (!suche.value) merken(g); }));
+    const oeffnenFuer = (ziel) => {
+      const el = ziel ? document.getElementById(ziel) : null;
+      const g = el?.closest("details.einstellung-gruppe");
+      if (g && !g.open) { g.open = true; merken(g); }
+      return el;
+    };
+    oeffnenFuer(decodeURIComponent(location.hash.slice(1)));
+    document.querySelectorAll(".einstellungen-nav a").forEach((a) => a.addEventListener("click", (e) => {
+      const el = oeffnenFuer(a.hash.slice(1));
+      if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth", block: "start" }); history.replaceState(null, "", a.hash); }
+    }));
+    document.querySelectorAll("[data-alle]").forEach((b) => b.addEventListener("click", () => {
+      gruppen.forEach((g) => { g.open = b.dataset.alle === "auf"; merken(g); });
+    }));
+    // Pflichtfeld mit Fehler in einer zugeklappten Rubrik: aufklappen, sonst blockiert der Browser das Speichern still
+    document.getElementById("einstellungen-form")?.addEventListener("invalid", (e) => {
+      const g = e.target.closest("details.einstellung-gruppe");
+      if (g) g.open = true;
+    }, true);
+    const EINHEITEN = ".einstellung, fieldset.versand-block, .gruppe-text, h3, label.haken, details.syslog-erweitert";
+    const text = (el) => (el.textContent + " " + [...el.querySelectorAll("[title]")].map((t) => t.title).join(" ")).toLowerCase();
+    let vorher = null;
+    suche?.addEventListener("input", () => {
+      const q = suche.value.trim().toLowerCase();
+      document.querySelectorAll(".einstellungen .treffer").forEach((el) => el.classList.remove("treffer"));
+      if (!q) {
+        gruppen.forEach((g, i) => { g.hidden = false; if (vorher) g.open = vorher[i]; });
+        vorher = null; keine.hidden = true;
+        return;
+      }
+      if (!vorher) vorher = gruppen.map((g) => g.open);
+      let gefunden = 0;
+      gruppen.forEach((g) => {
+        const kopf = text(g.querySelector("summary")).includes(q);
+        const einheiten = [...g.querySelectorAll(EINHEITEN)].filter((el) => text(el).includes(q));
+        // nur die innersten Treffer markieren (das Feld, nicht den ganzen Block darum); Einleitungstexte nur, wenn sonst
+        // nichts passt
+        const innerste = einheiten.filter((el) => !einheiten.some((x) => x !== el && el.contains(x)));
+        const felder = innerste.filter((el) => !el.matches(".gruppe-text"));
+        (felder.length ? felder : innerste).forEach((el) => el.classList.add("treffer"));
+        const treffer = kopf || einheiten.length > 0;
+        g.hidden = !treffer;
+        if (treffer) { g.open = true; gefunden++; }
+      });
+      keine.hidden = gefunden > 0;
+    });
+  })();
+</script>
 {% endblock %}

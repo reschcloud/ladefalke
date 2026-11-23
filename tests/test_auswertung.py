@@ -157,7 +157,7 @@ def daten(db):
     lv(imp_st, datetime(2026, 9, 14, 8), datetime(2026, 9, 14, 9), "0", "0.00", fz2)  # 0 kWh
     lv(imp_st, datetime(2026, 9, 15, 8), datetime(2026, 9, 15, 9), "10", "3.00", karte_=gast)  # Gast
     lv(imp_st, datetime(2026, 9, 16, 8), datetime(2026, 9, 16, 9), "5", "1.50")  # ohne Karte
-    lv(imp_st, datetime(2026, 9, 30, 20), datetime(2026, 10, 1, 6), "20", "6.00", fz2)  # Start Sep, Ende Okt
+    lv(imp_st, datetime(2026, 10, 1, 0, 30), datetime(2026, 10, 1, 6), "20", "6.00", fz2)  # Ladebeginn 1.10.: Oktober
     db.add_all([
         Gebuehr(import_id=imp_we.id, ladekarte_id=karte.id, bezeichnung="Grundgebühr Sep", betrag_netto=D("8.25"),
                 zeitraum_von=date(2026, 9, 1), zeitraum_bis=date(2026, 9, 30)),
@@ -178,7 +178,7 @@ def test_auswertung_september(db, daten):
     assert z1.summe.gebuehren == D("8.25") and z1.summe.kwh_geschaetzt == D(40)
     assert z1.fahrer_im_zeitraum == ["Auswertung Test"]
     assert dict(z1.standorte)["Wallbox"].kwh == D(60)
-    assert z2.summe.anzahl == 1 and z2.summe.kwh == D(30)  # 0-kWh-Vorgang zählt nicht; 30.9.→1.10. zählt nach Ende
+    assert z2.summe.anzahl == 1 and z2.summe.kwh == D(30)  # 0-kWh-Vorgang zählt nicht; Ladung ab 1.10. 0:30 zählt zum Oktober
     assert a.gaeste.kwh == D(10)
     assert a.nicht_zugeordnet.kwh == D(5)
     assert a.gebuehren_nicht_zuordenbar.kosten == D("8.25")
@@ -200,10 +200,11 @@ def test_gebuehr_ohne_zeitraum_nach_rechnungsdatum(db, daten):
 
 
 def test_stichtag_ladebeginn(db, daten):
-    app_einstellungen.speichern(db, {"stichtag": "beginn"})
+    """Stichtag fest Ladebeginn – ein gespeicherter anderer Wert (früher wählbar) zählt nicht."""
+    app_einstellungen.speichern(db, {"stichtag": "ende"})
     a = auswerten(db, zeitraum("monat", 2026, 9), app_einstellungen.laden(db))
     assert a.stichtag == "beginn"
-    assert a.fahrzeug(daten["fz2"].id).summe.kwh == D(50)  # 30 + 20 (Start 30.9.)
+    assert a.fahrzeug(daten["fz2"].id).summe.kwh == D(30)  # Ladung ab 1.10. 0:30 zählt zum Oktober
 
 
 def test_quartal_enthaelt_alles(db, daten):
@@ -458,17 +459,14 @@ def test_ladevorgaenge_export(angemeldet, db, daten):
 
 def test_einstellungen(angemeldet, db):
     antwort = angemeldet.get("/einstellungen")
-    assert 'value="0,3000"' in antwort.text and 'value="20,0"' in antwort.text
+    assert 'value="20,0"' in antwort.text and "strompreis" not in antwort.text  # Strompreis: beim MSP (Import)
     antwort = angemeldet.post("/einstellungen", data={"stichtag": "beginn", "topliste_m": "",
-                                                      "topliste_mindestmenge": "-1", "strompreis_vorbelegung": "x"})
+                                                      "topliste_mindestmenge": "-1"})
     assert antwort.status_code == 422
-    angemeldet.post("/einstellungen", data={"stichtag": "beginn", "topliste_m": "75",
-                                            "topliste_mindestmenge": "10", "strompreis_vorbelegung": "0,28"})
+    angemeldet.post("/einstellungen", data={"stichtag": "beginn", "topliste_m": "75", "topliste_mindestmenge": "10"})
     e = app_einstellungen.laden(db)
-    assert (e.stichtag, e.topliste_m, e.topliste_mindestmenge, e.strompreis_vorbelegung) == (
-        "beginn", D(75), D(10), D("0.28"))
-    angemeldet.post("/einstellungen", data={"stichtag": "ende", "topliste_m": "", "topliste_mindestmenge": "20",
-                                            "strompreis_vorbelegung": "0,30"})
+    assert (e.stichtag, e.topliste_m, e.topliste_mindestmenge) == ("beginn", D(75), D(10))
+    angemeldet.post("/einstellungen", data={"stichtag": "ende", "topliste_m": "", "topliste_mindestmenge": "20"})
     assert app_einstellungen.laden(db).topliste_m is None
 
 

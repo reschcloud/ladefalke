@@ -42,6 +42,14 @@
     <a href="/aufgaben?stromart_msp={{ msp.id }}#stromart" role="button" class="outline klein nav-knopf">In den Aufgaben setzen →</a>
   </div>
   {% endif %}
+  {% set ohne_kosten = werte.get("parser_key") and installiert.get(werte.parser_key) and not installiert[werte.parser_key].liefert_kosten %}
+  {% if ohne_kosten or werte.get("strompreis") %}
+  <label>Strompreis je kWh {{ m.hilfe("Die Dateien dieses Parsers enthalten keine Kosten (z. B. Exporte eigener Wallboxen): Kosten = kWh × Strompreis. Einzutragen ist, was tatsächlich je kWh gezahlt bzw. den Mitarbeiter:innen erstattet wird. Vorbelegung beim Import (dort änderbar); nach jedem Import gilt der zuletzt verwendete Preis.") }}
+    <input type="text" name="strompreis" value="{{ werte.get('strompreis') or '' }}" inputmode="decimal" placeholder="€/kWh"
+           {% if fehler.get("strompreis") %}aria-invalid="true" aria-describedby="strompreis-fehler"{% endif %}>
+    {% if fehler.get("strompreis") %}<small id="strompreis-fehler">{{ fehler.strompreis }}</small>{% endif %}
+  </label>
+  {% endif %}
   <label>Standard {{ CPO }}
     <input type="text" name="cpo_standard" value="{{ werte.get('cpo_standard') or '' }}" maxlength="60"
            placeholder="z. B. AT*XYZ oder Eigene Ladestationen" aria-describedby="cpo-hinweis">

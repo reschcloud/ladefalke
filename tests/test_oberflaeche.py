@@ -11,17 +11,22 @@ from app.models import Fahrer, Fahrzeug, Import, ImportStatus, Ladeart, Ladevorg
 
 def test_einstellungen_gruppen_und_standard(angemeldet):
     seite = angemeldet.get("/einstellungen").text
-    for anker in ("allgemein", "datenqualitaet", "auswertungen", "fristen"):  # Import in „Allgemein“
-        assert f'href="#{anker}"' in seite and f'id="{anker}"' in seite
+    for anker in ("ladevorgaenge", "kosten", "fristen", "auswertungen", "reports", "email", "protokoll", "backup"):
+        assert f'href="#{anker}"' in seite and f'<summary class="kopf"><h2 id="{anker}">' in seite  # einklappbar
+    assert 'id="einstellungen-suche"' in seite and "Stichtag eines Ladevorgangs" not in seite  # fest Ladebeginn
+    # Fristen: überregional zuerst, Österreich-Funktionen darunter
+    fr = seite.split('id="fristen"')[1].split('id="auswertungen"')[0]
+    reihe = ["<legend>Leasing", "<legend>Ladekarten je Fahrzeug", "<legend>Führerscheinkontrolle", "Nur Österreich",
+             "<legend>Autobahn-Vignette", "<legend>Streckenmaut"]
+    assert [fr.index(x) for x in reihe] == sorted(fr.index(x) for x in reihe)
     assert 'data-standard="12,0"' in seite and "Empfehlung: 12,0 kW" in seite and '<span class="einheit">kW</span>' in seite
     assert "Standard:" not in seite and "Auf Standard zurücksetzen" not in seite  # Empfehlung statt Standard, keine Zurücksetzen-Knöpfe
-    fristen = seite.split('id="fristen"')[1].split('id="email"')[0]
+    fristen = seite.split('id="fristen"')[1].split('id="auswertungen"')[0]
     assert "Empfehlung" not in fristen and "data-standard" not in fristen  # Fristen: eigener Bedarf, keine Empfehlung
     assert 'class="einstellung geaendert"' not in seite  # alles Standard
-    assert 'data-speichern class="ausgegraut" aria-disabled="true"' in seite and 'form="einstellungen-form"' in seite  # Stichtag gehört zum Formular
+    assert 'data-speichern class="ausgegraut" aria-disabled="true"' in seite
 
-    angemeldet.post("/einstellungen", data={"stichtag": "ende", "topliste_mindestmenge": "20",
-                                            "strompreis_vorbelegung": "0,30", "plausibel_ac_max_kw": "14"})
+    angemeldet.post("/einstellungen", data={"topliste_mindestmenge": "20", "plausibel_ac_max_kw": "14"})
     seite = angemeldet.get("/einstellungen").text
     feld = seite.split('id="e-plausibel_ac_max_kw"')[0].rsplit("<div", 2)[1]
     assert 'class="einstellung geaendert"' in feld
@@ -101,7 +106,7 @@ def test_dauer_format_und_spalte(angemeldet, db):
     test_maps_link_auf_detailseite(angemeldet, db)
     seite = angemeldet.get("/ladevorgaenge?art=monat&jahr=2026&nr=9").text
     assert "Dauer<span" in seite and 'sortierung=dauer-ab' in seite
-    assert '<td class="dauer">1:00 h<br><small>ab\n  08:00</small></td>' in seite  # Ladebeginn klein darunter
+    assert '<td class="dauer">1:00 h<br><small>bis\n  09:00</small></td>' in seite  # Ladeende klein darunter
     assert angemeldet.get("/ladevorgaenge?art=monat&jahr=2026&nr=9&sortierung=dauer-auf").status_code == 200
 
 

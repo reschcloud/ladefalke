@@ -19,7 +19,6 @@ from app.models import Spritpreis, Steuersatz
 from app.services import app_einstellungen, backup, geheim, kosten, mail, oil_bulletin, syslog
 from app.services.evse import LAENDER
 from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
-from app.services.aufloesung import neu_zuordnen
 from app.web import meldung, render, weiter
 
 router = APIRouter(prefix="/einstellungen")
@@ -35,7 +34,6 @@ def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
     return {
         "stichtag": e.stichtag, "topliste_m": zahl(e.topliste_m, 1) if e.topliste_m is not None else "",
         "topliste_mindestmenge": zahl(e.topliste_mindestmenge, 1),
-        "strompreis_vorbelegung": zahl(e.strompreis_vorbelegung, 4),
         "firmenland": e.firmenland, "vorsteuer_standard": zahl(e.vorsteuer_standard, 0), "sprit_art": e.sprit_art,
         "ust_nachgetragen": datum(date.fromisoformat(e.ust_nachgetragen)) if e.ust_nachgetragen else "",
         "co2e_strom": zahl(e.co2e_strom, 0) if e.co2e_strom is not None else "",
@@ -122,8 +120,8 @@ def anzeigen(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("", dependencies=[Depends(auth.admin_erforderlich)])  # lesen dürfen alle, ändern nur Admins
-def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = Form(""),
-              topliste_mindestmenge: str = Form(""), strompreis_vorbelegung: str = Form(""),
+def speichern(request: Request, topliste_m: str = Form(""),
+              topliste_mindestmenge: str = Form(""),
               firmenland: str = Form("AT"), vorsteuer_standard: str = Form("100"),
               co2e_strom: str = Form(""), co2e_verbrauch_e: str = Form("20"),
               co2e_verbrauch_verbrenner: str = Form("7,4"), co2e_verbrenner: str = Form("3,2"),
@@ -158,8 +156,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
               zuordnungen_auto_wochentag: str = Form("0"), zuordnungen_auto_tag: str = Form("0"),
               zuordnungen_auto_uhrzeit: str = Form("07:00"),
               gruppe: str = Form(""), db: Session = Depends(get_db)):
-    werte = {"stichtag": stichtag, "topliste_m": topliste_m, "topliste_mindestmenge": topliste_mindestmenge,
-             "strompreis_vorbelegung": strompreis_vorbelegung, "co2e_strom": co2e_strom,
+    werte = {"topliste_m": topliste_m, "topliste_mindestmenge": topliste_mindestmenge, "co2e_strom": co2e_strom,
              "firmenland": firmenland, "vorsteuer_standard": vorsteuer_standard,
              "co2e_verbrauch_e": co2e_verbrauch_e, "co2e_verbrauch_verbrenner": co2e_verbrauch_verbrenner,
              "co2e_verbrenner": co2e_verbrenner,
@@ -284,11 +281,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
         daten["mail_passwort"] = ""
     elif mail_passwort:
         daten["mail_passwort"] = geheim.verschluesseln(mail_passwort)
-    if stichtag not in STICHTAGE:
-        fehler["stichtag"] = "Bitte einen Stichtag wählen."
-    else:
-        daten["stichtag"] = stichtag
-    for feld, pflicht in (("topliste_m", False), ("topliste_mindestmenge", True), ("strompreis_vorbelegung", True),
+    for feld, pflicht in (("topliste_m", False), ("topliste_mindestmenge", True),
                           ("plausibel_ac_max_kw", True), ("plausibel_dc_min_kw", True), ("plausibel_dc_max_kw", True),
                           ("schaetzung_ac_kw", True), ("schaetzung_dc_kw", True), ("schaetzung_obergrenze_kwh", True),
                           ("co2e_strom", False), ("co2e_verbrauch_e", True), ("co2e_verbrauch_verbrenner", True),
@@ -324,14 +317,10 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
     if fehler:
         return _formular(request, werte, fehler, 422, db=db)
     alt = app_einstellungen.laden(db)
-    vorher = alt.stichtag
     app_einstellungen.speichern(db, daten)
     if (alt.firmenland, alt.vorsteuer_standard) != (daten["firmenland"], Decimal(daten["vorsteuer_standard"])):
         kosten.neu_berechnen(db)  # tatsächliche Kosten hängen von Land und Vorsteuerabzug ab
     text = "Einstellungen gespeichert."
-    if daten.get("stichtag") != vorher:  # Fahrzeug je Vorgang am neuen Stichtag ermitteln (manuelle bleiben)
-        geaendert = neu_zuordnen(db)
-        text += f" Stichtag jetzt {STICHTAGE[daten['stichtag']]}: {geaendert} Ladevorgänge neu zugeordnet."
     db.commit()
     syslog.laden(db)
     meldung(request, text)

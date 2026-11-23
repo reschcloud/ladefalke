@@ -41,6 +41,15 @@ def datei(imp: Import) -> Path:
 
 # ------------------------------------------------------------------ Hochladen
 
+def _strompreis_vorbelegung(msp: Msp | None, parser_key: str | None, ladeart: Ladeart) -> Decimal | None:
+    """Strompreis für Dateien ohne Kosten (Parser liefert_kosten = False) bzw. private Importe: Vorgabe des MSP."""
+    from app.parsers import PARSER
+    parser = PARSER.get(parser_key or "")
+    if msp is None or not (ladeart == Ladeart.privat or (parser is not None and not parser.liefert_kosten)):
+        return None
+    return msp.strompreis
+
+
 def hochladen(db: Session, dateiname: str, inhalt: bytes) -> Import:
     if not inhalt:
         raise ImportFehler("Die Datei ist leer.")
@@ -65,8 +74,7 @@ def hochladen(db: Session, dateiname: str, inhalt: bytes) -> Import:
     ladeart = msp.standard_ladeart if msp else Ladeart.oeffentlich
     imp = Import(dateiname=Path(dateiname).name[:300], datei_pfad=name, datei_hash=datei_hash,
                  parser_key=parser_key, msp_id=msp.id if msp else None, ladeart=ladeart,
-                 strompreis_netto_kwh=(app_einstellungen.laden(db).strompreis_vorbelegung
-                                       if ladeart == Ladeart.privat else None),
+                 strompreis_netto_kwh=_strompreis_vorbelegung(msp, parser_key, ladeart),
                  status=ImportStatus.vorschau, warnungen=[])
     db.add(imp)
     db.flush()
@@ -373,6 +381,8 @@ def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsc
     imp.abrechnungszeitraum_von, imp.abrechnungszeitraum_bis = r.zeitraum_von, r.zeitraum_bis
     imp.warnungen = vs.warnungen
     imp.status = ImportStatus.abgeschlossen
+    if imp.strompreis_netto_kwh is not None and imp.msp_id and (msp := db.get(Msp, imp.msp_id)) is not None:
+        msp.strompreis = imp.strompreis_netto_kwh  # zuletzt verwendeter Preis = Vorbelegung beim nächsten Import
     imp.importiert_am = datetime.now(timezone.utc)
     db.flush()
     return vs
