@@ -12,7 +12,7 @@ from app.services import app_einstellungen, fristen, kartenanzeige, kartenpruefu
 from app.services.aufloesung import fahrzeug_setzen, neu_zuordnen, stichtag_art, stichtag_spalte
 from app.services.ladeprofil import leistung, unplausibel_grund, unplausibel_sql
 from app.services.geokodierung import GENAUIGKEIT, alle_geokodieren, verzeichnis_vorhanden, verzichten, wieder_verorten
-from app.services.offen import ladeorte_offen_bedingungen, ohne_fahrzeug_bedingungen
+from app.services.offen import ladeorte_offen_bedingungen, ohne_fahrzeug_bedingungen, ursache
 from app.web import meldung, render, weiter
 
 router = APIRouter(prefix="/aufgaben")
@@ -50,6 +50,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
         .order_by(func.count().desc())).all()
     karten = {k.id: k for k in db.scalars(select(Ladekarte).where(
         Ladekarte.id.in_([g[0] for g in gruppen if g[0]])).options(selectinload(Ladekarte.msp)))}
+    ursachen = {kid: ursache(db, kid, tag) for kid in karten}
 
     filter_bed = []
     if karte_id.isdigit():
@@ -105,7 +106,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
             .where(Ladeort.genauigkeit == "verzichtet").group_by(Ladeort.id).order_by(Ladeort.adresse)).all(),
         "unplausible": [(v, unplausibel_grund(v, einst)) for v in unplausible],
         "_karten": kartenanzeige.fuer_vorgaenge(db, [*vorgaenge, *unplausible], einst.stichtag),
-        "gruppen": gruppen, "karten": karten, "vorgaenge": vorgaenge, "max_zeilen": MAX_ZEILEN,
+        "gruppen": gruppen, "karten": karten, "ursachen": ursachen, "vorgaenge": vorgaenge, "max_zeilen": MAX_ZEILEN,
         "gefiltert": bool(filter_bed), "gaeste": gaeste, "gebuehren": gebuehren, "karten_je_msp": karten_je_msp,
         "fahrzeuge": db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv).order_by(Fahrzeug.kennzeichen)).all()})
 

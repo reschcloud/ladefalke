@@ -28,7 +28,7 @@
   {% endfor %}
   {{ aufgabe("karten-je-fahrzeug", karten_befunde | length, "Ladekarten je Fahrzeug", "Kartenzuordnung beim Fahrzeug prüfen") }}
   {{ aufgabe("ohne-fahrzeug", request.state.offen.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug",
-             "Karte zuordnen oder Vorgänge manuell zuweisen") }}
+             "Karte bzw. Fahrzeug zuordnen oder Vorgänge manuell zuweisen") }}
   {{ aufgabe("gebuehren", gebuehren | length, "Gebühren ohne Ladekarte", "einer Ladekarte zuweisen") }}
   {{ aufgabe("unplausibel", unplausible | length, "Unplausible AC/DC-Angaben",
              "Stromart korrigieren oder ausnehmen") }}
@@ -132,8 +132,9 @@
     <button type="submit" class="outline">Automatische Zuordnung erneut versuchen</button>
   </form>
 </div>
-<p>Meist fehlt der Karte eine Zuordnung: Karte rückwirkend zuordnen und dabei
-  „bereits importierte Ladevorgänge neu zuordnen“ wählen. Einzelne Vorgänge lassen sich unten auch manuell zuweisen.</p>
+<p>Je Karte steht die Ursache dabei: Fehlt der Karte eine Zuordnung, die Karte rückwirkend zuordnen; gehört sie
+  einer Person, die damals kein Fahrzeug hatte, der Person das Fahrzeug zuordnen – jeweils mit „bereits importierte
+  Ladevorgänge neu zuordnen“. Einzelne Vorgänge lassen sich unten auch manuell zuweisen.</p>
 {% if gaeste[0] %}
   <p><small>Nicht enthalten: {{ gaeste[0] }} Ladevorgänge von Gastkarten ({{ gaeste[1] | zahl(0) }} kWh,
     {{ gaeste[2] | geld }}) – sie bleiben bewusst ohne Fahrzeug (Topf „Gäste“).</small></p>
@@ -148,8 +149,12 @@
   {% for karte_id, roh, msp_id, anzahl, kwh, kosten, von, bis in gruppen %}
     {% set k = karten.get(karte_id) %}
     <tr>
+      {% set u = ursachen.get(karte_id) %}
       <td>{% if k %}<a href="/stammdaten/ladekarten/{{ k.id }}">{{ k.bezeichnung or k.kennung }}</a>
           {% if k.bezeichnung %}<br><small>{{ k.kennung }}</small>{% endif %}
+          {% for f, f_von, f_bis in u.personen %}<br><small class="ursache">{{ icon("person") }} gehört
+            <a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a> – kein Fahrzeug {{ zeitraum(f_von, f_bis) if f_von != f_bis else "am " ~ (f_von | datum) }}</small>{% endfor %}
+          {% if u.ohne_zuordnung and u.personen %}<br><small class="ursache">{{ icon("karte") }} sonst ohne Zuordnung</small>{% endif %}
           {% else %}{{ roh or "ohne Kennung" }} <small>(keine Ladekarte)</small>{% endif %}</td>
       <td>{{ k.msp.name if k else "" }}</td>
       <td>{{ von | datum }} – {{ bis | datum }}</td>
@@ -158,8 +163,14 @@
       <td class="rechts">{{ kosten | geld }}</td>
       <td class="rechts">
         {% if k %}<a href="/aufgaben?karte_id={{ k.id }}#vorgaenge" role="button" class="outline klein">anzeigen</a>
-          <a href="/stammdaten/ladekarten/{{ k.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ von.date().isoformat() }}#neue-karten-zuordnung"
-             role="button" data-schreiben class="outline klein" title="Zuordnung ab dem ersten offenen Ladevorgang anlegen, danach zurück hierher">Karte zuordnen</a>
+          {% for f, f_von, f_bis in u.personen %}
+          <a href="/stammdaten/fahrer/{{ f.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ f_von.isoformat() }}&bis={{ f_bis.isoformat() }}#neue-fahrzeug-zuordnung"
+             role="button" data-schreiben class="outline klein" title="{{ f.name }} für den Zeitraum der offenen Ladevorgänge ein Fahrzeug zuordnen, danach zurück hierher">Fahrzeug zuordnen</a>
+          {% endfor %}
+          {% if u.ohne_zuordnung or not u.personen %}
+          <a href="/stammdaten/ladekarten/{{ k.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ (u.ohne_zuordnung[0] if u.ohne_zuordnung else von.date()).isoformat() }}#neue-karten-zuordnung"
+             role="button" data-schreiben class="outline klein" title="Zuordnung ab dem ersten offenen Ladevorgang ohne Kartenzuordnung anlegen, danach zurück hierher">Karte zuordnen</a>
+          {% endif %}
         {% else %}<a href="/aufgaben?roh={{ (roh or '') | urlencode }}#vorgaenge" role="button" class="outline klein">anzeigen</a>{% endif %}
       </td>
     </tr>

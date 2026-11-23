@@ -192,3 +192,42 @@ def test_einstellungen_zurueck_zur_gruppe_und_msp_bleibt(angemeldet, db):
     antwort = angemeldet.post(f"/stammdaten/msp/{msp.id}", follow_redirects=False, data={
         "name": msp.name, "parser_key": msp.parser_key or "", "standard_ladeart": "oeffentlich"})
     assert antwort.headers["location"] == f"/stammdaten/msp/{msp.id}"
+
+
+def test_aufgaben_person_ohne_fahrzeug(angemeldet, db):
+    """Karte gehört einer Person, die damals kein Fahrzeug hatte: Ursache und „Fahrzeug zuordnen“ (zur Person, mit
+    Zeitraum und Rücksprung) statt „Karte zuordnen“; Tage ganz ohne Kartenzuordnung behalten „Karte zuordnen“."""
+    karte = Ladekarte(msp=_msp(db), kennung="KS-P", kennung_typ=KennungTyp.kartennummer)
+    person, fz = Fahrer(name="Petra Probe"), Fahrzeug(kennzeichen="W-KS 9")
+    db.add_all([karte, person, fz])
+    db.flush()
+    db.add(ZuordnungKarte(ladekarte_id=karte.id, fahrer_id=person.id, gueltig_ab=date(2026, 9, 1),
+                          gueltig_bis=date(2026, 9, 30)))
+    db.flush()
+    v1, v2 = _vorgang(db, karte, 4), _vorgang(db, karte, 20)
+    seite = angemeldet.get("/aufgaben").text
+    assert "Petra Probe</a> – kein Fahrzeug 04.09.2026 – 20.09.2026" in seite
+    link = f"/stammdaten/fahrer/{person.id}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab=2026-09-04&bis=2026-09-20"
+    assert link in seite and "Fahrzeug zuordnen</a>" in seite and "Karte zuordnen</a>" not in seite
+    personenseite = angemeldet.get(link).text
+    assert 'value="2026-09-04"' in personenseite and 'value="2026-09-20"' in personenseite
+    antwort = angemeldet.post(f"/stammdaten/fahrer/{person.id}/fahrzeug", follow_redirects=False, data={
+        "fahrzeug_id": str(fz.id), "ab": "2026-09-01", "bis": "2026-09-30", "neu_zuordnen": "on",
+        "zurueck": "/aufgaben#ohne-fahrzeug"})
+    assert antwort.headers["location"] == "/aufgaben#ohne-fahrzeug"
+    db.refresh(v1), db.refresh(v2)
+    assert v1.fahrzeug_id == fz.id and v2.fahrzeug_id == fz.id
+    # eine Ladung im Oktober: dort hat die Karte keine Zuordnung → „Karte zuordnen“
+    v3 = Ladevorgang(import_id=v1.import_id, msp_id=karte.msp_id, ladekarte_id=karte.id,
+                     start=datetime(2026, 10, 5, 8), ende=datetime(2026, 10, 5, 9), kwh=D("10"), kosten_netto=D("5"),
+                     ladeart=Ladeart.oeffentlich, zuordnung_quelle=ZuordnungQuelle.keine)
+    db.add(v3)
+    db.flush()
+    seite = angemeldet.get("/aufgaben").text
+    assert "Karte zuordnen</a>" in seite and "– kein Fahrzeug" not in seite
+    assert f"/stammdaten/ladekarten/{karte.id}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab=2026-10-05" in seite
+    # PDF-Report „Offene Aufgaben“: Ursache je Karte
+    import pypdfium2
+    pdf = angemeldet.get("/reports/offene-aufgaben.pdf").content
+    text = " ".join(" ".join(s.get_textpage().get_text_range() for s in pypdfium2.PdfDocument(pdf)).split())
+    assert "Karte ohne Zuordnung am 05.10.2026" in text

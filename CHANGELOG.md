@@ -3,6 +3,14 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## Unveröffentlicht
+
+### Behoben
+
+- Aufgaben „Ladevorgänge ohne Fahrzeug“: Je Karte steht die Ursache. Gehört die Karte einer Person, die damals kein
+  Fahrzeug hatte, führt „Fahrzeug zuordnen“ zur Person (Zeitraum vorbelegt, danach zurück) statt des irreführenden
+  „Karte zuordnen“; das bleibt für Tage, an denen die Karte keine Zuordnung hat. Auch im Report „Offene Aufgaben“.
+
 ## v1.5.0 – 23.11.2026
 
 ### Geändert

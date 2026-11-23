@@ -1,5 +1,6 @@
 """Offene Punkte für Menüleiste (roter Punkt) und Dashboard."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date
 
 from fastapi import Depends, Request
 from sqlalchemy import false, func, or_, select
@@ -87,6 +88,32 @@ def offene_punkte_laden(request: Request, db: Session = Depends(get_db)) -> None
 
 # ------------------------------------------------------------------ Report „Offene Aufgaben“ (services/reports.py)
 
+@dataclass
+class Ursache:
+    """Warum die Ladevorgänge einer Karte kein Fahrzeug haben: Tage ohne Kartenzuordnung (→ Karte zuordnen) bzw.
+    Personen, denen die Karte gehört, die an den Tagen aber kein Fahrzeug hatten (→ Fahrzeug bei der Person)."""
+    ohne_zuordnung: tuple[date, date] | None = None  # erster und letzter Tag
+    personen: list[tuple[Fahrer, date, date]] = field(default_factory=list)  # Person, erster und letzter Tag
+
+
+def ursache(db: Session, karte_id: int, tag) -> Ursache:
+    """`tag`: Spalte des Stichtags (aufloesung.stichtag_spalte)."""
+    from app.services.zuordnung import karten_zuordnung_am
+    tage = sorted({t.date() for t in db.scalars(select(tag).where(*ohne_fahrzeug_bedingungen(), Ladevorgang.ladekarte_id == karte_id))})
+    ohne: list[date] = []
+    je_person: dict[int, list[date]] = {}
+    for t in tage:
+        zo = karten_zuordnung_am(db, karte_id, t)
+        if zo is None:
+            ohne.append(t)
+        elif zo.fahrer_id is not None:
+            je_person.setdefault(zo.fahrer_id, []).append(t)
+    u = Ursache(ohne_zuordnung=(ohne[0], ohne[-1]) if ohne else None)
+    for fahrer_id, liste in je_person.items():
+        u.personen.append((db.get(Fahrer, fahrer_id), liste[0], liste[-1]))
+    return u
+
+
 def fuer_report(db: Session, max_zeilen: int = 30) -> dict:
     """Alles, was unter „Aufgaben“ offen ist, als Daten für den PDF-Report (Stand heute)."""
     from app.models import Msp
@@ -116,7 +143,7 @@ def fuer_report(db: Session, max_zeilen: int = 30) -> dict:
         "zahlen": zaehlen(db), "einst": e, "max_zeilen": max_zeilen,
         "fristen": fristen.ermitteln(db, e), "luecken": luecken.ermitteln(db),
         "karten_befunde": kartenpruefung.ermitteln(db, e),
-        "gruppen": gruppen, "karten": karten,
+        "gruppen": gruppen, "karten": karten, "ursachen": {kid: ursache(db, kid, tag) for kid in karten},
         "gebuehren": db.scalars(select(Gebuehr).where(Gebuehr.ladekarte_id.is_(None))
                                 .options(selectinload(Gebuehr.import_).selectinload(Import.msp))
                                 .order_by(Gebuehr.id.desc())).all(),

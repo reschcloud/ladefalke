@@ -99,7 +99,10 @@
   <tbody>
   {% for karte_id, roh, msp_name, anzahl, kwh, kosten, von, bis in gruppen[:max_zeilen] %}
     {% set k = karten.get(karte_id) %}
+    {% set u = ursachen.get(karte_id) %}
     <tr><td>{% if k %}{{ k.bezeichnung or k.kennung }}{% if k.bezeichnung %} <span class="klein">{{ k.kennung }}</span>{% endif %}
+          {%- for f, f_von, f_bis in u.personen %}<br><span class="klein">gehört {{ f.name }} – kein Fahrzeug {{ zeitraum(f_von, f_bis) if f_von != f_bis else "am " ~ (f_von | datum) }}</span>{% endfor %}
+          {%- if u.ohne_zuordnung %}<br><span class="klein">Karte ohne Zuordnung {{ zeitraum(u.ohne_zuordnung[0], u.ohne_zuordnung[1]) if u.ohne_zuordnung[0] != u.ohne_zuordnung[1] else "am " ~ (u.ohne_zuordnung[0] | datum) }}</span>{% endif %}
           {%- else %}{{ roh or "ohne Kennung" }} <span class="klein">(keine Ladekarte)</span>{% endif %}</td>
       <td>{{ msp_name }}</td><td class="r">{{ anzahl }}</td><td class="r">{{ kwh | zahl(0) }}</td>
       <td class="r">{{ kosten | geld }}</td><td>{{ von | datum }}{% if bis.date() != von.date() %} – {{ bis | datum }}{% endif %}</td></tr>
