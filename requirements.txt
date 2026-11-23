@@ -1,6 +1,6 @@
 # Direkte Abhängigkeiten der App (Bereiche). Installiert wird aus requirements-lock.txt (feste Versionen),
 # neu erzeugen mit werkzeuge/abhaengigkeiten_sperren.sh – siehe README „Betrieb“.
-fastapi>=0.115,<1
+fastapi>=0.165.0,<1
 uvicorn[standard]>=0.30
 sqlalchemy>=2.1,<2.2
 alembic>=1.13
