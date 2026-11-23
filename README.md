@@ -124,7 +124,10 @@ löschen sie danach wieder; die Produktivdaten bleiben unberührt.
 
 ## Geodaten (Karte, Verortung der Ladeorte)
 
-Die App geht nie ins Internet. Für die Verortung der Ladeorte wird einmalig das freie Postleitzahlen-Verzeichnis
+Die App geht von sich aus nicht ins Internet – außer für Dienste, die man selbst einrichtet bzw. einschaltet:
+Mail-Versand, Syslog und den wöchentlichen Abruf der Spritpreise aus dem EU Weekly Oil Bulletin (Einstellungen →
+Auswertungen → Gesparte Tankkosten; nur ein Download von energy.ec.europa.eu, es werden keine Daten gesendet;
+abschaltbar, dann die Datei von Hand hochladen). Für die Verortung der Ladeorte wird einmalig das freie Postleitzahlen-Verzeichnis
 von GeoNames eingespielt (Lizenz CC-BY 4.0, © GeoNames, https://www.geonames.org/):
 
 ```

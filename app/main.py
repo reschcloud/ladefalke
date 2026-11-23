@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import einstellungen
 from app.db import get_db
-from app.services import backup, kosten, neuschaetzung, offen, parser_verwaltung, protokoll, syslog, ust_nachtrag, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
+from app.services import backup, kosten, neuschaetzung, offen, oil_bulletin, parser_verwaltung, protokoll, syslog, ust_nachtrag, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
 from app.routers import (auswertungen, benutzer, dashboard, einstellungen as einstellungen_router, fahrer, fahrzeuge,
                          importe, konto, ladekarten, ladevorgaenge, msp, pauschalen, protokoll as protokoll_router, reports,
                          zu_klaeren, zuordnungen)
@@ -25,6 +25,7 @@ async def taktgeber() -> None:
     while True:
         await asyncio.sleep(60)
         for aufgabe, name in ((backup.automatisch_pruefen, "Sicherung"), (versand.automatisch_pruefen, "Report-Versand"),
+                              (oil_bulletin.automatisch_pruefen, "Spritpreis-Abruf"),
                               (protokoll.automatisch_aufraeumen, "Protokoll-Bereinigung")):
             try:
                 await asyncio.to_thread(aufgabe)

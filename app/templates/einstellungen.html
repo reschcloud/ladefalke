@@ -147,13 +147,37 @@
       {{ einstellung("co2e_verbrenner", "Emissionen Verbrenner", "kg CO₂e/l", "CO₂e je Liter Kraftstoff (Diesel/Benzin inklusive Vorkette rund 3,2).") }}
     {% endcall %}
     {% call feature("feature_tank", "Gesparte Tankkosten", "Gesparte Tankkosten schätzen", "Tankkosten eines Verbrenners für dieselbe Strecke (Spritpreis am Tag der Ladung) abzüglich der tatsächlichen Ladekosten – Kachel in Dashboard und Auswertungen, in der Flottenbilanz statt Ø kWh je Fahrzeug.") %}
+      <div class="einstellung">
+        <label for="e-sprit_art">Kraftstoff des Vergleichsfahrzeugs</label>
+        <select id="e-sprit_art" name="sprit_art" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for wert, text in oil_bulletin.arten.items() %}<option value="{{ wert }}" {% if werte.get("sprit_art") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
+        </select>
+      </div>
       <div class="einstellung spritpreise" id="tankkosten">
-        <label>Spritpreise {{ m.hilfe("Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet, ab dem jeweiligen Datum. Vor dem ersten Eintrag gilt der früheste.") }}</label>
-        <div class="tabelle"><table class="steuersaetze">
+        <label class="haken"><input type="checkbox" name="oil_bulletin_auto" {% if werte.get("oil_bulletin_auto") %}checked{% endif %}
+          {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Spritpreise automatisch laden (EU Weekly Oil Bulletin)</label>
+        <small class="formular-hinweis">Einmal pro Woche lädt die App die Preisdatei der Europäischen Kommission
+          (<a href="{{ oil_bulletin.seite }}" target="_blank" rel="noopener" hx-boost="false">Weekly Oil Bulletin ↗</a>,
+          Verbraucherpreise inklusive Steuern) von energy.ec.europa.eu und übernimmt je Monat den Durchschnitt für
+          das Land des Unternehmens und den gewählten Kraftstoff. Ohne Internetzugang die Historien-Datei von dort
+          herunterladen und hier hochladen.</small>
+        {% set st = oil_bulletin.status %}
+        {% if st.zeit %}<p class="oil-status"><small>{{ icon("ok" if st.ok else "warnung") }} Zuletzt
+          {{ {"automatisch": "automatisch geladen", "download": "geladen", "datei": "aus Datei übernommen"}.get(st.quelle, "geladen") }}
+          am {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}: {{ st.text }}</small></p>{% endif %}
+        {% if not nur_lesen %}
+        <div class="oil-knoepfe">
+          <button type="submit" form="oil-laden" class="outline secondary klein">Jetzt laden</button>
+          <input type="file" name="datei" form="oil-hochladen" accept=".xlsx" aria-label="Datei des Oil Bulletin">
+          <button type="submit" form="oil-hochladen" class="outline secondary klein">Datei übernehmen</button>
+        </div>
+        {% endif %}
+        <label>Spritpreise {{ m.hilfe("Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet, ab dem jeweiligen Datum. Vor dem ersten Eintrag gilt der früheste. Einträge aus dem Oil Bulletin gelten je Monat ab dem 1.") }}</label>
+        <div class="tabelle spritpreis-liste"><table class="steuersaetze">
           <thead><tr><th>gültig ab</th><th class="rechts">Preis</th><th></th></tr></thead>
           <tbody>
           {% for p in spritpreise %}
-            <tr><td>{{ p.gueltig_ab | datum }}</td><td class="rechts">{{ p.preis | zahl(3) }} €/l</td>
+            <tr><td>{{ p.gueltig_ab | datum }}{% if p.quelle == "oil_bulletin" %} <small>Oil Bulletin</small>{% endif %}</td><td class="rechts">{{ p.preis | zahl(3) }} €/l</td>
               <td class="rechts">{% if not nur_lesen %}<button type="submit" form="spritpreis-loeschen-{{ p.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
           {% else %}
             <tr><td colspan="3"><small>Noch kein Spritpreis – ohne Preis bleibt die Schätzung aus.</small></td></tr>
@@ -504,6 +528,8 @@
 <form method="post" action="/einstellungen/backup/erstellen" id="backup-erstellen" hidden></form>
 <form method="post" action="/einstellungen/steuersatz" id="steuersatz-neu" hidden></form>
 <form method="post" action="/einstellungen/spritpreis" id="spritpreis-neu" hidden></form>
+<form method="post" action="/einstellungen/oil-bulletin/laden" id="oil-laden" hidden></form>
+<form method="post" action="/einstellungen/oil-bulletin/hochladen" id="oil-hochladen" enctype="multipart/form-data" hx-boost="false" hidden></form>
 {% for p in spritpreise %}<form method="post" action="/einstellungen/spritpreis/{{ p.id }}/loeschen" id="spritpreis-loeschen-{{ p.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/ust-nachtragen" id="ust-nachtragen" hidden></form>
 {% for s in steuersaetze %}<form method="post" action="/einstellungen/steuersatz/{{ s.id }}/loeschen" id="steuersatz-loeschen-{{ s.id }}" hidden></form>{% endfor %}

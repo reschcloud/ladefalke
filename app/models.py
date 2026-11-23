@@ -402,6 +402,7 @@ class Spritpreis(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     gueltig_ab: Mapped[date] = mapped_column(Date, unique=True)
     preis: Mapped[Decimal] = mapped_column(Numeric(6, 3))  # € je Liter
+    quelle: Mapped[str] = mapped_column(String(20), default="manuell", server_default="manuell")  # oder oil_bulletin
 
 
 class Einstellung(Base):

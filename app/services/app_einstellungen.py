@@ -28,6 +28,9 @@ STANDARD = {
     "co2e_strom": "",
     "co2e_verbrenner": "3.2",
     "feature_tank": "",
+    "sprit_art": "diesel",  # Kraftstoff des Vergleichs: diesel | euro95 (Oil Bulletin)
+    "oil_bulletin_auto": "1",  # Spritpreise wöchentlich aus dem EU Weekly Oil Bulletin laden (nur mit feature_tank)
+    "oil_bulletin_status": "",  # JSON: letzter Abruf (services/oil_bulletin.py)
     # Plausibilität AC/DC (Leistung = kWh / angesteckte Dauer)
     "plausibel_ac_max_kw": "12",  # AC ab diesem Wert unplausibel
     "plausibel_dc_min_kw": "10",  # DC unter diesem Wert unplausibel
@@ -132,6 +135,8 @@ class AppEinstellungen:
     co2e_strom: Decimal | None = None  # g CO₂e/kWh des geladenen Stroms
     co2e_verbrenner: Decimal = Decimal("3.2")  # kg CO₂e/l Kraftstoff
     feature_tank: bool = False  # gesparte Tankkosten schätzen (Spritpreise: Tabelle spritpreis)
+    sprit_art: str = "diesel"  # diesel | euro95
+    oil_bulletin_auto: bool = True  # Spritpreise automatisch aus dem Oil Bulletin
 
     @property
     def co2e_ersparnis_je_kwh(self) -> Decimal | None:
@@ -244,6 +249,8 @@ def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
         co2e_verbrauch_verbrenner=Decimal(werte["co2e_verbrauch_verbrenner"] or "7.4"),
         co2e_verbrenner=Decimal(werte["co2e_verbrenner"] or "3.2"),
         feature_co2e=bool(werte["feature_co2e"]), feature_tank=bool(werte["feature_tank"]),
+        sprit_art=werte["sprit_art"] if werte["sprit_art"] in ("diesel", "euro95") else "diesel",
+        oil_bulletin_auto=bool(werte["oil_bulletin_auto"]),
         plausibel_ac_max_kw=Decimal(werte["plausibel_ac_max_kw"]),
         plausibel_dc_min_kw=Decimal(werte["plausibel_dc_min_kw"]),
         plausibel_dc_max_kw=Decimal(werte["plausibel_dc_max_kw"]),

@@ -1261,3 +1261,9 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast.blendet-aus { transform: none; } }
 /* Seiten mit Speicherleiste (Einstellungen): Meldungen darüber, damit „Speichern“ frei bleibt */
 body:has(.speichern-leiste) .toasts { bottom: calc(var(--fuss-hoehe) + 5.5rem + env(safe-area-inset-bottom, 0px)); }
+/* Spritpreise: Oil Bulletin (Status, Knöpfe) und lange Liste mit Bildlauf */
+.oil-status { margin: .3rem 0; }
+.oil-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0 1rem; }
+.oil-knoepfe input[type="file"] { width: auto; max-width: 100%; margin: 0; padding: .25rem; font-size: .85rem; }
+.oil-knoepfe button { margin: 0; }
+.spritpreis-liste { max-height: 22rem; overflow-y: auto; }

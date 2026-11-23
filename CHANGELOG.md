@@ -5,6 +5,13 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
+### Neu
+
+- Spritpreise aus dem EU Weekly Oil Bulletin (Europäische Kommission): Monatsmittel für das Land des Unternehmens
+  und den gewählten Kraftstoff (Diesel oder Euro-Super 95) als Spritpreise ab dem 1. des Monats. Automatisch einmal
+  pro Woche (abschaltbar; nur ein Download von energy.ec.europa.eu, es werden keine Daten gesendet), auf Knopfdruck oder per
+  Hochladen der Datei (Einstellungen → Auswertungen → Gesparte Tankkosten).
+
 ### Geändert
 
 - Ladevorgänge: Ohne Filter geöffnet (z. B. über das Menü) gilt der vorausgewählte Zeitraum aus „Mein Konto“
