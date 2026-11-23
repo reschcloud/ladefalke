@@ -10,7 +10,7 @@ click==8.5.1
 cryptography==50.0.2
 cssselect2==0.10.1
 et_xmlfile==2.0.0
-fastapi==0.164.0
+fastapi==0.165.0
 fonttools==4.68.0
 h11==0.16.0
 httptools==0.9.0
@@ -27,9 +27,9 @@ pillow==13.0.0
 psycopg==3.3.9
 psycopg-binary==3.3.9
 pycparser==3.12
-pydantic==2.14.3
+pydantic==2.14.4
 pydantic-settings==2.16.3
-pydantic_core==2.50.4
+pydantic_core==2.50.5
 pydyf==0.13.0
 pypdfium2==5.15.2
 pyphen==0.18.1
