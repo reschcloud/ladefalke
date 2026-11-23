@@ -3,6 +3,28 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.6.1 – 23.11.2026
+
+### Neu
+
+- `setup.sh`: Installation in einem Schritt – ermittelt das neueste Release, holt dessen `compose.yaml` und
+  `.env.example`, erzeugt alle Passwörter und Schlüssel zufällig (Datenbank, erster Admin, `SECRET_KEY`,
+  `BACKUP_PASSWORT`), fragt den Servernamen für das Zertifikat, legt die Datenordner an und startet. Eine vorhandene
+  `.env` bleibt unverändert.
+- Update mit `sh setup.sh --update [x.y.z]`: zeigt die Hinweise „Beim Update beachten“ der übersprungenen Versionen,
+  sichert und ersetzt `compose.yaml`, ergänzt neue Einträge in `.env`, setzt die Version und startet neu.
+- README: Rechnungsformate vollständig (EnBW und Salzburg AG auch als CSV, Shell Recharge); USt.-Hinweis aktuell.
+
+### Geändert
+
+- README: Installation mit Voraussetzungen ganz oben; Entwicklung eigener Abschnitt.
+- `.env.example`: Datenbank und Benutzer heißen `ladefalke` (vorher `ladekosten`); bestehende Installationen behalten
+  ihre `.env`.
+
+### Beim Update beachten
+
+- nichts (bestehende `.env` nicht ändern – insbesondere `POSTGRES_DB`/`POSTGRES_USER` nicht umbenennen).
+
 ## v1.6.0 – 23.11.2026
 
 ### Neu

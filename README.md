@@ -3,32 +3,55 @@
 Webanwendung zur Erfassung und Auswertung der Ladevorgänge der Firmenflotte.
 Spezifikation: [SPEC.md](SPEC.md).
 
-## Start
+## Installation
 
-**Installation auf einem Server** mit dem fertigen Image: siehe [Betrieb](#betrieb). Aus dem Quelltext (Ausprobieren,
-Entwicklung) im geklonten Repository:
+### Voraussetzungen
+
+- Ein **Linux-Server oder eine VM** (z. B. Debian, Ubuntu, Fedora) mit **x86-64-Prozessor** (amd64); andere
+  Architekturen gehen nur mit selbst gebautem Image (siehe [Betrieb](#betrieb)).
+- **Docker Engine mit Compose-Plugin** (`docker compose version` muss funktionieren) – oder Podman mit Compose.
+- Etwa **2 GB RAM** und **5 GB Speicher** (mehr, je nach Menge der Rechnungen und Sicherungen).
+- **Internetzugang bei der Installation**, um das Image zu laden. Im Betrieb geht die App nicht ins Internet – außer
+  für Dienste, die man selbst einschaltet (siehe [Geodaten](#geodaten-karte-verortung-der-ladeorte)).
+- Erreichbarkeit im Netz über **Port 8000** (änderbar mit `APP_PORT`); für den Echtbetrieb am besten hinter einem
+  Reverse Proxy mit eigenem Zertifikat (siehe [HTTPS und Reverse Proxy](#https-und-reverse-proxy)).
+
+### Einrichten
 
 ```sh
-cp .env.example .env      # Passwörter, SECRET_KEY und BACKUP_PASSWORT setzen
-docker compose up --build
+mkdir ladefalke && cd ladefalke
+curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh
+sh setup.sh
 ```
 
-Für die **Entwicklung** in `.env`
-zusätzlich `COMPOSE_FILE=compose.yaml:compose.dev.yaml` setzen – das Image enthält dann die Testwerkzeuge und die
-Beispieldateien aus `samples/` werden eingebunden (`compose.dev.yaml`).
+`setup.sh` ermittelt das neueste Release, holt dessen `compose.yaml` und `.env.example`, legt `.env` mit **zufällig erzeugten** Passwörtern und
+Schlüsseln an (Datenbank, erster Admin, `SECRET_KEY`, `BACKUP_PASSWORT`), fragt nach dem Namen des Servers für das
+HTTPS-Zertifikat, legt die Datenordner an und startet die App. Am Ende zeigt es Adresse, Admin-Zugang und
+Backup-Passwort an – **das Backup-Passwort sicher aufbewahren**, ohne lassen sich Sicherungen nicht wiederherstellen.
+Eine vorhandene `.env` überschreibt es nie; in `.env` steht die installierte Version (`LADEFALKE_VERSION`), Updates
+macht man bewusst (siehe [Update](#update)). Bestimmtes Release: `LADEFALKE_VERSION=1.6.1 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
+`TLS_NAMEN=… sh setup.sh --ja`); nur einrichten, nicht starten: `--ohne-start`.
 
-Die App läuft dann unter **https**://localhost:8000 (Port über `APP_PORT` in `.env`) – mit selbstsigniertem
-Zertifikat, der Browser fragt beim ersten Aufruf einmal nach (siehe „HTTPS und Reverse Proxy“).
-Beim Start werden die Datenbank-Migrationen automatisch ausgeführt.
+### Erster Aufruf
 
-Mit Podman: `podman compose up --build` (bzw. `podman-compose`). Bind-Mounts sind für
-SELinux (Fedora) mit `:Z` gekennzeichnet.
+Die App läuft unter **https://\<server\>:8000** – mit selbst signiertem Zertifikat, der Browser fragt beim ersten
+Aufruf einmal nach. Mit dem angezeigten Admin-Zugang anmelden, das Passwort unter „Mein Konto“ ändern und unter
+„Einstellungen“ das Nötige einrichten (z. B. E-Mail für Reports). Weitere Benutzer:innen legt ein Admin unter
+„Benutzer:innen“ an. Den Zustand zeigt `docker compose ps` (app „healthy“ = läuft und erreicht die Datenbank).
+
+**Update** auf das neueste Release – im selben Ordner:
+
+```sh
+sh setup.sh --update
+```
+
+Details, Sicherungen und Umzug: siehe [Betrieb](#betrieb) und [Backup und Umzug](#backup-und-umzug).
 
 ## HTTPS und Reverse Proxy
 
 **Ohne Proxy (Standard, `TLS=an`):** Die App spricht direkt HTTPS. Beim ersten Start erzeugt sie ein
 selbstsigniertes Zertifikat (10 Jahre gültig) in `data/tls/` für `localhost`, `127.0.0.1` und die Namen/IP-Adressen
-aus `TLS_NAMEN` (z. B. `TLS_NAMEN=ladekosten.firma.lan 192.168.1.20`). Es bleibt über Neustarts erhalten, damit die
+aus `TLS_NAMEN` (z. B. `TLS_NAMEN=ladefalke.firma.lan 192.168.1.20`). Es bleibt über Neustarts erhalten, damit die
 Ausnahme im Browser gültig bleibt. Neu erzeugen: `data/tls/` leeren und die App neu starten. Ein eigenes Zertifikat:
 `cert.pem` und `key.pem` (PEM, Schlüssel unverschlüsselt) nach `data/tls/` legen. Reines HTTP auf diesem Port wird
 nicht beantwortet.
@@ -73,13 +96,15 @@ Das Format wird beim Hochladen am Dateiinhalt erkannt (Parser unter `app/parsers
 |---|---|---|
 | Standort (eigene Wallboxen) | has.to.be CSV | keine Kosten in der Datei → kWh × Strompreis (Vorbelegung beim MSP, zuletzt verwendeter Preis); Karte über `CardLabel`, Gäste über `GAST` + Referenz |
 | Wien Energie | PDF | Zeittarife ohne kWh → kWh geschätzt (aus den Ladedaten je Fahrzeug bzw. Flotte); Brutto → netto exakt auf Rechnungssumme |
-| DCS / BMW Charging | PDF | Teilrechnung je Land; Karte = Vertragsnummer; Uhrzeiten in UTC → Wiener Zeit; ausländische MwSt ignoriert |
+| DCS / BMW Charging | PDF | Teilrechnung je Land; Karte = Vertragsnummer; Uhrzeiten in UTC → Wiener Zeit; USt. je Teilrechnung (ausländisch oder Reverse Charge) |
 | LINZ AG | PDF | Grundgebühr (Sammelposition) wird auf die Karten der Rechnung aufgeteilt |
-| Salzburg AG | PDF | Transaktionsnummer als externe ID |
-| EnBW mobility+ | PDF | eine Rechnung je Land und Monat; Transaktions-ID als externe ID |
+| Salzburg AG | PDF oder CSV | Transaktionsnummer als externe ID; CSV-Export („Stromladen_Beleg“) mit USt. je Vorgang, Grundgebühren dort nicht je Karte aufgeschlüsselt (→ Gebühr ohne Karte; besser das PDF) |
+| EnBW mobility+ | PDF oder CSV | eine Rechnung je Land und Monat; Transaktions-ID als externe ID; USt. des Rechnungslands (CSV: Brutto − Netto je Position) |
+| Shell Recharge | PDF | je Karte (eMA-ID) eine Tabelle; Betreiber aus der EVSE-ID; USt. laut Spezifikation |
 | Elli / Cupra Charging („Easy Charging“) | PDF | Monatsübersicht (keine Rechnung); Text über PDFium; keine Uhrzeiten; Karte = Kontoinhaber:in; Netto je Land, abgestimmt auf die ausgewiesene MwSt |
 
-Alle Beträge werden netto gespeichert. Tests laufen gegen anonymisierte Auszüge in `tests/fixtures/`
+Gespeichert werden je Posten Nettobetrag und USt. laut Rechnung; angezeigt werden tatsächliche Kosten (netto plus nicht
+abziehbare USt., siehe Einstellungen → Kosten und Umsatzsteuer). Tests laufen gegen anonymisierte Auszüge in `tests/fixtures/`
 und zusätzlich gegen echte Dateien in `samples/`, falls vorhanden.
 
 ### Parser hinzufügen oder entfernen
@@ -110,6 +135,19 @@ dann, als gäbe es den Parser nicht; importierte Daten bleiben.
 
 **Entfernen:** das Modul löschen und neu starten. Die MSP-Liste warnt dann „Parser fehlt“; die Daten bleiben
 vollständig. Ist der Parser am MSP deaktiviert, lässt sich dort die Verknüpfung entfernen (der MSP bleibt).
+
+## Entwicklung
+
+Im geklonten Repository: `sh setup.sh --ohne-start` (legt `.env` mit Zufallswerten an), dann in `.env`
+`COMPOSE_FILE=compose.yaml:compose.dev.yaml` setzen – das Image enthält dann die Testwerkzeuge und die
+Beispieldateien aus `samples/` werden eingebunden – und
+
+```sh
+docker compose up --build
+```
+
+Beim Start laufen die Datenbank-Migrationen automatisch. Mit Podman: `podman compose up --build` (bzw.
+`podman-compose`); Bind-Mounts sind für SELinux (Fedora) mit `:Z` gekennzeichnet.
 
 ## Befehle
 
@@ -203,23 +241,23 @@ Datenbank, die schon Ladevorgänge enthält. Danach gelten die Benutzer:innen au
 
 ### Installation auf einem Server
 
-Voraussetzung: Docker mit Compose-Plugin. Installiert wird immer ein **Release** (siehe [CHANGELOG.md](CHANGELOG.md))
-als fertiges Image aus der GitHub Container Registry (`ghcr.io/reschcloud/ladefalke`); auf dem Server braucht es nur
-`compose.yaml` und `.env`.
+Am einfachsten mit `setup.sh` (siehe [Installation](#installation)). Installiert wird immer ein **Release** (siehe
+[CHANGELOG.md](CHANGELOG.md)) als fertiges Image aus der GitHub Container Registry (`ghcr.io/reschcloud/ladefalke`);
+auf dem Server braucht es nur `compose.yaml` und `.env`. Von Hand ohne Skript:
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.6.0                            # gewünschtes Release
+V=v1.6.1                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
-nano .env                           # LADEFALKE_VERSION, Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus
+nano .env                           # jedes „bitte-aendern“ ersetzen, BACKUP_PASSWORT setzen, ggf. TLS=aus
 mkdir -p data/uploads data/backups data/tls data/geo
 docker compose up -d                # lädt das Image und startet
 docker compose ps                   # app „healthy“ = App antwortet und erreicht die Datenbank
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.6.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.6.1`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
@@ -229,6 +267,16 @@ nicht neu geladen werden. Das TLS-Zertifikat entsteht neu (oder eigenes nach `da
 `data/backups/` auf demselben Server – zusätzlich auf ein anderes System kopieren.
 
 ### Update
+
+**Mit `setup.sh`** (empfohlen): `sh setup.sh --update` (neuestes Release) bzw. `sh setup.sh --update 1.7.0`. Das
+Skript zeigt die Hinweise „Beim Update beachten“ aller übersprungenen Versionen, fragt nach, sichert die bisherige
+`compose.yaml` (`compose.yaml.vor-<version>`), holt die neue, ergänzt neue Einträge aus `.env.example` in `.env`
+(vorhandene Werte bleiben), setzt `LADEFALKE_VERSION` und startet mit dem neuen Image. Ältere Versionen lehnt es ab
+(siehe [Zurück auf ein älteres Release](#zurück-auf-ein-älteres-release)). Das Skript ist dasselbe wie bei der
+Installation; fehlt es, holen mit
+`curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh`.
+
+**Von Hand:**
 
 1. In [CHANGELOG.md](CHANGELOG.md) „Beim Update beachten“ des neuen Release lesen (z. B. ob `compose.yaml` oder
    `.env` neue Einträge brauchen). Eine geänderte `compose.yaml` holen mit
@@ -242,7 +290,7 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.6.0 && docker compose up -d --build`. Der Footer zeigt danach die
+Selbst gebaut: `git fetch --tags && git checkout v1.6.1 && docker compose up -d --build`. Der Footer zeigt danach die
 neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
@@ -298,7 +346,8 @@ keine Hauptversion.
 1. Tests grün (`docker compose run --rm --build app pytest`).
 2. In [CHANGELOG.md](CHANGELOG.md) den Abschnitt „Unveröffentlicht“ zur neuen Version mit Datum machen; unter
    „Beim Update beachten“ alles, was von Hand zu tun ist (oder „nichts“). In `.env.example` `LADEFALKE_VERSION` und
-   in dieser README die Beispielversion anpassen.
+   in dieser README die Beispielversion anpassen, ebenso die Rückfall-Version in `setup.sh` (gilt nur ohne Zugriff
+   auf GitHub).
 3. Commit, dann **einfacher** Tag (ohne `-a`, damit die Versionsanzeige ihn auch beim Selbstbauen erkennt):
 
    ```sh
