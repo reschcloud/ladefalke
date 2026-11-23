@@ -36,14 +36,16 @@
   .msp-etikett { display: inline-block; padding: 0 1.2mm; border-radius: .8mm; font-size: 7pt; color: var(--blau);
     background: #e8f1f8; white-space: nowrap; }
   .kacheln { display: flex; gap: 3mm; margin: 2mm 0 1mm; }
-  .kachel { flex: 1; background: var(--flaeche); border-radius: 2mm; padding: 2.5mm 3mm; }
+  /* Kacheln wie in der Flottenbilanz: deutlich vom weißen Grund abgesetzt, alle gleich groß */
+  .kachel { flex: 1 1 0; min-width: 0; background: #e6ebf1; border: .5pt solid #cdd5df; border-radius: 2mm;
+            padding: 2.5mm 3mm; }
   .kachel .zahl { font-size: 14pt; font-weight: 700; display: block; }
   .kachel .text { color: var(--grau); }
   .kachel .vgl { display: block; font-size: 7.5pt; margin-top: 1mm; color: var(--grau); }
-  .kacheln.drei { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+  .kacheln.drei { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 3mm; }
   .kacheln.drei .kachel { padding: 3mm 4mm; }
   .kacheln.drei .zahl { font-size: 17pt; white-space: nowrap; }
-  .kacheln.drei .kachel:nth-child(-n+3) { background: #e8f1f8; }
+  .kacheln.drei .kachel:nth-child(-n+3) { background: #d6e6f4; border-color: #b9d0e6; }
   .vgl.mehr { color: #c92a2a; } .vgl.weniger { color: #1a7f5a; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 2mm; break-inside: auto; }
   thead { display: table-header-group; }

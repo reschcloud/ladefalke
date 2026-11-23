@@ -43,8 +43,8 @@ SYMBOLE = {
 # hat CSS Vorrang (app.css .symbol-<name>, mit Dark-Mode-Farben). Ohne Eintrag: Textfarbe.
 FARBEN = {"auto": "#1c7ed6", "person": "#7950f2", "karte": "#0c8599", "msp": "#e67700", "warnung": "#c98a00",
           "ok": "#1a7f5a", "haken": "#1a7f5a",
-          # Kennzahlen: blau, CO₂e grün
-          "vorgaenge": "#1c7ed6", "geld": "#1c7ed6", "dauer": "#1c7ed6", "co2e": "#2f9e44"}
+          # Kennzahlen: blau, Ladevorgänge pink (wie die Heatmap), CO₂e grün
+          "vorgaenge": "#d6336c", "geld": "#1c7ed6", "dauer": "#1c7ed6", "co2e": "#2f9e44"}
 
 
 def icon(name: str, titel: str = "", klasse: str = "") -> Markup:

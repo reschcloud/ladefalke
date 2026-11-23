@@ -3,6 +3,19 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## Unveröffentlicht
+
+### Geändert
+
+- Meldungen nach Aktionen (z. B. „gespeichert“) als Karten rechts unten über der Seite statt als Banner oben –
+  die Seite verschiebt sich nicht mehr. Hinweise blenden sich nach 8 s aus (Maus darüber hält an), Warnungen und
+  Fehler bleiben bis „×“.
+- Nach dem Speichern (oder einem anderen Formular) bleibt die Seite an ihrer Stelle, statt nach oben zu springen,
+  wenn man auf derselben Seite landet.
+- Kacheln überall gleich groß (Dashboard, Auswertungen, Detailseiten, PDF-Reports – auch über die Reihen); in allen
+  Reports wie in der Flottenbilanz deutlich vom Hintergrund abgesetzt (Fläche und feiner Rahmen).
+- Symbol der Ladevorgänge (Ladestation) in den Kacheln pink wie die Heatmap.
+
 ## v1.4.0 – 23.11.2026
 
 ### Neu

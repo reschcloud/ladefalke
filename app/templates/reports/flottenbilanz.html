@@ -26,8 +26,7 @@
   .folie .bild { flex: 1; min-width: 0; }
   .folie .kacheln.drei { margin: 0; gap: 2.5mm; height: 121mm; grid-auto-rows: 1fr;
                          grid-template-columns: repeat(3, minmax(0, 1fr)); }  /* so hoch wie die Karte; Spalten gleich breit */
-  .folie .kacheln.drei .kachel { padding: 8mm 4mm 3mm; background: #e6ebf1; border: .5pt solid #cdd5df; }  /* oben bündig: Zahlen einer Reihe auf einer Linie; deutlich vom weißen Grund abgesetzt */
-  .folie .kacheln.drei .kachel:nth-child(-n+3) { background: #d6e6f4; border-color: #b9d0e6; }
+  .folie .kacheln.drei .kachel { padding: 8mm 4mm 3mm; }  /* oben bündig: Zahlen einer Reihe auf einer Linie; Farben wie alle Reports (_basis) */
   .folie .kacheln.drei .zahl { font-size: 20pt; line-height: 1.1; margin-bottom: 1mm; white-space: nowrap; }
   .folie .kacheln.drei .text { font-size: 9pt; }
   .folie .bild img { width: 100%; height: 115mm; object-fit: cover; border-radius: 1.5mm; border: .4pt solid var(--linie); }

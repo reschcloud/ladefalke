@@ -615,6 +615,29 @@
     });
     document.addEventListener("DOMContentLoaded", ausblenden);
     document.addEventListener("htmx:afterSettle", ausblenden);
+    // Nach dem Absenden eines Formulars auf derselben Seite bleiben: htmx (hx-boost) scrollt nach dem Neuladen sonst
+    // ganz nach oben. Position beim Absenden merken, nach dem Laden derselben Seite (binnen 30 s) wiederherstellen.
+    const SCROLL_SCHLUESSEL = "ladefalke-scroll";
+    document.addEventListener("submit", (e) => {
+      if ((e.target.getAttribute("method") || "get").toLowerCase() !== "post") return;
+      try { sessionStorage.setItem(SCROLL_SCHLUESSEL, JSON.stringify({ pfad: location.pathname, y: window.scrollY, t: Date.now() })); } catch { /* ohne Speicher: wie bisher */ }
+    }, true);
+    const scrollWiederherstellen = () => {
+      let gemerkt = null;
+      try { gemerkt = JSON.parse(sessionStorage.getItem(SCROLL_SCHLUESSEL) || "null"); } catch { return; }
+      if (!gemerkt || gemerkt.pfad !== location.pathname || Date.now() - gemerkt.t > 30000) return;
+      try { sessionStorage.removeItem(SCROLL_SCHLUESSEL); } catch { /* egal */ }
+      setTimeout(() => window.scrollTo({ top: gemerkt.y, behavior: "instant" }), 0);  // nach dem Scrollen von htmx
+    };
+    document.addEventListener("DOMContentLoaded", scrollWiederherstellen);
+    document.addEventListener("htmx:afterSettle", scrollWiederherstellen);
+    // Meldungs-Karten (rechts unten) mit „×“ schließen
+    document.addEventListener("click", (e) => {
+      const toast = e.target.closest?.(".toast-zu")?.closest(".toast");
+      if (!toast) return;
+      toast.classList.add("blendet-aus");
+      setTimeout(() => toast.remove(), 400);
+    });
     // Blättern in Detailseiten: hx-boost tauscht den Inhalt ohne sichtbares Neuladen – darum blendet der neue Inhalt
     // kurz ein und die Überschrift leuchtet kurz auf (CSS: main.blaettern-vor/-zurueck)
     let blaetterRichtung = null;
@@ -749,15 +772,24 @@
     }
   </script>
   {% endif %}
-  <main class="container">
-    {% for m in meldungen_holen(request) %}
-      <p class="meldung meldung-{{ m.art }}" role="{{ 'alert' if m.art != 'info' else 'status' }}"
-         {%- if m.art == "info" and not m.aktion %} data-ausblenden="8"{% endif %}>{{ m.text }}
-        {%- if m.aktion %}
-        <form method="post" action="{{ m.aktion.url }}" class="inline meldung-aktion">
-          {%- for name, wert in m.aktion.felder.items() %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
-          <button type="submit" class="outline klein">{{ m.aktion.text }}</button></form>{% endif %}</p>
+  {# Meldungen nach Aktionen (web.meldung): Karten rechts unten über der Seite – verschieben den Inhalt nicht.
+     Info blendet sich nach 8 s aus (Maus darüber hält an), Warnungen und Fehler bleiben bis „×“. #}
+  {% set meldungen = meldungen_holen(request) %}
+  <div class="toasts" aria-live="polite">
+    {% for m in meldungen %}
+      <div class="toast meldung meldung-{{ m.art }}" role="{{ 'alert' if m.art != 'info' else 'status' }}"
+           {%- if m.art == "info" and not m.aktion %} data-ausblenden="8"{% endif %}>
+        <span class="toast-symbol">{{ icon("ok" if m.art == "info" else "warnung") }}</span>
+        <div class="toast-text">{{ m.text }}
+          {%- if m.aktion %}
+          <form method="post" action="{{ m.aktion.url }}" class="inline meldung-aktion">
+            {%- for name, wert in m.aktion.felder.items() %}<input type="hidden" name="{{ name }}" value="{{ wert }}">{% endfor %}
+            <button type="submit" class="outline klein">{{ m.aktion.text }}</button></form>{% endif %}</div>
+        <button type="button" class="toast-zu" aria-label="Meldung schließen" title="Schließen">×</button>
+      </div>
     {% endfor %}
+  </div>
+  <main class="container">
     {% block inhalt %}{% endblock %}
   </main>
   <footer class="fuss">
