@@ -3,6 +3,15 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## Unveröffentlicht
+
+### Geändert
+
+- Kennzahlen-Kacheln (Dashboard, Auswertungen, CPO, Detailseiten, PDF-Reports, Flottenbilanz) mit Symbol vor der Zahl:
+  Ladestation bei den Ladevorgängen, Geld bei Ø €/kWh und gesparten Tankkosten, Stoppuhr bei der Ladedauer, grünes
+  Blatt bei CO₂e (übrige Symbole blau).
+- Flottenbilanz: Kacheln deutlicher vom weißen Hintergrund abgesetzt (dunklere Fläche, feiner Rahmen).
+
 ## v1.3.0 – 21.11.2026
 
 ### Neu

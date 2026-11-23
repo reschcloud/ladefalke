@@ -25,7 +25,8 @@
   .folie .zahlen { flex: 1.15; min-width: 0; }
   .folie .bild { flex: 1; min-width: 0; }
   .folie .kacheln.drei { margin: 0; gap: 2.5mm; height: 121mm; grid-auto-rows: 1fr; }  /* so hoch wie die Karte */
-  .folie .kacheln.drei .kachel { padding: 8mm 4mm 3mm; }  /* oben bündig: Zahlen einer Reihe auf einer Linie */
+  .folie .kacheln.drei .kachel { padding: 8mm 4mm 3mm; background: #e6ebf1; border: .5pt solid #cdd5df; }  /* oben bündig: Zahlen einer Reihe auf einer Linie; deutlich vom weißen Grund abgesetzt */
+  .folie .kacheln.drei .kachel:nth-child(-n+3) { background: #d6e6f4; border-color: #b9d0e6; }
   .folie .kacheln.drei .zahl { font-size: 23pt; line-height: 1.1; margin-bottom: 1mm; }
   .folie .kacheln.drei .text { font-size: 10pt; }
   .folie .bild img { width: 100%; height: 115mm; object-fit: cover; border-radius: 1.5mm; border: .4pt solid var(--linie); }
@@ -58,23 +59,23 @@
 <div class="folie">
   <div class="zahlen">
     <div class="kacheln drei">
-      <div class="kachel"><span class="zahl">{{ g.anzahl | zahl(0) }}</span><span class="text">Ladevorgänge</span></div>
+      <div class="kachel"><span class="zahl">{{ icon("vorgaenge") }}{{ g.anzahl | zahl(0) }}</span><span class="text">Ladevorgänge</span></div>
       <div class="kachel"><span class="zahl">{{ g.kwh | zahl(0) }}</span><span class="text">kWh geladen</span></div>
-      <div class="kachel"><span class="zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span></div>
+      <div class="kachel"><span class="zahl">{{ icon("geld") }}{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span></div>
       <div class="kachel"><span class="zahl">{{ g.anteil_oeffentlich_kwh | prozent if g.anteil_oeffentlich_kwh is not none else "–" }}</span>
         <span class="text">öffentlich geladen (kWh)</span></div>
-      <div class="kachel"><span class="zahl">{{ r.dauer(dc.eigen) if dc.eigen is not none else "–" }}</span><span class="text">Ø Ladedauer DC</span>
+      <div class="kachel"><span class="zahl">{{ icon("dauer") }}{{ r.dauer(dc.eigen) if dc.eigen is not none else "–" }}</span><span class="text">Ø Ladedauer DC</span>
         <span class="vgl">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}</span></div>
       <div class="kachel"><span class="zahl">{{ laender }} / {{ cpo_anzahl }}</span><span class="text">Länder / Betreiber (CPO)</span></div>
       <div class="kachel"><span class="zahl">{{ fahrzeuge }}</span><span class="text">Fahrzeuge mit Ladungen</span></div>
       {% if co2e is not none %}
-      <div class="kachel"><span class="zahl">{{ co2e | zahl(0) }} kg</span>
+      <div class="kachel"><span class="zahl">{{ icon("co2e") }}{{ co2e | zahl(0) }} kg</span>
         <span class="text">CO₂e eingespart</span><span class="vgl">geschätzt ggü. Verbrennern</span></div>
       {% else %}
       <div class="kachel"><span class="zahl">{{ fahrer }}</span><span class="text">Fahrer:innen mit Ladungen</span></div>
       {% endif %}
       {% if tank is not none %}
-      <div class="kachel"><span class="zahl">{{ tank | geld(0) }}</span>
+      <div class="kachel"><span class="zahl">{{ icon("geld") }}{{ tank | geld(0) }}</span>
         <span class="text">Tankkosten gespart</span><span class="vgl">geschätzt ggü. Verbrennern</span></div>
       {% else %}
       <div class="kachel"><span class="zahl">{{ kwh_je_fahrzeug | zahl(0) if kwh_je_fahrzeug is not none else "–" }}</span>

@@ -63,7 +63,7 @@
 {# auf zwei Reihen verteilt (Spaltenzahl = halbe Kachelzahl, aufgerundet), damit Texte nicht umbrechen #}
 {% set anzahl = 5 + (1 if dc else 0) + (1 if co2e is not none else 0) + (1 if tank is not none else 0) %}
 <div class="kacheln kennzahlen" style="--spalten: {{ (anzahl + 1) // 2 }}">
-  <div class="kachel"><span class="kachel-zahl">{{ g.anzahl }}</span><span>Ladevorgänge</span>
+  <div class="kachel"><span class="kachel-zahl">{{ icon("vorgaenge") }}{{ g.anzahl }}</span><span>Ladevorgänge</span>
     {%- set pro_tag = zeitraum.pro_tag(g.anzahl) if zeitraum else none %}
     {% if pro_tag is not none %}<small class="pro-tag" title="Ø Ladevorgänge je Tag über {{ zeitraum.tage_bisher }} Tage
       {%- if zeitraum.bis > heute_datum() %} (bis heute){% endif %}">Ø {{ pro_tag | zahl(1) }} pro Tag</small>{% endif %}
@@ -75,10 +75,10 @@
   <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld(0) }}</span><span>Kosten netto</span>
     {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kosten | geld }} {{ sn.text }}</small>{% endif %}
     {% if v %}{{ abweichung(v.kosten, "Ø %s: %s" % (v.basis, v.kosten_schnitt | geld)) }}{% endif %}</div>
-  <div class="kachel"><span class="kachel-zahl">{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span>
+  <div class="kachel"><span class="kachel-zahl">{{ icon("geld") }}{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span>
     {% if v %}{{ abweichung(v.preis, "Ø %s: %s €/kWh" % (v.basis, v.referenz.preis | zahl(2)), teurer_ist_schlecht=true) }}{% endif %}</div>
   {% if dc %}
-  <div class="kachel"><span class="kachel-zahl">{{ minuten(dc.eigen) if dc.eigen is not none else "–" }}</span>
+  <div class="kachel"><span class="kachel-zahl">{{ icon("dauer") }}{{ minuten(dc.eigen) if dc.eigen is not none else "–" }}</span>
     <span>Ø Ladedauer DC {{ m.hilfe("Angesteckte Zeit (Ladestart bis -ende) der DC-Ladungen mit kWh-Angabe – ohne Ladungen ohne AC/DC-Angabe.") }}</span>
     <small class="pro-tag">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}
       {%- if dc.flotte is not none %} · Flotte {{ minuten(dc.flotte) }}{% endif %}</small>
@@ -88,12 +88,12 @@
   <div class="kachel"><span class="kachel-zahl">{{ g.anteil_oeffentlich_kwh | prozent }}</span><span>öffentlich (kWh)</span>
     {% if v %}{{ abweichung(v.oeffentlich_pp, "Ø %s: %s" % (v.basis, v.referenz.anteil_oeffentlich_kwh | prozent), pp=true) }}{% endif %}</div>
   {% if co2e is not none %}
-  <div class="kachel"><span class="kachel-zahl">{{ co2e_text(co2e) }}</span>
+  <div class="kachel"><span class="kachel-zahl">{{ icon("co2e") }}{{ co2e_text(co2e) }}</span>
     <span>CO₂e eingespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Emissionen eines Verbrenners, abzüglich der Emissionen des geladenen Stroms – Werte laut Einstellungen.") }}</span>
     <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
   {% endif %}
   {% if tank is not none %}
-  <div class="kachel"><span class="kachel-zahl">{{ tank | geld(0) }}</span>
+  <div class="kachel"><span class="kachel-zahl">{{ icon("geld") }}{{ tank | geld(0) }}</span>
     <span>Tankkosten gespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Tankkosten eines Verbrenners (Verbrauch und Spritpreis netto laut Einstellungen), abzüglich der tatsächlichen Kosten netto.") }}</span>
     <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
   {% endif %}

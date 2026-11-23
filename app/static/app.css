@@ -660,12 +660,12 @@ article.hervorgehoben { outline: 3px solid var(--pico-primary); outline-offset: 
    (wie in Home Assistant), alles andere in Textfarbe bzw. im Menü grau. :where() hält die Menüregel schwächer als die
    Farben der Arten. */
 :root { --sym-auto: #1c7ed6; --sym-person: #7950f2; --sym-karte: #0c8599; --sym-msp: #e67700;
-  --sym-warnung: #c98a00; --sym-ok: #1a7f5a; }
+  --sym-warnung: #c98a00; --sym-ok: #1a7f5a; --sym-co2e: #2f9e44; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --sym-auto: #4dabf7; --sym-person: #9775fa; --sym-karte: #3bc9db; --sym-msp: #ffa94d;
-    --sym-warnung: #f0b429; --sym-ok: #3ccf8e; } }
+    --sym-warnung: #f0b429; --sym-ok: #3ccf8e; --sym-co2e: #51cf66; } }
 :root[data-theme="dark"] { --sym-auto: #4dabf7; --sym-person: #9775fa; --sym-karte: #3bc9db; --sym-msp: #ffa94d;
-  --sym-warnung: #f0b429; --sym-ok: #3ccf8e; }
+  --sym-warnung: #f0b429; --sym-ok: #3ccf8e; --sym-co2e: #51cf66; }
 svg.symbol { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 :where(nav) svg.symbol { margin-right: .4rem; color: var(--pico-muted-color); }
 :where(nav) a[aria-current="page"] svg.symbol, :where(nav) summary[aria-current="page"] svg.symbol { color: inherit; }
@@ -675,6 +675,10 @@ svg.symbol-karte { color: var(--sym-karte); }
 svg.symbol-msp { color: var(--sym-msp); }
 svg.symbol-warnung { color: var(--sym-warnung); }
 svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
+/* Kennzahlen-Kacheln: Symbol vor der Zahl, blau; CO₂e grün */
+.kachel-zahl svg.symbol { width: .8em; height: .8em; vertical-align: -.05em; margin-right: .25em;
+  color: var(--sym-auto); }
+.kachel-zahl svg.symbol-co2e { color: var(--sym-co2e); }
 /* Überschriften mit Symbol der Art (_makros.titel): Detailseiten (h1) und ihre Abschnitte (h2, mit Linie in der Farbe
    der Art) – Fahrzeug blau, Person violett, Ladekarte türkis, MSP orange, sonst grau */
 :is(.seiten-titel, .abschnitt-titel) { --art: var(--pico-muted-color); }

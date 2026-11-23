@@ -477,7 +477,7 @@ def test_anzeige_gerundet_export_genau(angemeldet, db, daten):
     for pfad in ("/auswertungen?art=monat&jahr=2026&nr=9", "/?art=monat&jahr=2026&nr=9"):
         text = angemeldet.get(pfad).text
         assert '≈</abbr>&nbsp;245</span>' in text, pfad  # 245,0 kWh, davon geschätzt → „≈“ vor der Zahl
-        assert '<span class="kachel-zahl">0,46</span>' in text, pfad  # 113,17 € / 245 kWh = 0,4619
+        assert '</svg>0,46</span><span>Ø €/kWh</span>' in text, pfad  # 113,17 € / 245 kWh = 0,4619
         assert "0,4619" not in text and "245,000" not in text, pfad
     csv = angemeldet.get("/auswertungen/export/gesamt.csv?art=monat&jahr=2026&nr=9").content.decode("utf-8-sig")
     assert ";245,000;" in csv and ";0,46;" in csv  # kWh genau, €/kWh mit 2 Stellen
@@ -603,3 +603,17 @@ def test_tankkosten_ersparnis(angemeldet, db, daten):
     assert 'value="1,400"' in angemeldet.get("/einstellungen").text
     angemeldet.post("/einstellungen", data=basis)
     assert app_einstellungen.laden(db).tankkosten_je_kwh is None and "Tankkosten" not in angemeldet.get(dashboard).text
+
+
+def test_kennzahlen_symbole(angemeldet, db, daten):
+    """Kacheln: Ladestation bei den Ladevorgängen, Geld beim Ø €/kWh und den gesparten Tankkosten, Stoppuhr bei der
+    Ladedauer, grünes Blatt bei CO₂e (in den PDF-Reports Farbe über das SVG-Attribut)."""
+    from app.icons import FARBEN, icon
+    assert FARBEN["co2e"] in icon("co2e")
+    app_einstellungen.speichern(db, {"co2e_strom": "150", "spritpreis": "1.4"})
+    seite = angemeldet.get("/?art=monat&jahr=2026&nr=9").text
+    for name in ("vorgaenge", "geld", "dauer", "co2e"):
+        assert f'<span class="kachel-zahl"><svg class="symbol symbol-{name}"' in seite, name
+    assert seite.count('<span class="kachel-zahl"><svg class="symbol symbol-geld"') == 2  # Ø €/kWh, Tankkosten
+    for pdf in ("zusammenfassung.pdf", "flottenbilanz.pdf"):
+        assert angemeldet.get(f"/reports/{pdf}?art=monat&jahr=2026&nr=9").status_code == 200

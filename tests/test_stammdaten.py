@@ -305,7 +305,7 @@ def test_ladekarte_erster_und_letzter_ladevorgang(angemeldet, db):
     erster, letzter = vorgaenge[1], vorgaenge[2]
     assert f'href="/ladevorgaenge/{erster.id}">03.02.2026 09:30' in seite
     assert f'href="/ladevorgaenge/{letzter.id}">03.09.2026 09:30' in seite
-    assert '<span class="kachel-zahl">3</span>' in seite  # Anzahl in den Kennzahl-Kacheln
+    assert '</svg>3</span><span>Ladevorgänge' in seite  # Anzahl in den Kennzahl-Kacheln
     assert "Erster Ladevorgang" not in angemeldet.get(f"/stammdaten/ladekarten/{leer.id}").text
 
 

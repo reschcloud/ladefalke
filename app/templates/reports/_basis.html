@@ -63,6 +63,7 @@
   .spalten > * > .block:first-child > h3, .spalten > * > h3:first-child { margin-top: 0; }
   /* Symbole (app/icons.py) in Textgröße; Farbe kommt aus dem SVG-Attribut „color“ (icons.FARBEN) */
   svg.symbol { width: 1.1em; height: 1.1em; vertical-align: -.18em; }
+  .kachel .zahl svg.symbol { width: .8em; height: .8em; vertical-align: -.05em; margin-right: .2em; }
   .diagramm { display: flex; gap: 3mm; align-items: flex-start; break-inside: avoid; margin-bottom: 3mm; }
   .diagramm svg { width: 26mm; height: 26mm; flex: none; }
   .diagramm .legende { flex: 1; font-size: 7.5pt; }
@@ -144,7 +145,7 @@
 {% macro kennzahlen(s, v, z, mit_oeffentlich=true, gegen_flotte=none, flottenschnitt=none, dc=none, drei=false, schnitt=none) %}
 {% set sn = schnitt %}
 <div class="kacheln{{ ' drei' if drei }}">
-  <div class="kachel"><span class="zahl">{{ s.anzahl }}</span><span class="text">Ladevorgänge</span>
+  <div class="kachel"><span class="zahl">{{ icon("vorgaenge") }}{{ s.anzahl }}</span><span class="text">Ladevorgänge</span>
     {%- set pt = z.pro_tag(s.anzahl) %}{% if pt is not none %}<span class="vgl">Ø {{ pt | zahl(1) }} pro Tag</span>{% endif %}
     {% if sn %}<span class="vgl">Ø {{ sn.anzahl | zahl(1) }} {{ sn.text }}</span>{% endif %}
     {% if v %}{{ abweichung(v.anzahl, v.basis) }}{% endif %}</div>
@@ -154,14 +155,14 @@
   <div class="kachel"><span class="zahl">{{ s.kosten | geld(0) }}</span><span class="text">Kosten netto</span>
     {% if sn %}<span class="vgl">Ø {{ sn.kosten | geld }} {{ sn.text }}</span>{% endif %}
     {% if v %}{{ abweichung(v.kosten, v.basis) }}{% endif %}</div>
-  <div class="kachel"><span class="zahl">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span>
+  <div class="kachel"><span class="zahl">{{ icon("geld") }}{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span>
     {% if gegen_flotte is not none %}<span class="vgl {{ 'mehr' if gegen_flotte > 0 else 'weniger' if gegen_flotte < 0 }}">
       {%- if gegen_flotte | abs < 0.005 %}= wie der Flottenschnitt
       {%- else %}{{ "▲" if gegen_flotte > 0 else "▼" }} {{ ((gegen_flotte | abs) * 100) | zahl(0) }} % {{ "über" if gegen_flotte > 0 else "unter" }} dem Flottenschnitt{% endif %}
       ({{ flottenschnitt | zahl(2) }})</span>{% endif %}
     {% if v %}{{ abweichung(v.preis, v.basis, teurer_ist_schlecht=true) }}{% endif %}</div>
   {% if dc %}
-  <div class="kachel"><span class="zahl">{{ dauer(dc.eigen) if dc.eigen is not none else "–" }}</span><span class="text">Ø Ladedauer DC</span>
+  <div class="kachel"><span class="zahl">{{ icon("dauer") }}{{ dauer(dc.eigen) if dc.eigen is not none else "–" }}</span><span class="text">Ø Ladedauer DC</span>
     <span class="vgl">{% if dc.anzahl %}{{ dc.anzahl }} DC-Ladung{{ "en" if dc.anzahl != 1 }}{% else %}keine DC-Ladung{% endif %}
       {%- if dc.flotte is not none %} · Flotte {{ dauer(dc.flotte) }}{% endif %}</span></div>
   {% endif %}
