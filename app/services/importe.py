@@ -355,13 +355,14 @@ def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsc
             stromart_quelle="rechnung" if v.stromart else "vorgabe" if stromart_vorgabe else None,
             fahrzeug_id=fahrzeug.id if fahrzeug else None,
             zuordnung_quelle=ZuordnungQuelle.automatisch if fahrzeug else ZuordnungQuelle.keine,
-            rohdaten=v.rohdaten))
+            rohdaten=v.rohdaten, ust_betrag=v.ust_betrag, ust_satz=v.ust_satz, ust_land=v.ust_land))
     for x in vs.neue_gebuehren:
         g = x.g
         karte = x.karte or (karten.get(g.kartenkennung) if g.kartenkennung else None)
         db.add(Gebuehr(import_id=imp.id, ladekarte_id=karte.id if karte else None,
                        roh_kartenkennung=g.kartenkennung or g.vertragsnummer, zeitraum_von=g.zeitraum_von,
-                       zeitraum_bis=g.zeitraum_bis, bezeichnung=g.bezeichnung[:300], betrag_netto=g.betrag_netto))
+                       zeitraum_bis=g.zeitraum_bis, bezeichnung=g.bezeichnung[:300], betrag_netto=g.betrag_netto,
+                       ust_betrag=g.ust_betrag, ust_satz=g.ust_satz, ust_land=g.ust_land))
 
     for ladeort in ladeorte.values():  # neue Ladeorte verorten (bekannte haben ihre Koordinaten schon)
         if ladeort is not None and ladeort.genauigkeit is None:

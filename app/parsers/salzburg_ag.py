@@ -18,7 +18,9 @@ from pathlib import Path
 from app.formatierung import decimal_lesen
 from app.models import KennungTyp
 from app.parsers import salzburg_ag_csv
-from app.parsers.basis import Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden, pdf_text
+from app.parsers.basis import (Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden, pdf_text,
+                               ust_setzen)
+from app.services.evse import land_aus_text
 
 BETRAG = r"-?[\d.]+,\d{2}"
 # Betrag mit vorangestelltem („EUR 2,50“, aktuelles Format) oder nachgestelltem „EUR“ („2,50 EUR“, älteres Format)
@@ -119,6 +121,7 @@ def parsen_text(text: str) -> Ergebnis:
         summe = Decimal(0)
 
         kopf = _kopfzeilen(zeilen)
+        erste_v, erste_g = len(ergebnis.vorgaenge), len(ergebnis.gebuehren)
         for i, z in enumerate(zeilen):
             if z.startswith("Ladenachweis"):
                 abschnitt, karte = "nachweis", None
@@ -179,6 +182,14 @@ def parsen_text(text: str) -> Ergebnis:
                                           f"Summe Ladenachweis {ladekosten_nachweis[k]} EUR.")
         if netto is not None and summe != netto:
             ergebnis.warnungen.append(f"Rechnung {nr}: Summe der Positionen {summe} EUR ≠ Nettobetrag {netto} EUR.")
+        # USt. der Teilrechnung: Satz je Position („20,00%“), Summe „Steuerbetrag: 4,27 EUR“
+        saetze = {decimal_lesen(s) for s in re.findall(r"(?<![\d,])(\d{1,2},\d{2})\s*%", dok)}
+        steuer = re.search(rf"Steuerbetrag:\s*(?:EUR\s*({BETRAG})|({BETRAG})\s*EUR)", dok)
+        if len(saetze) == 1 and steuer:
+            posten = ergebnis.vorgaenge[erste_v:] + ergebnis.gebuehren[erste_g:]
+            if warnung := ust_setzen(posten, saetze.pop(), land_aus_text(land) or "AT",
+                                     decimal_lesen(steuer.group(1) or steuer.group(2))):
+                ergebnis.warnungen.append(f"Rechnung {nr}: {warnung}")
 
     if not nummern or (not ergebnis.vorgaenge and not ergebnis.gebuehren):
         raise ParserFehler("Keine Salzburg-AG-Rechnung mit Positionen gefunden.")

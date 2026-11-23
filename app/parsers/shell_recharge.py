@@ -17,7 +17,8 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from app.models import KennungTyp
-from app.parsers.basis import Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden, pdf_text
+from app.parsers.basis import (Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden, pdf_text,
+                               ust_setzen)
 
 RE_DATUM = re.compile(r"^\d{2}-\d{2}-\d{2}$")
 RE_ZEIT = re.compile(r"^\d{2}\.\d{2}$")
@@ -146,6 +147,11 @@ def parsen_daten(text: str, seiten: list[list[dict]]) -> Ergebnis:
     if ergebnis.vorgaenge:
         ergebnis.rechnung.zeitraum_von = min(v.start for v in ergebnis.vorgaenge).date()
         ergebnis.rechnung.zeitraum_bis = max(v.ende for v in ergebnis.vorgaenge).date()
+    # USt.: „MwSt. 3.75 20% 0.75“ (Spezifikation); Land laut USt.-Nummer des Ausstellers („MwSt. ATU…“)
+    if m := re.search(r"^MwSt\.\s+[\d.,]+\s+(\d+(?:[.,]\d+)?)\s*%\s+([\d.,]+)\s*$", text, flags=re.M):
+        land = (re.search(r"MwSt\.\s*([A-Z]{2})U?\d{6,}", text) or [None, None])[1]
+        if warnung := ust_setzen(ergebnis.vorgaenge + ergebnis.gebuehren, _zahl(m.group(1)), land, _zahl(m.group(2))):
+            warnungen.append(warnung)
     return ergebnis
 
 

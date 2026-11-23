@@ -3,7 +3,8 @@
 Tatsächliche Kosten = netto + USt. × (1 − Abzug). Abzug = Vorsteuer-% des Fahrzeugs (ohne Fahrzeug: Standard aus den
 Einstellungen), aber nur bei inländischer USt. (Land der USt. = Land des Unternehmens); ausländische USt. zählt voll.
 
-USt.: laut Rechnung (`ust_betrag`), sonst geschätzt = netto × Normalsatz des Landes (Steuersatz-Tabelle) am Tag der
+USt.: laut Rechnung (`ust_betrag`); Reverse Charge (`ust_land` „RC“): Satz des Unternehmenslands, abziehbar wie
+inländische USt.; sonst geschätzt = netto × Normalsatz des Landes (Steuersatz-Tabelle) am Tag der
 Ladung – Land der USt. bzw. des Ladevorgangs, sonst des Unternehmens. Private Ladungen (Kostenersatz, Wallbox-Importe
 mit Strompreis) ohne USt.: der Betrag ist der tatsächlich gezahlte.
 
@@ -20,6 +21,7 @@ from sqlalchemy import event, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Fahrzeug, Gebuehr, Ladeart, Ladevorgang, Steuersatz
+from app.parsers.basis import REVERSE_CHARGE
 
 CENT = Decimal("0.01")
 VOLL = Decimal(100)
@@ -87,7 +89,10 @@ def berechnen(k: Kontext, netto: Decimal, ust_betrag: Decimal | None, ust_satz: 
               ust_land: str | None, land: str | None, privat: bool, tag: date, abzug: Decimal) -> Ergebnis:
     """Tatsächliche Kosten eines Postens (siehe Moduldoku)."""
     netto = netto or Decimal(0)
-    if ust_betrag is not None:
+    if ust_land == REVERSE_CHARGE:  # Steuer schuldet das Unternehmen: inländische USt., abziehbar je Fahrzeug
+        ust_land, satz, geschaetzt = k.firmenland, k.satz(k.firmenland, tag), False
+        ust = _cent(netto * satz / 100) if satz is not None else Decimal(0)
+    elif ust_betrag is not None:
         ust, satz, ust_land, geschaetzt = ust_betrag, ust_satz, ust_land or k.firmenland, False
     elif privat:
         ust, satz, ust_land, geschaetzt = Decimal(0), None, None, False

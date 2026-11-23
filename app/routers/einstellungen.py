@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app import auth
 from app.db import get_db
-from app.formatierung import decimal_lesen, email_lesen, zahl
+from app.formatierung import datum, decimal_lesen, email_lesen, zahl
 from app.config import einstellungen as konfiguration
 from sqlalchemy import select
 
@@ -36,6 +36,7 @@ def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
         "topliste_mindestmenge": zahl(e.topliste_mindestmenge, 1),
         "strompreis_vorbelegung": zahl(e.strompreis_vorbelegung, 4),
         "firmenland": e.firmenland, "vorsteuer_standard": zahl(e.vorsteuer_standard, 0),
+        "ust_nachgetragen": datum(date.fromisoformat(e.ust_nachgetragen)) if e.ust_nachgetragen else "",
         "co2e_strom": zahl(e.co2e_strom, 0) if e.co2e_strom is not None else "",
         "co2e_verbrauch_e": zahl(e.co2e_verbrauch_e, 1), "co2e_verbrauch_verbrenner": zahl(e.co2e_verbrauch_verbrenner, 1),
         "co2e_verbrenner": zahl(e.co2e_verbrenner, 2),
@@ -363,6 +364,17 @@ def steuersatz_loeschen(request: Request, satz_id: int, db: Session = Depends(ge
     kosten.neu_berechnen(db)
     db.commit()
     meldung(request, "Steuersatz entfernt.")
+    return weiter("/einstellungen#steuersaetze")
+
+
+@router.post("/ust-nachtragen", dependencies=[Depends(auth.admin_erforderlich)])
+def ust_nachtragen(request: Request, db: Session = Depends(get_db)):
+    """USt. aus den gespeicherten Originalrechnungen nachtragen (services/ust_nachtrag.py)."""
+    from app.services import ust_nachtrag
+    bericht = ust_nachtrag.nachtragen(db)
+    app_einstellungen.speichern(db, {"ust_nachgetragen": date.today().isoformat()})
+    db.commit()
+    meldung(request, bericht.text, "warnung" if bericht.fehler else "info")
     return weiter("/einstellungen#steuersaetze")
 
 

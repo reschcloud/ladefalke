@@ -17,7 +17,8 @@ from pathlib import Path
 from app.formatierung import decimal_lesen
 from app.parsers import enbw_csv
 from app.models import KennungTyp
-from app.parsers.basis import (Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden,
+from app.services.evse import land_aus_text
+from app.parsers.basis import (REVERSE_CHARGE, Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden, ust_setzen,
                                pdf_text, stromart_normieren)
 
 MONATE = {m: i for i, m in enumerate(["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
@@ -140,4 +141,24 @@ def parsen_text(text: str) -> Ergebnis:
             warnungen.append(f"{rest} EUR ohne Kartenbezug als Gebühr erfasst – bitte prüfen.")
     if not ergebnis.vorgaenge and not ergebnis.gebuehren:
         raise ParserFehler("Keine Ladevorgänge oder Gebühren gefunden – ist das eine EnBW-Rechnung?")
+    _ust(text, land, ergebnis)
     return ergebnis
+
+
+def _ust(text: str, land: str, ergebnis: Ergebnis) -> None:
+    """USt. laut Übersicht („Ladeenergie 12,02 € 2,41 € (20%) 14,43 €“): eine Rechnung je Land, ein Satz – die USt.
+    des Rechnungslands (z. B. 19 % für Deutschland), auf die Posten verteilt."""
+    zeilen = re.findall(rf"({BETRAG})\s*€\s+({BETRAG})\s*€\s*\((\d+(?:,\d+)?)\s*%\)", text)
+    saetze = {decimal_lesen(s) for _, _, s in zeilen}
+    if len(saetze) != 1:
+        if zeilen:
+            ergebnis.warnungen.append("Mehrere USt.-Sätze in der Rechnung – USt. wird geschätzt.")
+        return
+    satz = saetze.pop()
+    posten = ergebnis.vorgaenge + ergebnis.gebuehren
+    if satz == 0 and re.search(r"Steuerschuldnerschaft|Reverse Charge", text):
+        ust_setzen(posten, None, REVERSE_CHARGE)
+        return
+    summe = sum((decimal_lesen(u) for _, u, _ in zeilen), Decimal(0))
+    if warnung := ust_setzen(posten, satz, land_aus_text(land), summe):
+        ergebnis.warnungen.append(warnung)

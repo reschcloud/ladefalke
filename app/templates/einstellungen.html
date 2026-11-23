@@ -88,6 +88,10 @@
       {% endif %}
       </tbody>
     </table></div>
+    <p class="gruppe-text"><small>Rechnungen, die vor der USt.-Erfassung (11/2026) importiert wurden, liest die App
+      einmal nach dem Update erneut und übernimmt die USt.{% if werte.get("ust_nachgetragen") %} (zuletzt am
+      {{ werte.ust_nachgetragen }}){% endif %}.</small>
+      {% if not nur_lesen %}<button type="submit" form="ust-nachtragen" class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button>{% endif %}</p>
   </section>
 
   <section class="einstellung-gruppe">
@@ -476,6 +480,7 @@
 {# Backup-Aktionen: eigene Formulare (Formulare lassen sich nicht schachteln), Knöpfe oben über das form-Attribut #}
 <form method="post" action="/einstellungen/backup/erstellen" id="backup-erstellen" hidden></form>
 <form method="post" action="/einstellungen/steuersatz" id="steuersatz-neu" hidden></form>
+<form method="post" action="/einstellungen/ust-nachtragen" id="ust-nachtragen" hidden></form>
 {% for s in steuersaetze %}<form method="post" action="/einstellungen/steuersatz/{{ s.id }}/loeschen" id="steuersatz-loeschen-{{ s.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/mail/test" id="mail-test" hidden></form>
 <form method="post" action="/einstellungen/syslog/test" id="syslog-test" hidden></form>

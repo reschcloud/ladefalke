@@ -101,6 +101,10 @@ def parsen(pfad: Path) -> Ergebnis:
             stromart=_stromart(tarif),
             rohdaten={"rechnung": r.nummer, "land": (z.get("Charging Station Country Alpha2") or "").strip(),
                       "tarif": tarif, "csv": {k: v for k, v in z.items() if v and k not in OHNE}}))
+        if (ust := (z.get("Amount VAT") or "").strip()) and (satz := (z.get("Tax Rate Energy") or "").strip()):
+            v = ergebnis.vorgaenge[-1]
+            v.ust_betrag, v.ust_satz = _betrag(ust).quantize(CENT, rounding=ROUND_HALF_UP), _betrag(satz)
+            v.ust_land = (z.get("Charging Station Country Alpha2") or "").strip().upper()[:2] or None
         if not karte:
             warnungen.append(f"Ladevorgang {z.get('Transaction ID')}: Ladekarte nicht gefunden.")
 
@@ -115,8 +119,15 @@ def parsen(pfad: Path) -> Ergebnis:
     if r.summe_netto is not None:
         rest = r.summe_netto - sum((v.kosten_netto for v in ergebnis.vorgaenge), Decimal(0))
         if rest:
-            ergebnis.gebuehren.append(Gebuehr("Grundgebühren und sonstige Positionen (in der CSV nicht aufgeschlüsselt)",
-                                              rest, zeitraum_von=r.zeitraum_von, zeitraum_bis=r.zeitraum_bis))
+            g = Gebuehr("Grundgebühren und sonstige Positionen (in der CSV nicht aufgeschlüsselt)",
+                        rest, zeitraum_von=r.zeitraum_von, zeitraum_bis=r.zeitraum_bis)
+            ergebnis.gebuehren.append(g)
+            # USt. dazu: Rechnungs-USt. minus USt. der Ladevorgänge, Satz und Land wie bei den Ladevorgängen
+            saetze = {(v.ust_satz, v.ust_land) for v in ergebnis.vorgaenge if v.ust_satz is not None}
+            if (ust_gesamt := (erste.get("Invoice Amount VAT") or "").strip()) and len(saetze) == 1:
+                g.ust_satz, g.ust_land = saetze.pop()
+                g.ust_betrag = _betrag(ust_gesamt).quantize(CENT, rounding=ROUND_HALF_UP) - sum(
+                    (v.ust_betrag or Decimal(0) for v in ergebnis.vorgaenge), Decimal(0))
             warnungen.append(f"{rest} EUR der Rechnungssumme sind in der CSV nicht aufgeschlüsselt (Grundgebühren je "
                              "Karte) und werden als Gebühr ohne Kartenbezug erfasst. Für die Zuordnung zu den Karten "
                              "besser das PDF statt der CSV importieren (beide zusammen: die Gebühren der zweiten "

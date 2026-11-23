@@ -14,6 +14,9 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   Steuersatz-Tabelle (Land, gültig ab, Satz – vorbelegt, änderbar) geschätzt und mit ≈ gekennzeichnet. Ladevorgang:
   Kosten mit Netto und USt.; Export mit Netto, USt., Satz und Land.
 - Hinweis bei den Kosten (Dashboard, Auswertungen, Zusammenfassung, Fahrer:innen-Report), dass Summen Näherungen sind.
+- Import übernimmt die USt. der Rechnung je Posten – auch die bisher ignorierte ausländische (DCS, EnBW, Elli) und
+  Reverse Charge (DCS, zählt wie inländische USt.). Bereits importierte Rechnungen werden nach dem Update einmal im
+  Hintergrund erneut gelesen und ergänzt; erneut auslösbar unter Einstellungen → Steuersätze.
 
 ### Geändert
 
@@ -27,7 +30,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 - Migration 0031 (vorher wird gesichert); danach berechnet die App die tatsächlichen Kosten einmal neu. Alle
   Fahrzeuge starten mit 100 % Vorsteuerabzug – Fahrzeuge ohne oder mit anteiligem Abzug auf der Fahrzeugseite
-  anpassen; Steuersätze unter Einstellungen → Kosten und USt. prüfen.
+  anpassen; Steuersätze unter Einstellungen → Kosten und USt. prüfen. Der USt.-Nachtrag aus den Originalrechnungen
+  läuft nach dem Start im Hintergrund (je nach Menge einige Minuten); bis dahin ist die USt. geschätzt (≈).
 
 ## v1.3.0 – 21.11.2026
 

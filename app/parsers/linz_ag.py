@@ -13,7 +13,7 @@ from pathlib import Path
 from app.formatierung import decimal_lesen
 from app.models import KennungTyp
 from app.parsers.basis import (Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, ist_pdf, kwh_runden,
-                               pdf_text, stromart_normieren)
+                               pdf_text, stromart_normieren, ust_setzen)
 
 BETRAG = r"-?\d[\d.]*,\d{2}"
 RE_POSITION = re.compile(r"^(\d{6})\s+(.*)$")
@@ -137,4 +137,9 @@ def parsen_text(text: str) -> Ergebnis:
     elif ergebnis.vorgaenge:
         rechnung.zeitraum_von = min(v.ende for v in ergebnis.vorgaenge).date()
         rechnung.zeitraum_bis = max(v.ende for v in ergebnis.vorgaenge).date()
+    # USt.: „Umsatzsteuer 20,00% v. 94,16 18,83“ (Inlandsrechnung)
+    if m := re.search(rf"Umsatzsteuer\s+(\d+(?:,\d+)?)\s*%\s*v\.\s*{BETRAG}\s+({BETRAG})", text):
+        if warnung := ust_setzen(ergebnis.vorgaenge + ergebnis.gebuehren, decimal_lesen(m.group(1)), "AT",
+                                 decimal_lesen(m.group(2))):
+            warnungen.append(warnung)
     return ergebnis

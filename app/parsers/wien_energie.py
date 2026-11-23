@@ -214,13 +214,15 @@ def parsen_text(text: str) -> Ergebnis:
             start=s["start"], ende=s["ende"], kwh=kwh, kwh_geschaetzt=basis is not None, kosten_netto=n,
             standort=s["standort"], ladepunkt=s["ladepunkt"], kartenbezeichnung=f"Wien Energie {s['vertrag']}",
             stromart=s["stromart"], schaetzbasis=basis,
-            rohdaten={**rohdaten, **(basis.als_rohdaten() if basis else {})}))
+            rohdaten={**rohdaten, **(basis.als_rohdaten() if basis else {})},
+            ust_betrag=s["brutto"] - n, ust_satz=ust * 100, ust_land="AT"))  # USt. = brutto − netto
     for g, n in zip(gebuehren, netto[len(sitzungen):]):
         karten = karten_je_vertrag.get(g["vertrag"], set())
         ergebnis.gebuehren.append(Gebuehr(
             bezeichnung=g["bezeichnung"], betrag_netto=n, vertragsnummer=g["vertrag"],
             kartenkennung=next(iter(karten)) if len(karten) == 1 else None,
-            zeitraum_von=g["von"], zeitraum_bis=g["bis"]))
+            zeitraum_von=g["von"], zeitraum_bis=g["bis"],
+            ust_betrag=g["brutto"] - n, ust_satz=ust * 100, ust_land="AT"))
 
     zeitraeume = [(g.zeitraum_von, g.zeitraum_bis) for g in ergebnis.gebuehren if g.zeitraum_von]
     if zeitraeume:

@@ -66,6 +66,10 @@ class Vorgang:
     stromart: str | None = None  # "AC" / "DC" – nur wenn die Rechnung es ausdrücklich angibt
     schaetzbasis: "Schaetzbasis | None" = None  # nur bei geschätzten kWh; Import schätzt mit Fahrzeugwerten neu
     rohdaten: dict = field(default_factory=dict)  # nur JSON-taugliche Werte
+    # USt. laut Rechnung (siehe `ust_setzen`); ust_land „RC“ = Reverse Charge (Steuer schuldet der Leistungsempfänger)
+    ust_betrag: Decimal | None = None
+    ust_satz: Decimal | None = None
+    ust_land: str | None = None
 
 
 @dataclass
@@ -78,6 +82,41 @@ class Gebuehr:
     zeitraum_bis: date | None = None
     kennung_typ: KennungTyp = KennungTyp.kartennummer  # falls die Karte neu angelegt wird
     kartenbezeichnung: str | None = None  # Vorschlag, falls die Karte neu angelegt wird
+    ust_betrag: Decimal | None = None  # wie bei Vorgang
+    ust_satz: Decimal | None = None
+    ust_land: str | None = None
+
+
+REVERSE_CHARGE = "RC"  # ust_land bei Reverse Charge: USt. des Unternehmenslands, abziehbar wie inländische
+
+
+def _netto(posten) -> Decimal:
+    return getattr(posten, "kosten_netto", None) if isinstance(posten, Vorgang) else posten.betrag_netto
+
+
+def ust_setzen(posten: list, satz: Decimal | None, land: str | None, summe: Decimal | None = None) -> str | None:
+    """USt. einer (Teil-)Rechnung auf ihre Posten (Vorgänge und Gebühren) übertragen: Satz, Land und Betrag
+    (netto × Satz, centgenau auf die ausgewiesene USt.-Summe verteilt, wenn bekannt). `land` = REVERSE_CHARGE:
+    nur das Kennzeichen, den Betrag rechnet die App mit dem Satz des Unternehmenslands. Liefert eine Warnung, wenn
+    die Summe nicht zu den Posten passt (dann je Posten gerundet)."""
+    posten = [p for p in posten if _netto(p) is not None]
+    if land == REVERSE_CHARGE:
+        for p in posten:
+            p.ust_land, p.ust_satz, p.ust_betrag = REVERSE_CHARGE, None, None
+        return None
+    if satz is None or not posten:
+        return None
+    roh = [_netto(p) * satz / 100 for p in posten]
+    betraege = auf_summe_verteilen(roh, summe) if summe is not None else None
+    warnung = None
+    if betraege is None:
+        if summe is not None:
+            warnung = (f"USt.-Summe {summe} EUR passt nicht zu {satz} % der Posten ({cent(sum(roh, Decimal(0)))} EUR) – "
+                       "je Posten gerundet.")
+        betraege = [cent(r) for r in roh]
+    for p, b in zip(posten, betraege):
+        p.ust_land, p.ust_satz, p.ust_betrag = land, satz, b
+    return warnung
 
 
 @dataclass

@@ -58,6 +58,18 @@ def _monat(jahr: int, mon: int) -> tuple[date, date]:
     return von, (von.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
 
 
+def _ust(posten, z: dict, *spalten: str) -> None:
+    """USt. einer Position: Satz und Land laut Zeile („Mehrwertsteuersatz“, „Leistungserbringungsland“), Betrag =
+    Brutto − Netto der Kostenspalten (Brutto centgenau wie in der Rechnung)."""
+    satz = (z.get("Mehrwertsteuersatz") or "").strip()
+    if not satz:
+        return
+    brutto = _cent(sum((_betrag(z.get(f"{s} Brutto (Euro)")) for s in spalten), Decimal(0)))
+    netto = posten.kosten_netto if isinstance(posten, Vorgang) else posten.betrag_netto
+    posten.ust_satz, posten.ust_betrag = _betrag(satz), brutto - netto
+    posten.ust_land = (z.get("Leistungserbringungsland") or "").strip().upper()[:2] or None
+
+
 def parsen(pfad: Path, dateiname: str | None = None) -> Ergebnis:
     with open(pfad, encoding="utf-8-sig", newline="") as f:
         zeilen = list(csv.DictReader(f, delimiter=";"))
@@ -96,6 +108,7 @@ def parsen(pfad: Path, dateiname: str | None = None) -> Ergebnis:
                 stromart=stromart_normieren(z.get("Stromtyp")),
                 rohdaten={"rechnung": r.nummer, "land": land, "csv": {k: v for k, v in z.items()
                                                                       if v and k not in OHNE}}))
+            _ust(ergebnis.vorgaenge[-1], z, "Energiekosten", "Blockiergebühr")
             if not karte:
                 warnungen.append(f"Ladevorgang {z['Datum Ladestart']} {z['Uhrzeit Ladestart']}: "
                                  "Ladekarte nicht gefunden.")
@@ -109,12 +122,15 @@ def parsen(pfad: Path, dateiname: str | None = None) -> Ergebnis:
             gebuehren_ohne_zeitraum.append(Gebuehr(
                 "Monatliche Grundgebühr", _cent(je_nutzer), kartenkennung=karte,
                 kartenbezeichnung=f"EnBW {karte}" if karte else None))
+            _ust(gebuehren_ohne_zeitraum[-1], z, "Grundgebühr je Nutzer")
         if allgemein:
             gebuehren_ohne_zeitraum.append(Gebuehr("Monatliche Grundgebühr", _cent(allgemein)))
+            _ust(gebuehren_ohne_zeitraum[-1], z, "Grundgebühr")
         if karten:
             bestellt = (z.get("Bestellte Karten") or "").strip()
             gebuehren_ohne_zeitraum.append(Gebuehr(f"Ladekartenbestellung{f' ({bestellt})' if bestellt else ''}",
                                                    _cent(karten)))
+            _ust(gebuehren_ohne_zeitraum[-1], z, "Kartenkosten")
         if not (je_nutzer or allgemein or karten):
             sonst = _betrag(z.get("Energiekosten Netto (Euro)")) + _betrag(z.get("Blockiergebühr Netto (Euro)"))
             if sonst:

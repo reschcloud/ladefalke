@@ -143,6 +143,7 @@ def parsen_text(text: str) -> Ergebnis:
         r.summe_netto = sum(netto, Decimal(0)) if r.summe_netto is None else r.summe_netto
     for v, n in zip(ergebnis.vorgaenge, netto):
         v.kosten_netto = n
+    _ust_aus_brutto(ergebnis.vorgaenge)
 
     # Kontrollen gegen die echten Textwerte des Dokuments
     brutto_summe = sum((Decimal(v.rohdaten["brutto"]) for v in ergebnis.vorgaenge), Decimal(0))
@@ -155,6 +156,15 @@ def parsen_text(text: str) -> Ergebnis:
         if kwh_runden(zahl_flexibel(m.group(1))) != sum((v.kwh for v in ergebnis.vorgaenge), Decimal(0)):
             warnungen.append(f"Summe der kWh passt nicht zur Übersicht ({m.group(1)} kWh).")
     return ergebnis
+
+
+def _ust_aus_brutto(vorgaenge: list[Vorgang]) -> None:
+    """USt. je Vorgang = brutto − netto, Satz und Land wie zur Netto-Berechnung (Land des Ladepunkts)."""
+    for v in vorgaenge:
+        if v.kosten_netto is not None and "brutto" in v.rohdaten:
+            v.ust_betrag = Decimal(v.rohdaten["brutto"]) - v.kosten_netto
+            v.ust_satz = Decimal(v.rohdaten["ust_satz"])
+            v.ust_land = v.rohdaten.get("land") or None
 
 
 # ------------------------------------------------------------------ älteres Format: Rechnung „Easy Charging“
@@ -222,7 +232,9 @@ def _rechnung_parsen(text: str) -> Ergebnis:
         ergebnis.gebuehren.append(Gebuehr(
             re.sub(r"\s+", " ", m.group(1)).strip(), zahl_flexibel(m.group(4)), kartenkennung=inhaber or None,
             zeitraum_von=_datum(m.group(2)), zeitraum_bis=_datum(m.group(3)), kennung_typ=KennungTyp.kartenlabel,
-            kartenbezeichnung=f"Elli {inhaber}".strip()))
+            kartenbezeichnung=f"Elli {inhaber}".strip(),
+            ust_betrag=zahl_flexibel(m.group(6)) - zahl_flexibel(m.group(4)), ust_satz=zahl_flexibel(m.group(5)),
+            ust_land=land_aus_text(land_rechnung)))
     gebuehren_netto = sum((g.betrag_netto for g in ergebnis.gebuehren), Decimal(0))
     roh_netto = []
     for b in bloecke:
@@ -268,6 +280,7 @@ def _rechnung_parsen(text: str) -> Ergebnis:
         netto = [cent(n) for n in roh_netto]
     for v, n in zip(ergebnis.vorgaenge, netto or []):
         v.kosten_netto = n
+    _ust_aus_brutto(ergebnis.vorgaenge)
     if r.summe_netto is None:
         r.summe_netto = sum((v.kosten_netto for v in ergebnis.vorgaenge), gebuehren_netto)
 

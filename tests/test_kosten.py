@@ -118,3 +118,28 @@ def test_anzeige(angemeldet, db, daten):
     csv = angemeldet.get(f"/ladevorgaenge/export.csv?{SEP}").content.decode("utf-8-sig")
     assert "Kosten €;Netto €;USt. €;USt.-Satz %;USt.-Land;USt. geschätzt" in csv
     assert "12,00;10,00;2,00;20,00;AT;ja" in csv
+
+
+def test_ust_nachtragen(angemeldet, db, daten, monkeypatch):
+    """Altbestand: USt. aus der Originaldatei des Imports (erneut geparst) – zugeordnet über die externe ID (sonst
+    Beginn, Ende und Netto);
+    vorhandene Angaben bleiben, danach Kosten neu berechnet."""
+    from app.parsers import PARSER
+    from app.parsers.basis import Ergebnis, Rechnung, Vorgang
+    from app.services import importe, ust_nachtrag
+    v = daten["v_keiner"]
+    imp = db.get(Import, v.import_id)
+    imp.parser_key = "linz_ag"
+    v.externe_id = "T-1"  # alle Testvorgänge haben dieselbe Zeit und denselben Betrag
+    db.flush()
+    quelle = Vorgang(None, None, v.start, v.ende, v.kwh, kosten_netto=v.kosten_netto, externe_id="T-1",
+                     ust_betrag=D("1.00"), ust_satz=D(10), ust_land="AT")
+    monkeypatch.setattr(type(PARSER["linz_ag"]), "parsen_datei",
+                        lambda self, pfad, name=None: Ergebnis(rechnung=Rechnung(), vorgaenge=[quelle]))
+    monkeypatch.setattr(importe, "datei", lambda i: type("P", (), {"exists": lambda self: True})())
+    antwort = angemeldet.post("/einstellungen/ust-nachtragen")
+    assert "USt. nachgetragen: 1 Ladevorgänge" in antwort.text
+    db.refresh(v)
+    assert (v.ust_betrag, v.ust_satz, v.kosten) == (D("1.00"), D(10), D(11))  # 0 % Vorsteuerabzug
+    assert db.get(Ladevorgang, daten["v_ausland"].id).ust_land == "DE"  # vorhandene USt. unverändert
+    assert "zuletzt am" in angemeldet.get("/einstellungen").text

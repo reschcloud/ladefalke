@@ -9,7 +9,9 @@ Netto-Gesamtbetrag und die „Übersicht der Ladevorgänge“ mit Einzelvorgäng
 - Uhrzeiten: heißt die Spalte „Datum/Uhrzeit (UTC)“, stehen sie in UTC und werden in Europe/Vienna umgerechnet;
   ohne „(UTC)“ (neueres Format, Rechnungen ab Ende 2025) sind sie bereits Ortszeit. Ende = Start + Dauer.
 - Beträge sind netto; die 4-stelligen Einzelbeträge werden centgenau so verteilt, dass
-  sie je Teilrechnung zur Nettosumme (abzüglich Gebühren) passen. Ausländische MwSt wird ignoriert.
+  sie je Teilrechnung zur Nettosumme (abzüglich Gebühren) passen.
+- USt. je Teilrechnung: „+ 27% MwSt. HU … 8,13 EUR“ (Satz, Land, Betrag in EUR – auf die Posten verteilt) bzw.
+  „Steuerschuldnerschaft des Leistungsempfängers“ (Reverse Charge).
 """
 import re
 from collections import defaultdict
@@ -20,8 +22,8 @@ from zoneinfo import ZoneInfo
 
 from app.formatierung import decimal_lesen
 from app.models import KennungTyp
-from app.parsers.basis import (Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang, auf_summe_verteilen, cent,
-                               ist_pdf, kwh_runden, pdf_text, stromart_normieren)
+from app.parsers.basis import (REVERSE_CHARGE, Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung, Vorgang,
+                               auf_summe_verteilen, cent, ist_pdf, kwh_runden, pdf_text, stromart_normieren, ust_setzen)
 
 WIEN = ZoneInfo("Europe/Vienna")
 ZAHL = r"-?\d[\d.]*,\d+"
@@ -152,6 +154,8 @@ def parsen_text(text: str) -> Ergebnis:
                                       f"Nettobetrag abzüglich Gebühren {ziel} EUR.")
         for v, betrag in zip(vorgaenge, verteilt):
             v.kosten_netto = betrag
+        if warnung := _ust(teil, vorgaenge + gebuehren):
+            ergebnis.warnungen.append(f"Rechnung {nr} ({land}): {warnung}")
         ergebnis.vorgaenge += vorgaenge
         ergebnis.gebuehren += gebuehren
 
@@ -164,6 +168,19 @@ def parsen_text(text: str) -> Ergebnis:
     if zeitraeume:
         r.zeitraum_von, r.zeitraum_bis = min(z[0] for z in zeitraeume), max(z[1] for z in zeitraeume)
     return ergebnis
+
+
+RE_MWST = re.compile(rf"^\+\s*(\d+(?:,\d+)?)\s*%\s*MwSt\.?\s*([A-Z]{{2}})\b.*?({ZAHL})\s*EUR\s*$", re.M)
+
+
+def _ust(teil: str, posten: list) -> str | None:
+    """USt. einer Teilrechnung auf ihre Posten übertragen (siehe Moduldoku); ohne Angabe bleibt sie offen
+    (die App schätzt sie dann)."""
+    if m := RE_MWST.search(teil):
+        return ust_setzen(posten, decimal_lesen(m.group(1)), m.group(2), decimal_lesen(m.group(3)))
+    if "Steuerschuldnerschaft des Leistungsempfängers" in teil:
+        ust_setzen(posten, None, REVERSE_CHARGE)
+    return None
 
 
 def _teilrechnung(teil: str, nr: str, land: str, zeitraum):
