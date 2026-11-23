@@ -88,7 +88,7 @@ def ladungen(db: Session, bedingungen: list) -> list[list]:
         .order_by(stichtag_spalte(art).desc())).all()
     personen = personen_beim_laden(db, vorgaenge)
     return [[v.id, float(v.ladeort.lat), float(v.ladeort.lon), v.ladeort.land, _ort_text(v.ladeort), v.stromart,
-             float(v.kwh), float(v.kosten_netto), v.kwh_geschaetzt, stichtag(v.start, v.ende, art).strftime("%d.%m.%y"),
+             float(v.kwh), float(v.kosten if v.kosten is not None else v.kosten_netto), v.kwh_geschaetzt, stichtag(v.start, v.ende, art).strftime("%d.%m.%y"),
              v.betreiber_id or "", _person(personen[v.id]), v.fahrzeug.kennzeichen if v.fahrzeug else "",
              max(0, round((v.ende - v.start).total_seconds() / 60))] for v in vorgaenge]
 

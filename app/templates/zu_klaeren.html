@@ -197,7 +197,7 @@
         <td>{{ m.karte_vorgang(v, msp=false) }}</td>
         <td>{{ v.standort or "" }}</td>
         <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
-        <td class="rechts">{{ v.kosten_netto | geld }}</td>
+        <td class="rechts">{{ v.kosten | geld }}</td>
       </tr>
     {% endfor %}
     </tbody>
@@ -351,8 +351,8 @@
         <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
         <td class="rechts nowrap">{{ v.start | dauer(v.ende) }}</td>
         <td class="rechts">{{ (kw | zahl(1)) ~ " kW" if kw is not none else "–" }}</td>
-        <td class="rechts">{{ v.kosten_netto | geld }}</td>
-        <td class="rechts">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
+        <td class="rechts">{{ v.kosten | geld }}</td>
+        <td class="rechts">{{ (v.kosten / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
         <td title="{{ grund }}">{% if vorschlag %}{{ m.stromart(vorschlag) }}{% else %}<small>–</small>{% endif %}</td>
       </tr>
     {% endfor %}

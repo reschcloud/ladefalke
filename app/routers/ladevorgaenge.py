@@ -17,7 +17,7 @@ from app.routers.auswertungen import datei_antwort, zeitraum_navigation
 from app.services.auswertung import Zeitraum, vormonat, zeitraum_alles, zeitraum_aus_parametern
 from app.services.aufloesung import (fahrzeug_setzen, person_text, personen_beim_laden, personen_filter,
                                      stichtag_art, stichtag_spalte, vorgang_aktualisieren)
-from app.services import app_einstellungen, karte as kartendaten, stromart as stromart_dienst
+from app.services import app_einstellungen, karte as kartendaten, kosten as kosten_dienst, stromart as stromart_dienst
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.evse import LAENDER, landname
 from app.services.geokodierung import geokodieren, plz_setzen, verortung_text
@@ -63,7 +63,7 @@ def preis_bedingung(preis_min: Decimal | None, preis_max: Decimal | None):
     """Ø €/kWh je Vorgang im Bereich (inklusive); Vorgänge ohne kWh fallen bei gesetztem Filter heraus."""
     if preis_min is None and preis_max is None:
         return None
-    preis = Ladevorgang.kosten_netto / func.nullif(Ladevorgang.kwh, 0)
+    preis = Ladevorgang.kosten / func.nullif(Ladevorgang.kwh, 0)
     teile = [Ladevorgang.kwh > 0]
     if preis_min is not None:
         teile.append(preis >= preis_min)
@@ -77,7 +77,7 @@ def preis_histogramm(db: Session, bedingungen, preis_min: Decimal | None, preis_
     PREIS_STUFE von 0 bis zum höchsten Preis. Nur einzelne Ausreißer über dem Doppelten des 99. Perzentils werden
     gekappt (landen in der letzten Säule, Anzeige „+“). Säulenhöhe ∝ Wurzel der Anzahl, damit neben einer sehr
     häufigen Preisstufe (z. B. Wallbox) auch seltene sichtbar bleiben."""
-    preise = sorted(p for (p,) in db.execute(select(Ladevorgang.kosten_netto / Ladevorgang.kwh)
+    preise = sorted(p for (p,) in db.execute(select(Ladevorgang.kosten / Ladevorgang.kwh)
                                                .where(*bedingungen, Ladevorgang.kwh > 0)) if p is not None)
     if not preise:
         return {"saeulen": [], "max": Decimal(0), "stufe": PREIS_STUFE, "von": preis_min, "bis": preis_max,
@@ -187,8 +187,8 @@ def _filter(von: str, bis: str, msp_id: list[str], fahrzeug_id: list[str], suche
 
 def _abfrage(bedingungen, art: str = "ende", sortierung: str = ""):
     spalte, richtung = sortierung_lesen(sortierung)
-    ausdruck = {"zeit": stichtag_spalte(art), "dauer": Ladevorgang.ende - Ladevorgang.start, "kwh": Ladevorgang.kwh, "kosten": Ladevorgang.kosten_netto,
-                "preis": Ladevorgang.kosten_netto / func.nullif(Ladevorgang.kwh, 0)}[spalte]
+    ausdruck = {"zeit": stichtag_spalte(art), "dauer": Ladevorgang.ende - Ladevorgang.start, "kwh": Ladevorgang.kwh, "kosten": Ladevorgang.kosten,
+                "preis": Ladevorgang.kosten / func.nullif(Ladevorgang.kwh, 0)}[spalte]
     reihenfolge = (ausdruck.desc() if richtung == "ab" else ausdruck.asc()).nulls_last()  # 0 kWh: kein Preis → ans Ende
     return (select(Ladevorgang).where(*bedingungen)
             .options(selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.fahrzeug),
@@ -230,7 +230,7 @@ def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Qu
     else:
         bereich = ""
     summen = db.execute(select(func.count(), func.coalesce(func.sum(Ladevorgang.kwh), 0),
-                               func.coalesce(func.sum(Ladevorgang.kosten_netto), 0))
+                               func.coalesce(func.sum(Ladevorgang.kosten), 0))
                         .where(*bedingungen_liste)).one()
     sortierung = "-".join(sortierung_lesen(sortierung)) if sortierung else ""
     vorgaenge = db.scalars(_abfrage(bedingungen_liste, einst.stichtag, sortierung).limit(MAX_ZEILEN)).all()
@@ -309,12 +309,15 @@ def export(format_: str, von: str = "", bis: str = "", msp_id: list[str] = Query
         bedingungen.append(b)
     vorgaenge = db.scalars(_abfrage(bedingungen, einst.stichtag, sortierung)).all()
     personen = personen_beim_laden(db, vorgaenge)
+    k = kosten_dienst.kontext(db)
+    ust = {v.id: kosten_dienst.fuer_vorgang(k, v) for v in vorgaenge}
     zeilen = [[v.start, v.ende, v.msp.name,
                (v.ladekarte.kennung if v.ladekarte else v.roh_kartenkennung) or "",
                v.ladekarte.bezeichnung or "" if v.ladekarte else "", v.standort or "", v.land or "",
                v.evse_id or "", v.betreiber_id or "", v.kwh,
                "ja" if v.kwh_geschaetzt else "", v.stromart or "", unplausibel_grund(v, einst) or "",
-               v.kosten_netto, v.ladeart.label,
+               v.kosten, v.kosten_netto, ust[v.id].ust, ust[v.id].satz, ust[v.id].land or "",
+               "ja" if ust[v.id].geschaetzt else "", v.ladeart.label,
                v.fahrzeug.kennzeichen if v.fahrzeug else "", person_text(personen[v.id]),
                v.zuordnung_quelle.value, v.import_id]
               for v in vorgaenge]
@@ -322,7 +325,8 @@ def export(format_: str, von: str = "", bis: str = "", msp_id: list[str] = Query
         Spalte("Start", "datumzeit"), Spalte("Ende", "datumzeit"), Spalte("MSP"), Spalte("Karte"),
         Spalte("Kartenbezeichnung"), Spalte("Standort"), Spalte("Land"), Spalte("EVSE-ID"), Spalte("CPO"), Spalte("kWh", "kwh"), Spalte("kWh geschätzt"),
         Spalte("AC/DC"), Spalte("Unplausibel"),
-        Spalte("Kosten netto €", "geld"), Spalte("Ladeart"), Spalte("Fahrzeug"), Spalte("Person"), Spalte("Zuordnung"),
+        Spalte("Kosten €", "geld"), Spalte("Netto €", "geld"), Spalte("USt. €", "geld"), Spalte("USt.-Satz %", "preis"),
+        Spalte("USt.-Land"), Spalte("USt. geschätzt"), Spalte("Ladeart"), Spalte("Fahrzeug"), Spalte("Person"), Spalte("Zuordnung"),
         Spalte("Import", "ganz")], zeilen)
     return datei_antwort(t, format_)
 
@@ -339,6 +343,8 @@ def detail(request: Request, vorgang_id: int, db: Session = Depends(get_db)):
         "v": v, "fahrzeuge": fahrzeuge, "leistung": leistung(v), "personen": personen_beim_laden(db, [v])[v.id],
         "laender": sorted(LAENDER.items(), key=lambda e: e[1]),
         "grund": unplausibel_grund(v, app_einstellungen.laden(db)),
+        "kosten_info": kosten_dienst.fuer_vorgang(kosten_dienst.kontext(db), v, db),
+        "firmenland": app_einstellungen.laden(db).firmenland,
         "rohdaten": json.dumps(v.rohdaten, ensure_ascii=False, indent=2),
         "verlauf": protokoll.verlauf(request, db, "ladevorgang", v.id),
         "liste_url": request.session.get("ladevorgaenge_liste", "/ladevorgaenge"),

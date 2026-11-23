@@ -43,7 +43,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
     tag = stichtag_spalte(stichtag_art(db))  # Zeitraum und Sortierung nach dem Stichtag laut Einstellungen
     gruppen = db.execute(
         select(Ladevorgang.ladekarte_id, Ladevorgang.roh_kartenkennung, Ladevorgang.msp_id,
-               func.count(), func.sum(Ladevorgang.kwh), func.sum(Ladevorgang.kosten_netto),
+               func.count(), func.sum(Ladevorgang.kwh), func.sum(Ladevorgang.kosten),
                func.min(tag), func.max(tag))
         .where(*_ohne_fahrzeug())
         .group_by(Ladevorgang.ladekarte_id, Ladevorgang.roh_kartenkennung, Ladevorgang.msp_id)
@@ -62,7 +62,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
         .order_by(tag.desc()).limit(MAX_ZEILEN)).all()
 
     gaeste = db.execute(select(func.count(), func.coalesce(func.sum(Ladevorgang.kwh), 0),
-                               func.coalesce(func.sum(Ladevorgang.kosten_netto), 0))
+                               func.coalesce(func.sum(Ladevorgang.kosten), 0))
                         .where(Ladevorgang.ladekarte.has(Ladekarte.ist_gastkarte))).one()
     gebuehren = db.scalars(select(Gebuehr).where(Gebuehr.ladekarte_id.is_(None))
                            .options(selectinload(Gebuehr.import_).selectinload(Import.msp))

@@ -26,6 +26,10 @@
   </div>
   <small class="formular-hinweis">Leasing-Ende wird aus dem Beginn + {{ leasing_monate }} Monate vorbelegt
     (Einstellungen) und lässt sich ändern. Vor Ablauf erscheint eine Info unter „Aufgaben“.</small>
+  <div class="grid">
+    {{ m.feld("vorsteuer_prozent", "Vorsteuerabzug (%)", werte, fehler, hilfe="Anteil der inländischen USt. auf Ladekosten und Gebühren, der als Vorsteuer abgezogen wird: 100 = voll, 0 = keiner, dazwischen anteilig (z. B. Luxustangente bei E-Autos über 40.000 € in Österreich). Der Rest zählt zu den Kosten; ausländische USt. zählt immer voll.") }}
+    <div></div>
+  </div>
   {# Österreich: Vignette und Streckenmaut FLEX – nur, wenn das Feature aktiv ist (Einstellungen → Fristen) #}
   {% macro maut(art, titel, frage, knoepfe=[]) %}
   {% set an = werte.get(art ~ "_noetig") %}

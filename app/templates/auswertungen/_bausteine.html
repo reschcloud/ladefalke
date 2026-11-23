@@ -36,6 +36,13 @@
 </nav>
 {% endmacro %}
 
+{# ≈ an den Kosten, wenn geschätzte USt. (Rechnung ohne Angabe) darin steckt #}
+{% macro kosten_hinweis(s) %}
+{%- if s.kosten_geschaetzt -%}
+  <abbr class="geschaetzt" title="enthält {{ s.kosten_geschaetzt | geld }} geschätzte USt. (Rechnung ohne USt.-Angabe)">≈</abbr>&nbsp;
+{%- endif -%}
+{% endmacro %}
+
 {% macro geschaetzt_hinweis(s) %}
 {%- if s.kwh_geschaetzt -%}
   <abbr class="geschaetzt" title="{{ s.anteil_geschaetzt | prozent }} der kWh sind geschätzt">≈</abbr>&nbsp;
@@ -72,7 +79,7 @@
   <div class="kachel"><span class="kachel-zahl">{{ geschaetzt_hinweis(g) }}{{ g.kwh | zahl(0) }}</span><span>kWh</span>
     {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kwh | zahl(0) }} kWh {{ sn.text }}</small>{% endif %}
     {% if v %}{{ abweichung(v.kwh, "Ø %s: %s kWh" % (v.basis, v.kwh_schnitt | zahl(0))) }}{% endif %}</div>
-  <div class="kachel"><span class="kachel-zahl">{{ g.kosten | geld(0) }}</span><span>Kosten netto</span>
+  <div class="kachel"><span class="kachel-zahl">{{ kosten_hinweis(g) }}{{ g.kosten | geld(0) }}</span><span>Kosten {{ m.hilfe("Tatsächliche Kosten: netto plus der Teil der USt., der nicht als Vorsteuer abgezogen wird (Vorsteuerabzug je Fahrzeug; ausländische USt. zählt voll). Summen sind Näherungen: Grundgebühren zählen nach ihrem Leistungszeitraum, Pauschalen nach ihrem Monat; Rechnungen können noch fehlen, kWh und USt. sind teils geschätzt (≈).") }}</span>
     {% if sn %}<small class="pro-tag" title="{{ sn.titel }}">Ø {{ sn.kosten | geld }} {{ sn.text }}</small>{% endif %}
     {% if v %}{{ abweichung(v.kosten, "Ø %s: %s" % (v.basis, v.kosten_schnitt | geld)) }}{% endif %}</div>
   <div class="kachel"><span class="kachel-zahl">{{ icon("geld") }}{{ g.preis | zahl(2) if g.preis is not none else "–" }}</span><span>Ø €/kWh</span>
@@ -94,7 +101,7 @@
   {% endif %}
   {% if tank is not none %}
   <div class="kachel"><span class="kachel-zahl">{{ icon("geld") }}{{ tank | geld(0) }}</span>
-    <span>Tankkosten gespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Tankkosten eines Verbrenners (Verbrauch und Spritpreis netto laut Einstellungen), abzüglich der tatsächlichen Kosten netto.") }}</span>
+    <span>Tankkosten gespart {{ m.hilfe("Grobe Schätzung gegenüber Verbrennern: Strecke aus den geladenen kWh (Verbrauch E-PKW), dafür die Tankkosten eines Verbrenners (Verbrauch und Spritpreis laut Einstellungen), abzüglich der tatsächlichen Kosten.") }}</span>
     <small class="pro-tag">geschätzt ggü. Verbrenner</small></div>
   {% endif %}
 </div>
@@ -108,7 +115,7 @@
 {% macro oeffentlich_privat(g) %}
 <div class="tabelle">
 <table>
-  <thead><tr><th></th><th class="rechts">kWh</th><th class="rechts">Anteil kWh</th><th class="rechts">Kosten netto</th>
+  <thead><tr><th></th><th class="rechts">kWh</th><th class="rechts">Anteil kWh</th><th class="rechts">Kosten</th>
              <th class="rechts">Anteil Kosten</th><th class="rechts">Ø €/kWh</th></tr></thead>
   <tbody>
     <tr><td>öffentlich</td><td class="rechts">{{ g.kwh_oeffentlich | zahl(0) }}</td>
@@ -174,7 +181,7 @@ Zu den eigenen Ladungen werden m kWh zum Schnittpreis aller Fahrer:innen dazuger
 <div class="tabelle">
 <table class="striped">
   <thead><tr><th>{{ spalte }}</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
-             <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+             <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th></tr></thead>
   <tbody>
   {% for name, s in eintraege %}
     <tr><td>{{ name }}</td><td class="rechts">{{ s.anzahl }}</td>

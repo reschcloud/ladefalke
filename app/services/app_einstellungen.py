@@ -14,6 +14,10 @@ STANDARD = {
     "topliste_m": "",  # leer = Median der Fahrzeug-kWh im Zeitraum
     "topliste_mindestmenge": "20",
     "strompreis_vorbelegung": "0.30",
+    # Kosten und Umsatzsteuer (services/kosten.py): Land des Unternehmens (inländische USt.), Vorsteuerabzug in Prozent
+    # für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnet)
+    "firmenland": "AT",
+    "vorsteuer_standard": "100",
     # CO₂e-Einsparung gegenüber Verbrennern (grobe Schätzung): Strommix g CO₂e/kWh (leer = aus), Verbrauch E-PKW
     # kWh/100 km, Verbrauch Verbrenner l/100 km, Emission Verbrenner kg CO₂e/l
     "co2e_strom": "",
@@ -117,6 +121,8 @@ class AppEinstellungen:
     topliste_m: Decimal | None  # Gewichtungskonstante in kWh; None = Median
     topliste_mindestmenge: Decimal
     strompreis_vorbelegung: Decimal  # €/kWh netto für private Importe
+    firmenland: str = "AT"  # ISO-Code; USt. dieses Landes ist als Vorsteuer abziehbar (je Fahrzeug)
+    vorsteuer_standard: Decimal = Decimal(100)  # Prozent, für Posten ohne Fahrzeug
     co2e_strom: Decimal | None = None  # g CO₂e/kWh des geladenen Stroms; None = Schätzung aus
     co2e_verbrauch_e: Decimal = Decimal(20)  # kWh/100 km
     co2e_verbrauch_verbrenner: Decimal = Decimal("7.4")  # l/100 km
@@ -229,6 +235,8 @@ def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
         topliste_m=Decimal(werte["topliste_m"]) if werte["topliste_m"] else None,
         topliste_mindestmenge=Decimal(werte["topliste_mindestmenge"]),
         strompreis_vorbelegung=Decimal(werte["strompreis_vorbelegung"]),
+        firmenland=(werte["firmenland"] or "AT").upper()[:2],
+        vorsteuer_standard=min(Decimal(100), max(Decimal(0), Decimal(werte["vorsteuer_standard"] or 100))),
         co2e_strom=Decimal(werte["co2e_strom"]) if werte["co2e_strom"] else None,
         co2e_verbrauch_e=Decimal(werte["co2e_verbrauch_e"] or 20),
         co2e_verbrauch_verbrenner=Decimal(werte["co2e_verbrauch_verbrenner"] or "7.4"),

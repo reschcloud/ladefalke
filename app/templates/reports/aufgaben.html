@@ -11,7 +11,7 @@
 {% macro gekuerzt(liste) %}{% if liste | length > max_zeilen %}<p class="klein">… und {{ liste | length - max_zeilen }} weitere –
   vollständig unter „Aufgaben“ in der App.</p>{% endif %}{% endmacro %}
 <h1>Offene Aufgaben</h1>
-<p class="untertitel">Stand {{ stand | datum }} · alles, was unter „Aufgaben“ zu klären ist · Beträge netto</p>
+<p class="untertitel">Stand {{ stand | datum }} · alles, was unter „Aufgaben“ zu klären ist</p>
 
 {% set gesamt = zn.zu_klaeren + zn.vorschauen + (luecken | length) %}
 <div class="kacheln drei">

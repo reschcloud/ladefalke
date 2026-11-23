@@ -45,7 +45,7 @@
     {% if pro_tag is not none %}<small class="pro-tag" title="Ø Ladevorgänge je Tag über {{ a.zeitraum.tage_bisher }} Tage">Ø {{ pro_tag | zahl(1) }} pro Tag</small>{% endif %}
     {% if d.code %}<small>{{ vorgaenge_link() }} alle anzeigen</small>{% endif %}</div>
   <div class="kachel"><span class="kachel-zahl">{{ b.geschaetzt_hinweis(s) }}{{ s.kwh | zahl(0) }}</span><span>kWh</span></div>
-  <div class="kachel"><span class="kachel-zahl">{{ s.kosten | geld(0) }}</span><span>Kosten netto</span></div>
+  <div class="kachel"><span class="kachel-zahl">{{ s.kosten | geld(0) }}</span><span>Kosten</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ icon("geld") }}{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span>Ø €/kWh</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ d.ersparnis | geld(0) }}</span><span>Sparpotenzial
     {{ m.hilfe("Was dieselben kWh mit dem günstigsten " ~ "MSP bei " ~ name ~ " weniger gekostet hätten – getrennt nach AC und DC; Maßstab nur, wenn dieser MSP hier mindestens " ~ (mindest | zahl(0)) ~ " kWh der Stromart hat.") }}</span></div>
@@ -57,7 +57,7 @@
   <div class="tabelle">
   <table class="cpo-personen">
     <thead><tr><th>Fahrer:in / Ladekarte</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
-      <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th>
+      <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th>
       <th class="rechts">Sparpotenzial {{ m.hilfe("Mit dem günstigsten " ~ "MSP bei " ~ name ~ " (je Stromart) wäre es um diesen Betrag billiger gewesen. Details im Tooltip.") }}</th><th></th></tr></thead>
     {% for p in d.personen %}
     <tbody class="{{ 'sammel' if p.art != 'person' }}">
@@ -97,7 +97,7 @@
   <div class="tabelle">
   <table class="striped msp-vergleich">
     <thead><tr><th>Stromart</th><th>{{ MSP }}</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th>
-      <th class="rechts">Kosten netto</th><th class="rechts">Ø €/kWh</th></tr></thead>
+      <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th></tr></thead>
     {% for art, liste in d.msp_stromart.items() %}
     <tbody>
     {% for msp_name, ms in liste %}

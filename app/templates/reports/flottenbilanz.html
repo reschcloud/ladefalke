@@ -55,7 +55,7 @@
 </div>
 {% endmacro %}
 {% block inhalt %}
-{{ seitenkopf("Flottenbilanz " ~ z.label, (z.von | datum) ~ " – " ~ (z.bis | datum) ~ " · Preise netto") }}
+{{ seitenkopf("Flottenbilanz " ~ z.label, (z.von | datum) ~ " – " ~ (z.bis | datum)) }}
 <div class="folie">
   <div class="zahlen">
     <div class="kacheln drei">

@@ -64,7 +64,7 @@
 {{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre,
                   versteckt=[("fahrer", hervor)] if hervor else []) }}
 <p><small>PDF-Reports für {{ a.zeitraum.label }} ({{ a.zeitraum.von | datum }} – {{ a.zeitraum.bis | datum }}),
-  berechnet wie Dashboard und Auswertungen. Alle Beträge netto.
+  berechnet wie Dashboard und Auswertungen. Kosten = tatsächliche Kosten (netto plus nicht abziehbare USt.).
   Kennzeichnung: {% if tlp %}<span class="tlp tlp-{{ tlp | lower | replace('+', '-') }}" title="{{ tlp_bedeutung }}">TLP:{{ tlp }}</span>
   {%- else %}keine{% endif %} <a href="/einstellungen#reports">(Einstellungen)</a></small></p>
 {% if mail_fehlt %}<p class="meldung meldung-warnung">Versand per Mail noch nicht möglich: {{ mail_fehlt }}
@@ -149,7 +149,7 @@
     <a href="/reports/fahrer/{{ ohne.id }}.pdf?{{ p }}" role="button" class="outline klein download-knopf" hx-boost="false">Report trotzdem herunterladen ↓</a></p>{% endif %}
   <div class="tabelle">
   <table class="striped">
-    <thead><tr><th>Fahrer:in</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten netto</th>
+    <thead><tr><th>Fahrer:in</th><th class="rechts">Ladevorgänge</th><th class="rechts">kWh</th><th class="rechts">Kosten</th>
       <th class="rechts">Ø €/kWh</th><th>E-Mail</th><th>Versendet</th><th></th></tr></thead>
     <tbody>
     {% for zl in personen %}{% set f = zl.fahrer %}{% set z = zuletzt.get(("fahrer", f.id)) %}

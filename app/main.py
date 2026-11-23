@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import einstellungen
 from app.db import get_db
-from app.services import backup, neuschaetzung, offen, parser_verwaltung, protokoll, syslog, versand  # noqa: F401  (neuschaetzung, protokoll: Ereignisse beim Speichern)
+from app.services import backup, kosten, neuschaetzung, offen, parser_verwaltung, protokoll, syslog, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
 from app.routers import (auswertungen, benutzer, dashboard, einstellungen as einstellungen_router, fahrer, fahrzeuge,
                          importe, konto, ladekarten, ladevorgaenge, msp, pauschalen, protokoll as protokoll_router, reports,
                          zu_klaeren, zuordnungen)
@@ -36,6 +36,7 @@ async def taktgeber() -> None:
 async def lebenszyklus(_app: FastAPI):
     syslog.einrichten()  # Syslog-Einstellungen laden, App-Meldungen anhängen
     parser_verwaltung.beim_start()  # MSP für neu installierte Parser anlegen
+    kosten.beim_start()  # tatsächliche Kosten nachtragen (nach Migration 0031)
     takt = asyncio.create_task(taktgeber())
     yield
     takt.cancel()

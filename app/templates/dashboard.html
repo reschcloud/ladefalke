@@ -127,7 +127,7 @@
   {% else %}
   <div class="diagramme">
     {{ verteilungsdiagramm(verteilung, 0, "kWh je Fahrer:in", "kWh") }}
-    {{ verteilungsdiagramm(verteilung, 1, "Ladekosten netto je Fahrer:in", "€") }}
+    {{ verteilungsdiagramm(verteilung, 1, "Ladekosten je Fahrer:in", "€") }}
     {% if not msp_verteilung.leer %}{{ verteilungsdiagramm(msp_verteilung, 0, "kWh je " ~ MSP, "kWh") }}{% endif %}
     {% if not cpo_verteilung.leer %}{{ verteilungsdiagramm(cpo_verteilung, 0, "kWh je " ~ CPO, "kWh") }}{% endif %}
   </div>
@@ -137,7 +137,7 @@
     {% macro sk(text, art="zahl", rechts=true) %}<th{% if rechts %} class="rechts"{% endif %} data-sort="{{ art }}" title="Sortieren">{{ text }}<span class="sortpfeil" aria-hidden="true">↕</span></th>{% endmacro %}
     <table class="striped" data-sortierbar>
       <thead><tr>{{ sk("Fahrer:in", "text", false) }}{{ sk("kWh") }}{{ sk("Anteil") }}
-                 {{ sk("Ladekosten netto") }}{{ sk("Anteil") }}{{ sk("Ø €/kWh") }}</tr></thead>
+                 {{ sk("Ladekosten") }}{{ sk("Anteil") }}{{ sk("Ø €/kWh") }}</tr></thead>
       <tbody>
       {% set kwh_gesamt, kosten_gesamt = verteilung.summe(0), verteilung.summe(1) %}
       {% for p in verteilung.personen %}

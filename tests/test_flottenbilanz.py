@@ -69,7 +69,7 @@ def test_pdf(angemeldet, db, flotte):
         assert geheim not in treppchen, geheim
     # ohne Kopf- und Fußzeile
     assert not any("Seite 1 von" in s or "erstellt" in s for s in (titel, treppchen))
-    assert "Ladevorgänge nach" not in titel  # Untertitel nur Zeitraum und „Preise netto“
+    assert "Ladevorgänge nach" not in titel  # Untertitel nur der Zeitraum
 
 
 def test_co2e_statt_fahrerinnen(angemeldet, db, flotte):

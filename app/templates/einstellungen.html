@@ -32,7 +32,7 @@
 <h1>Einstellungen</h1>
 {% if nur_lesen %}<p class="meldung meldung-info">Nur lesen – Einstellungen ändern kann ein Admin.</p>{% endif %}
 <nav class="einstellungen-nav" aria-label="Gruppen">
-  <a href="#allgemein">Allgemein</a><a href="#datenqualitaet">Datenqualität</a>
+  <a href="#allgemein">Allgemein</a><a href="#kosten">Kosten und USt.</a><a href="#datenqualitaet">Datenqualität</a>
   <a href="#auswertungen">Auswertungen</a><a href="#fristen">Fristen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a>
 </nav>
 
@@ -52,8 +52,42 @@
     <small class="standardwert">Ladeende = wie die Rechnungen (Monatssummen stimmen überein), Ladebeginn = wann geladen
       wurde. Empfehlung: Ladeende <span class="geaendert-marker">· abweichend</span></small>
   </div>
-      {{ einstellung("strompreis_vorbelegung", "Strompreis private Ladungen", "€/kWh netto", "Vorbelegung beim Import von Dateien ohne Kostenangabe (z. B. Exporte eigener Wallboxen): kWh × Strompreis ergibt die Kosten; beim Import änderbar.") }}
+      {{ einstellung("strompreis_vorbelegung", "Strompreis private Ladungen", "€/kWh", "Vorbelegung beim Import von Dateien ohne Kostenangabe (z. B. Exporte eigener Wallboxen): kWh × Strompreis ergibt die Kosten; beim Import änderbar. Einzutragen ist, was tatsächlich je kWh gezahlt bzw. erstattet wird.") }}
     </div>
+  </section>
+
+  <section class="einstellung-gruppe">
+    {{ gruppe_kopf("kosten", "Kosten und Umsatzsteuer", "Alle Kosten sind tatsächliche Kosten: netto plus der Teil der USt., der nicht als Vorsteuer zurückkommt. Inländische USt. (Land des Unternehmens) ist je Fahrzeug abziehbar (Vorsteuerabzug in Prozent, auf der Fahrzeugseite), ausländische USt. zählt immer voll. Nennt eine Rechnung keine USt., wird sie mit dem Steuersatz unten geschätzt (≈). Private Ladungen und Pauschalen sind ohne USt.") }}
+    {% set geaendert = werte.get("firmenland") != standard.get("firmenland") %}
+    <div class="einstellung-felder">
+      <div class="einstellung{{ ' geaendert' if geaendert }}">
+        <label for="e-firmenland">Land des Unternehmens {{ m.hilfe("USt. dieses Landes ist als Vorsteuer abziehbar; USt. anderer Länder zählt als Kosten.") }}</label>
+        <select id="e-firmenland" name="firmenland" data-standard="{{ standard.firmenland }}" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+          {% for code, name in laender %}<option value="{{ code }}" {% if werte.get("firmenland") == code %}selected{% endif %}>{{ name }}</option>{% endfor %}
+        </select>
+        <small class="standardwert">Empfehlung: Österreich <span class="geaendert-marker">· abweichend</span></small>
+      </div>
+      {{ einstellung("vorsteuer_standard", "Vorsteuerabzug ohne Fahrzeug", "%", "Für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnete Karten). Je Fahrzeug auf der Fahrzeugseite.") }}
+    </div>
+    <h3 id="steuersaetze">Steuersätze</h3>
+    <p class="gruppe-text"><small>Umsatzsteuer-Normalsatz je Land ab einem Datum – nur für Rechnungen ohne USt.-Angabe.
+      Vorbelegt, bitte prüfen; Änderungen gelten sofort.</small></p>
+    <div class="tabelle"><table class="steuersaetze">
+      <thead><tr><th>Land</th><th>gültig ab</th><th class="rechts">Satz</th><th></th></tr></thead>
+      <tbody>
+      {% for s in steuersaetze %}
+        <tr><td>{{ laender_namen.get(s.land, s.land) }} <small>({{ s.land }})</small></td><td>{{ s.gueltig_ab | datum }}</td>
+          <td class="rechts">{{ s.satz | zahl(1 if s.satz % 1 else 0) }} %</td>
+          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="steuersatz-loeschen-{{ s.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+      {% endfor %}
+      {% if not nur_lesen %}
+        <tr><td><select name="land" form="steuersatz-neu" aria-label="Land">{% for code, name in laender %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></td>
+          <td><input type="date" name="gueltig_ab" form="steuersatz-neu" aria-label="gültig ab" required></td>
+          <td><input type="text" name="satz" form="steuersatz-neu" inputmode="decimal" aria-label="Satz in Prozent" placeholder="%" required class="kurz"></td>
+          <td class="rechts"><button type="submit" form="steuersatz-neu" class="klein">Hinzufügen</button></td></tr>
+      {% endif %}
+      </tbody>
+    </table></div>
   </section>
 
   <section class="einstellung-gruppe">
@@ -85,14 +119,14 @@
     </div>
     <p class="gruppe-text"><small>Vergleich mit Verbrennern (grobe Schätzung): aus den geladenen kWh die Strecke
       (Verbrauch E-PKW), dafür Emissionen bzw. Tankkosten eines Verbrenners. CO₂e-Einsparung = abzüglich der Emissionen
-      des geladenen Stroms, eingesparte Tankkosten = abzüglich der tatsächlichen Kosten netto. Leer lassen von „CO₂e des
+      des geladenen Stroms, eingesparte Tankkosten = abzüglich der tatsächlichen Ladekosten. Leer lassen von „CO₂e des
       Stroms“ bzw. „Spritpreis“ schaltet die jeweilige Schätzung aus.</small></p>
     <div class="einstellung-felder">
       {{ einstellung("co2e_strom", "CO₂e des Stroms", "g CO₂e/kWh", "Emissionsfaktor des geladenen Stroms, z. B. Strommix laut Versorger oder Umweltbundesamt.", leer_text="leer (Schätzung aus)") }}
       {{ einstellung("co2e_verbrauch_e", "Verbrauch E-PKW", "kWh/100 km", "Durchschnittlicher Verbrauch der E-Fahrzeuge inklusive Ladeverlusten.") }}
       {{ einstellung("co2e_verbrauch_verbrenner", "Verbrauch Verbrenner", "l/100 km", "Vergleichsfahrzeug: durchschnittlicher Kraftstoffverbrauch.") }}
       {{ einstellung("co2e_verbrenner", "Emissionen Verbrenner", "kg CO₂e/l", "CO₂e je Liter Kraftstoff (Diesel/Benzin inklusive Vorkette rund 3,2).") }}
-      {{ einstellung("spritpreis", "Spritpreis", "€/l netto", "Durchschnittlicher Kraftstoffpreis ohne USt. – wie alle Beträge der App netto.", leer_text="leer (Schätzung aus)") }}
+      {{ einstellung("spritpreis", "Spritpreis", "€/l", "Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet.", leer_text="leer (Schätzung aus)") }}
     </div>
   </section>
 
@@ -441,6 +475,8 @@
 </form>
 {# Backup-Aktionen: eigene Formulare (Formulare lassen sich nicht schachteln), Knöpfe oben über das form-Attribut #}
 <form method="post" action="/einstellungen/backup/erstellen" id="backup-erstellen" hidden></form>
+<form method="post" action="/einstellungen/steuersatz" id="steuersatz-neu" hidden></form>
+{% for s in steuersaetze %}<form method="post" action="/einstellungen/steuersatz/{{ s.id }}/loeschen" id="steuersatz-loeschen-{{ s.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/mail/test" id="mail-test" hidden></form>
 <form method="post" action="/einstellungen/syslog/test" id="syslog-test" hidden></form>
 {% for s in backup.liste %}<form method="post" action="/einstellungen/backup/{{ s.name }}/loeschen" id="backup-loeschen-{{ loop.index }}" hidden></form>{% endfor %}

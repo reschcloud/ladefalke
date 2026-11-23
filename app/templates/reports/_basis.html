@@ -142,6 +142,9 @@
 
 {% macro dauer(minuten) %}{{ "%d:%02d h" % (minuten // 60, minuten % 60) if minuten >= 60 else "%d min" % minuten }}{% endmacro %}
 
+{# Hinweis unter den Kennzahlen: was „Kosten“ heißt und dass Summen Näherungen sind #}
+{% macro naeherung() %}<p class="klein">Kosten = tatsächliche Kosten (netto plus nicht abziehbare USt.). Summen sind Näherungen: Grundgebühren zählen nach ihrem Leistungszeitraum, Pauschalen nach ihrem Monat; Rechnungen können noch fehlen, kWh und USt. sind teils geschätzt (≈).</p>{% endmacro %}
+
 {% macro kennzahlen(s, v, z, mit_oeffentlich=true, gegen_flotte=none, flottenschnitt=none, dc=none, drei=false, schnitt=none) %}
 {% set sn = schnitt %}
 <div class="kacheln{{ ' drei' if drei }}">
@@ -152,7 +155,7 @@
   <div class="kachel"><span class="zahl">{{ s.kwh | zahl(0) }}</span><span class="text">kWh{% if s.kwh_geschaetzt %} (≈ {{ s.anteil_geschaetzt | prozent }} geschätzt){% endif %}</span>
     {% if sn %}<span class="vgl">Ø {{ sn.kwh | zahl(0) }} kWh {{ sn.text }}</span>{% endif %}
     {% if v %}{{ abweichung(v.kwh, v.basis) }}{% endif %}</div>
-  <div class="kachel"><span class="zahl">{{ s.kosten | geld(0) }}</span><span class="text">Kosten netto</span>
+  <div class="kachel"><span class="zahl">{% if s.kosten_geschaetzt %}≈ {% endif %}{{ s.kosten | geld(0) }}</span><span class="text">Kosten</span>
     {% if sn %}<span class="vgl">Ø {{ sn.kosten | geld }} {{ sn.text }}</span>{% endif %}
     {% if v %}{{ abweichung(v.kosten, v.basis) }}{% endif %}</div>
   <div class="kachel"><span class="zahl">{{ icon("geld") }}{{ s.preis | zahl(2) if s.preis is not none else "–" }}</span><span class="text">Ø €/kWh</span>
@@ -268,7 +271,7 @@
 <div class="block">
 <h3>{{ titel }}</h3>
 <table>
-  <thead><tr><th>{{ spalte }}</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <thead><tr><th>{{ spalte }}</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
   <tbody>
   {% for name, s in eintraege %}
     <tr><td>{{ name }}</td><td class="r">{{ s.anzahl }}</td><td class="r">{{ s.kwh | zahl(0) }}</td>

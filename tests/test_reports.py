@@ -143,7 +143,7 @@ def test_download_signal(angemeldet, db):
 
 def test_kachel_reihenfolge(angemeldet, db, daten):
     """Überall gleich: Ladevorgänge, kWh, Kosten, Preis, Ladedauer DC, Anteil öffentlich."""
-    reihe = ["Ladevorgänge", "kWh", "Kosten netto", "Ø €/kWh", "Ø Ladedauer DC", "öffentlich (kWh)"]
+    reihe = ["Ladevorgänge", "kWh", "Kosten", "Ø €/kWh", "Ø Ladedauer DC", "öffentlich (kWh)"]
 
     def in_reihenfolge(text, titel):
         pos, ab = [], 0
@@ -159,7 +159,7 @@ def test_kachel_reihenfolge(angemeldet, db, daten):
     seite = angemeldet.get(f"/stammdaten/fahrer/{daten['anna'].id}").text
     assert in_reihenfolge(seite.split('class="kacheln kacheln-klein"')[1], reihe)
     text, _ = _text(reports.zusammenfassung(db, zeitraum("monat", 2026, 9)))
-    assert in_reihenfolge(text, ["Ladevorgänge", "kWh", "Kosten netto", "Ø €/kWh", "Ø Ladedauer DC", "öffentlich (kWh)"])
+    assert in_reihenfolge(text, ["Ladevorgänge", "kWh", "Kosten", "Ø €/kWh", "Ø Ladedauer DC", "öffentlich (kWh)"])
 
 
 def test_offene_aufgaben(angemeldet, db, daten):

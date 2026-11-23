@@ -5,12 +5,29 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ## Unveröffentlicht
 
+### Neu
+
+- Tatsächliche Kosten: Dashboard, Auswertungen, Listen und Reports zeigen netto plus den Teil der USt., der nicht als
+  Vorsteuer zurückkommt („Kosten“ statt „Kosten netto“). Vorsteuerabzug je Fahrzeug in Prozent (voll, keiner,
+  anteilig z. B. wegen Luxustangente), Standard für Posten ohne Fahrzeug und Land des Unternehmens in den
+  Einstellungen; ausländische USt. zählt immer voll. Nennt eine Rechnung keine USt., wird sie mit der neuen
+  Steuersatz-Tabelle (Land, gültig ab, Satz – vorbelegt, änderbar) geschätzt und mit ≈ gekennzeichnet. Ladevorgang:
+  Kosten mit Netto und USt.; Export mit Netto, USt., Satz und Land.
+- Hinweis bei den Kosten (Dashboard, Auswertungen, Zusammenfassung, Fahrer:innen-Report), dass Summen Näherungen sind.
+
 ### Geändert
 
+- Spritpreis und Strompreis privater Ladungen ohne „netto“: einzutragen ist, was tatsächlich gezahlt wird.
 - Kennzahlen-Kacheln (Dashboard, Auswertungen, CPO, Detailseiten, PDF-Reports, Flottenbilanz) mit Symbol vor der Zahl:
   Ladestation bei den Ladevorgängen, Geld bei Ø €/kWh und gesparten Tankkosten, Stoppuhr bei der Ladedauer, grünes
   Blatt bei CO₂e (übrige Symbole blau).
 - Flottenbilanz: Kacheln deutlicher vom weißen Hintergrund abgesetzt (dunklere Fläche, feiner Rahmen).
+
+### Beim Update beachten
+
+- Migration 0031 (vorher wird gesichert); danach berechnet die App die tatsächlichen Kosten einmal neu. Alle
+  Fahrzeuge starten mit 100 % Vorsteuerabzug – Fahrzeuge ohne oder mit anteiligem Abzug auf der Fahrzeugseite
+  anpassen; Steuersätze unter Einstellungen → Kosten und USt. prüfen.
 
 ## v1.3.0 – 21.11.2026
 

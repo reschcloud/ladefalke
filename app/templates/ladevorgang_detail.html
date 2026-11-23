@@ -12,8 +12,11 @@
                           "rechnung": "laut Rechnung"}.get(v.stromart_quelle or "", "keine Angabe") %}
 <div class="kacheln kacheln-klein">
   <div class="kachel"><span class="kachel-zahl">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>{% endif %}{{ v.kwh | zahl(3) }}</span><span>kWh{% if v.kwh_geschaetzt %} · geschätzt{% endif %}</span></div>
-  <div class="kachel"><span class="kachel-zahl">{{ v.kosten_netto | geld }}</span><span>Kosten netto</span></div>
-  <div class="kachel"><span class="kachel-zahl">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</span><span>€/kWh</span></div>
+  {% set kz = kosten_info %}
+  <div class="kachel"><span class="kachel-zahl">{% if kz.geschaetzt_in_kosten %}<abbr class="geschaetzt" title="USt. geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kosten | geld }}</span><span>Kosten</span>
+    <small class="pro-tag" title="Tatsächliche Kosten = netto + nicht abziehbare USt. (Vorsteuerabzug {{ kz.abzug | zahl(0) }} %{{ ', ausländische USt.' if kz.land and kz.land != firmenland }})">netto {{ v.kosten_netto | geld }}
+      {%- if kz.ust %} · USt. {{ kz.ust | geld }}{% if kz.satz is not none %} ({{ kz.satz | zahl(1 if kz.satz % 1 else 0) }} %{{ ' ' ~ kz.land if kz.land }}){% endif %}{{ ' geschätzt' if kz.geschaetzt }}{% endif %}</small></div>
+  <div class="kachel"><span class="kachel-zahl">{{ (v.kosten / v.kwh) | zahl(2) if v.kwh else "–" }}</span><span>€/kWh</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ v.start | dauer(v.ende) }}</span><span>Dauer (angesteckt)</span></div>
   <div class="kachel" title="AC/DC: {{ stromart_quelle }}"><span class="kachel-zahl">{{ leistung | zahl(1) if leistung is not none else "–" }}
     {{ m.stromart(v.stromart) }}</span><span>Ø kW <small>({{ stromart_quelle }})</small></span></div>

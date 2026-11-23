@@ -5,6 +5,7 @@
 - Gebühren zählen über den Leistungsbeginn (ohne Leistungszeitraum: Rechnungsdatum). Ihr Fahrzeug wird
   über die Zuordnung der Karte am Ende des Leistungszeitraums ermittelt (bei jeder Auswertung neu).
 - Pauschalen zählen über ihren Monat (Monatserster liegt im Zeitraum), keinem Fahrzeug zugeordnet.
+- Kosten sind tatsächliche Kosten (netto + nicht abziehbare USt., services/kosten.py); Pauschalen ohne USt.
 - Ø €/kWh ist immer Σ Kosten / Σ kWh (gewichtet), nie ein Mittel von Mittelwerten.
 - Pro Fahrer:in und Topliste: Ladevorgänge zählen für die Person, die zum Ladezeitpunkt gefahren ist
   (personengebundene Karte → deren Person, sonst Fahrer:in des Fahrzeugs; Stichtag laut Einstellungen). Nur
@@ -27,6 +28,7 @@ from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, Ladeart, Ladekarte, L
                         ZuordnungFahrerFahrzeug)
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art, stichtag_spalte
+from app.services import kosten as kosten_dienst
 from app.services.zuordnung import fahrer_von_fahrzeug_am, karten_zuordnung_am
 
 NULL = Decimal(0)
@@ -229,6 +231,7 @@ class Summe:
     kosten_oeffentlich: Decimal = NULL
     kwh_privat: Decimal = NULL
     kosten_privat: Decimal = NULL
+    kosten_geschaetzt: Decimal = NULL  # geschätzte USt. in den Kosten (Rechnung ohne USt.-Angabe), für „≈“
 
     def _verbuchen(self, kwh: Decimal, kosten: Decimal, ladeart: Ladeart) -> None:
         self.kwh += kwh
@@ -240,15 +243,18 @@ class Summe:
             self.kwh_oeffentlich += kwh
             self.kosten_oeffentlich += kosten
 
-    def vorgang(self, kwh: Decimal, kosten: Decimal, ladeart: Ladeart, geschaetzt: bool) -> None:
+    def vorgang(self, kwh: Decimal, kosten: Decimal, ladeart: Ladeart, geschaetzt: bool,
+                kosten_geschaetzt: Decimal = NULL) -> None:
         if kwh > 0:
             self.anzahl += 1
         if geschaetzt:
             self.kwh_geschaetzt += kwh
+        self.kosten_geschaetzt += kosten_geschaetzt
         self._verbuchen(kwh, kosten, ladeart)
 
-    def gebuehr(self, betrag: Decimal, ladeart: Ladeart) -> None:
+    def gebuehr(self, betrag: Decimal, ladeart: Ladeart, kosten_geschaetzt: Decimal = NULL) -> None:
         self.gebuehren += betrag
+        self.kosten_geschaetzt += kosten_geschaetzt
         self._verbuchen(NULL, betrag, ladeart)
 
     def pauschale(self, kwh: Decimal, betrag: Decimal, ladeart: Ladeart) -> None:
@@ -604,12 +610,14 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
             zeilen[fz.id] = FahrzeugZeile(fz)
         return zeilen[fz.id]
 
-    # Ladevorgänge
+    # Ladevorgänge (Kosten: tatsächliche Kosten, services/kosten.py)
+    k = kosten_dienst.kontext(db)
     spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
     for v in db.scalars(select(Ladevorgang).where(zeitbedingung(spalte, z))
                         .options(selectinload(Ladevorgang.fahrzeug), selectinload(Ladevorgang.msp),
                                  selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.ladeort))):
-        werte = (v.kwh, v.kosten_netto, v.ladeart, v.kwh_geschaetzt)
+        erg = kosten_dienst.fuer_vorgang(k, v)
+        werte = (v.kwh, erg.kosten, v.ladeart, v.kwh_geschaetzt, erg.geschaetzt_in_kosten)
         msp[v.msp.name].vorgang(*werte)
         laender[v.land].vorgang(*werte)
         cpo[v.betreiber_id].vorgang(*werte)
@@ -669,21 +677,25 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         if tag is None or not z.von <= tag <= z.bis:
             continue
         ladeart = g.import_.ladeart
-        if g.import_.msp:
-            msp[g.import_.msp.name].gebuehr(g.betrag_netto, ladeart)
         karte = g.ladekarte
+        gast = karte is not None and karte.ist_gastkarte
+        fz = fahrzeug_fuer_karte(db, karte, g.zeitraum_bis or tag) if karte and not gast else None
+        erg = kosten_dienst.fuer_gebuehr(k, g, fz.id if fz else None, g.zeitraum_bis or tag,
+                                         ladeart == Ladeart.privat)
+        betrag = (erg.kosten, ladeart, erg.geschaetzt_in_kosten)
+        if g.import_.msp:
+            msp[g.import_.msp.name].gebuehr(*betrag)
         if karte is not None:
-            karten_zeile(karte).summe.gebuehr(g.betrag_netto, ladeart)
-        if karte is not None and karte.ist_gastkarte:
-            gaeste.gebuehr(g.betrag_netto, ladeart)
+            karten_zeile(karte).summe.gebuehr(*betrag)
+        if gast:
+            gaeste.gebuehr(*betrag)
             continue
-        fz = fahrzeug_fuer_karte(db, karte, g.zeitraum_bis or tag) if karte else None
         if fz is None:
-            gebuehren_ohne.gebuehr(g.betrag_netto, ladeart)
+            gebuehren_ohne.gebuehr(*betrag)
         else:
-            zeile(fz).summe.gebuehr(g.betrag_netto, ladeart)
+            zeile(fz).summe.gebuehr(*betrag)
             if g.import_.msp:
-                zeile(fz).msp[g.import_.msp.name].gebuehr(g.betrag_netto, ladeart)
+                zeile(fz).msp[g.import_.msp.name].gebuehr(*betrag)
 
     # Pauschalen
     for p in db.scalars(select(Pauschale).where(Pauschale.monat >= z.von, Pauschale.monat <= z.bis)):

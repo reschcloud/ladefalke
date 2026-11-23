@@ -21,8 +21,8 @@
       {% endif %}
       <td>{{ v.standort or "" }}</td>
       <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
-      <td class="rechts">{{ v.kosten_netto | geld }}</td>
-      <td class="rechts">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
+      <td class="rechts">{{ v.kosten | geld }}</td>
+      <td class="rechts">{{ (v.kosten / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
       {% if mit_fahrzeug or mit_fahrer %}
       <td>
         {%- if mit_fahrzeug -%}

@@ -8,14 +8,14 @@ from sqlalchemy.orm import Session
 from app.config import heute
 from app.db import get_db
 from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug, ZuordnungKarte
-from app.services import app_einstellungen, fahrzeug_hinweise, mini_zeitleiste
+from app.services import app_einstellungen, fahrzeug_hinweise, kosten, mini_zeitleiste
 from app.services import kartenanzeige, kartenpruefung, kennzahlen, leasingpruefung, protokoll
 from app.services.kartenanzeige import kurz as kurz_kennung
 from app.services.fristen import jahresvignette, leasing_ende_vorschlag
 from app.services.ladeprofil import ohne_angabe, schaetzgrundlage, unplausible_anzahl
 from app.services.ladevorgaenge import letzte_vorgaenge
 from app.services.schaetzung import MINDESTANZAHL
-from app.formatierung import datum_lesen, zeitraum
+from app.formatierung import datum_lesen, decimal_lesen, zahl, zeitraum
 from app.routers.ladevorgaenge import mehrfach_bedingung
 from app.services.aufloesung import neu_zuordnen_fahrer
 from app.services.zuordnung import (ZuordnungsFehler, bisherige_fahrer_austragen, fahrer_von_fahrzeug_am,
@@ -37,9 +37,11 @@ MAUT_FELDER = ("vignette_ab", "vignette_bis", "streckenmaut_ab", "streckenmaut_b
 
 def _werte(kennzeichen: str, modell: str, notiz: str, aktiv: str | None, leasing_beginn: str = "",
            leasing_ende: str = "", maut: dict | None = None) -> dict:
-    """`maut`: Formularwerte zu Vignette und Streckenmaut FLEX (nur gesendet, wenn das Feature aktiv ist)."""
+    """`maut`: weitere Formularwerte – Vignette und Streckenmaut FLEX (nur gesendet, wenn das Feature aktiv ist) und
+    der Vorsteuerabzug."""
     maut = maut or {}
     return {"kennzeichen": " ".join(kennzeichen.upper().split()), "modell": modell.strip() or None,
+            "vorsteuer_prozent": (maut.get("vorsteuer_prozent") or "100").strip(),
             "notiz": notiz.strip() or None, "aktiv": aktiv is not None,
             "leasing_beginn": leasing_beginn.strip(), "leasing_ende": leasing_ende.strip(),
             "vignette_noetig": bool(maut.get("vignette_noetig")), "streckenmaut_noetig": bool(maut.get("streckenmaut_noetig")),
@@ -50,6 +52,7 @@ def _werte_von(fz: Fahrzeug) -> dict:
     return {"kennzeichen": fz.kennzeichen, "modell": fz.modell, "notiz": fz.notiz, "aktiv": fz.aktiv,
             "leasing_beginn": fz.leasing_beginn.isoformat() if fz.leasing_beginn else "",
             "leasing_ende": fz.leasing_ende.isoformat() if fz.leasing_ende else "",
+            "vorsteuer_prozent": zahl(fz.vorsteuer_prozent, 0 if fz.vorsteuer_prozent % 1 == 0 else 2),
             "vignette_noetig": fz.vignette_noetig, "streckenmaut_noetig": fz.streckenmaut_noetig,
             **{f: getattr(fz, f).isoformat() if getattr(fz, f) else "" for f in MAUT_FELDER}}
 
@@ -57,6 +60,13 @@ def _werte_von(fz: Fahrzeug) -> dict:
 def _daten(db: Session, werte: dict, fehler: dict) -> dict:
     """Formularwerte → Spaltenwerte; Leasing-Ende ohne Angabe = Beginn + Leasingdauer (Einstellungen)."""
     daten = {k: werte[k] for k in ("kennzeichen", "modell", "notiz", "aktiv")}
+    try:
+        prozent = decimal_lesen(werte["vorsteuer_prozent"])
+        if prozent is None or not 0 <= prozent <= 100:
+            raise ValueError
+        daten["vorsteuer_prozent"] = prozent
+    except ValueError:
+        fehler["vorsteuer_prozent"] = "Bitte einen Wert zwischen 0 und 100 % angeben."
     for feld in ("leasing_beginn", "leasing_ende"):
         try:
             daten[feld] = date.fromisoformat(werte[feld]) if werte[feld] else None
@@ -201,7 +211,7 @@ def neu_formular(request: Request, db: Session = Depends(get_db)):
 
 async def _maut_formular(request: Request) -> dict:
     formular = await request.form()
-    return {k: formular.get(k) for k in ("vignette_noetig", "streckenmaut_noetig", *MAUT_FELDER)}
+    return {k: formular.get(k) for k in ("vignette_noetig", "streckenmaut_noetig", "vorsteuer_prozent", *MAUT_FELDER)}
 
 
 @router.post("/neu")
@@ -237,8 +247,11 @@ async def bearbeiten(request: Request, fahrzeug_id: int, kennzeichen: str = Form
     daten = _daten(db, werte, fehler)
     if fehler:
         return _detail(request, db, fz, werte, fehler, 422)
+    vorher = fz.vorsteuer_prozent
     for feld, wert in daten.items():
         setattr(fz, feld, wert)
+    if fz.vorsteuer_prozent != vorher:
+        kosten.neu_berechnen(db, fz.id)  # tatsächliche Kosten der Ladevorgänge dieses Fahrzeugs
     db.commit()
     meldung(request, f"Fahrzeug {fz.kennzeichen} gespeichert.")
     return weiter(f"/stammdaten/fahrzeuge/{fz.id}")

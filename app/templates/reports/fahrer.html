@@ -8,13 +8,14 @@
 {% set s = zeile.summe %}
 <h1>Dein Ladereport {{ z.label }}</h1>
 <p class="untertitel">{{ person.name }} · {{ z.von | datum }} – {{ z.bis | datum }} · Ladungen nach
-  {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} · nur Ladekosten netto, ohne Grundgebühren
+  {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} · nur Ladekosten, ohne Grundgebühren
   {%- if vergleich %} · Vergleich mit deinem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
 
 {% if s.leer %}
 <p>Im Zeitraum {{ z.label }} sind keine Ladungen von dir erfasst.</p>
 {% else %}
 {{ r.kennzahlen(s, vergleich, z, gegen_flotte=gegen_flotte, flottenschnitt=flottenschnitt, dc=dc, drei=true, schnitt=z.schnitt(s)) }}
+{{ r.naeherung() }}
 
 {# Platzierung in der Topliste der günstigsten Öffentlich-Lader:innen: Siegertreppchen mit Pokal bzw. Medaille #}
 {% if topliste %}
@@ -53,7 +54,7 @@
 
 <h2>Öffentlich und privat</h2>
 <table>
-  <thead><tr><th></th><th class="r">kWh</th><th class="r">Anteil kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <thead><tr><th></th><th class="r">kWh</th><th class="r">Anteil kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
   <tbody>
     <tr><td>öffentlich</td><td class="r">{{ s.kwh_oeffentlich | zahl(0) }}</td><td class="r">{{ s.anteil_oeffentlich_kwh | prozent(1) }}</td>
       <td class="r">{{ s.kosten_oeffentlich | geld }}</td><td class="r">{{ s.preis_oeffentlich | zahl(2) if s.preis_oeffentlich is not none else "–" }}</td></tr>

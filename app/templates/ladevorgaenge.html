@@ -99,7 +99,7 @@
 <div class="kopf tabellen-kopf">
   <p>
     {% if bereich %}<small>Im Kartenausschnitt:</small> {% endif %}<strong>{{ anzahl }}</strong> Vorgänge · <strong>{{ summe_kwh | zahl(0) }}</strong> kWh ·
-    <strong>{{ summe_kosten | geld }}</strong> netto
+    <strong>{{ summe_kosten | geld }}</strong> Kosten
     {% if durchschnitt is not none %} · Ø {{ durchschnitt | zahl(2) }} €/kWh{% endif %}
     <br><small>Ohne Gebühren und Pauschalen.</small>
   </p>
@@ -119,7 +119,7 @@
 <table class="striped">
   {% set beginn = request.state.stichtag == "beginn" %}
   <thead><tr>{{ sortkopf("zeit", "Ladebeginn" if beginn else "Ladeende", "Nach Datum sortieren", rechts=false) }}{{ sortkopf("dauer", "Dauer", "Nach Ladedauer (angesteckt) sortieren; darunter " ~ ("das Ladeende" if beginn else "der Ladebeginn"), rechts=false) }}<th>Karte {{ m.hilfe("Wer die Karte am Ladetag hatte (Person bzw. Fahrzeug mit Fahrer:in), daneben der " ~ "MSP. Kennung im Tooltip.") }}</th><th>Standort</th><th>Land</th><th>{{ CPO }}</th>{{ sortkopf("kwh", "kWh", "Nach kWh sortieren") }}
-             {{ sortkopf("kosten", "Kosten netto", "Nach Kosten sortieren") }}{{ sortkopf("preis", "€/kWh", "Nach Preis je kWh sortieren (Vorgänge ohne kWh am Ende)") }}<th title="AC/DC laut Rechnung bzw. manuell korrigiert">AC/DC</th>
+             {{ sortkopf("kosten", "Kosten", "Nach Kosten sortieren") }}{{ sortkopf("preis", "€/kWh", "Nach Preis je kWh sortieren (Vorgänge ohne kWh am Ende)") }}<th title="AC/DC laut Rechnung bzw. manuell korrigiert">AC/DC</th>
              <th>Art</th><th>Fahrzeug {{ m.hilfe("Darunter die Person, die zum Ladezeitpunkt (" ~ STICHTAG[request.state.stichtag] ~ ") gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. „Pool“: Fahrzeug mit mehreren Fahrer:innen und Fahrzeugkarte.") }}</th></tr></thead>
   <tbody>
   {% for v in vorgaenge %}
@@ -131,8 +131,8 @@
         aria-label="{{ v.land | landname }}">{{ (v.land | flagge) or v.land }}</span>{% else %}–{% endif %}</td>
       <td class="nowrap">{% if v.betreiber_id %}<a href="/ladevorgaenge?betreiber={{ v.betreiber_id | urlencode }}" title="Alle Ladevorgänge dieses CPO">{{ v.betreiber_id }}</a>{% else %}–{% endif %}</td>
       <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
-      <td class="rechts">{{ v.kosten_netto | geld }}</td>
-      <td class="rechts">{{ (v.kosten_netto / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
+      <td class="rechts">{{ v.kosten | geld }}</td>
+      <td class="rechts">{{ (v.kosten / v.kwh) | zahl(2) if v.kwh else "–" }}</td>
       <td class="stromart">
         {{- m.stromart(v.stromart) }}
         {%- if v.id in gruende and not v.profil_ausgenommen %} <a href="/ladevorgaenge/{{ v.id }}" class="unplausibel"

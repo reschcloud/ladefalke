@@ -143,6 +143,9 @@ class Fahrzeug(Base):
     streckenmaut_noetig: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     streckenmaut_ab: Mapped[date | None] = mapped_column(Date)
     streckenmaut_bis: Mapped[date | None] = mapped_column(Date)
+    # Vorsteuerabzug für inländische USt. auf Ladekosten in Prozent (100 = voll, 0 = keiner, anteilig z. B. wegen
+    # Luxustangente); bestimmt die tatsächlichen Kosten (services/kosten.py), Migration 0031
+    vorsteuer_prozent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal(100), server_default="100")
     # Grundlage der kWh-Schätzung kommt aus den Daten (services/ladeprofil.py, schaetzgrundlage)
 
 
@@ -282,6 +285,12 @@ class Ladevorgang(Base):
     kwh: Mapped[Decimal] = mapped_column(Numeric(10, 3))
     kwh_geschaetzt: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     kosten_netto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    # USt. laut Rechnung (None = unbekannt, wird aus der Steuersatz-Tabelle geschätzt), Land der USt. (Migration 0031)
+    ust_betrag: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    ust_satz: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    ust_land: Mapped[str | None] = mapped_column(String(2))
+    # tatsächliche Kosten = netto + nicht abziehbare USt. (services/kosten.py; beim Speichern berechnet)
+    kosten: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     standort: Mapped[str | None] = mapped_column(String(300))
     ladepunkt: Mapped[str | None] = mapped_column(String(100))  # wie in der Datei (EVSE-ID oder Wallbox-Nummer)
     evse_id: Mapped[str | None] = mapped_column(String(60))  # normiert, z. B. „AT*MER*E000001*02“ (services/evse.py)
@@ -316,6 +325,9 @@ class Gebuehr(Base):
     zeitraum_bis: Mapped[date | None] = mapped_column(Date)
     bezeichnung: Mapped[str] = mapped_column(String(300))
     betrag_netto: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    ust_betrag: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))  # wie beim Ladevorgang (Migration 0031)
+    ust_satz: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    ust_land: Mapped[str | None] = mapped_column(String(2))
 
     import_: Mapped[Import] = relationship(back_populates="gebuehren")
     ladekarte: Mapped[Ladekarte | None] = relationship()
@@ -369,6 +381,18 @@ class Benutzer(Base):
     zeitraum: Mapped[str] = mapped_column(String(10), default="monat", server_default="monat")
     angelegt_am: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     letzte_anmeldung: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Steuersatz(Base):
+    """Umsatzsteuer-Normalsatz je Land ab einem Datum (Einstellungen) – für Ladevorgänge und Gebühren, deren Rechnung
+    keine USt. nennt (services/kosten.py)."""
+    __tablename__ = "steuersatz"
+    __table_args__ = (UniqueConstraint("land", "gueltig_ab", name="ux_steuersatz_land_ab"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    land: Mapped[str] = mapped_column(String(2))  # ISO 3166-1 alpha-2
+    gueltig_ab: Mapped[date] = mapped_column(Date)
+    satz: Mapped[Decimal] = mapped_column(Numeric(5, 2))  # Prozent
 
 
 class Einstellung(Base):

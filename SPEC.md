@@ -3,7 +3,7 @@
 App-Name in der Oberfläche: „Ladefalke“ (Menüleiste, Browser-Tab), auf der Anmeldeseite mit Untertitel „Der elektrische Fuhrpark im Blick“; unter dem Namen klein „resch.cloud“ (Menüleiste, Anmeldung, Kopfzeile der PDF-Reports). Früherer Arbeitstitel: Ladekosten-Auswertung.
 
 Webanwendung zur Erfassung und Auswertung aller Ladevorgänge der Firmenflotte.
-Läuft per Docker Compose im lokalen Netz. Alle Beträge **netto**.
+Läuft per Docker Compose im lokalen Netz. Auswertungen zeigen **tatsächliche Kosten** (netto plus nicht abziehbare USt., siehe Abschnitt 6 „Kosten und Umsatzsteuer“); gespeichert werden Nettobetrag und USt. getrennt.
 
 ## 1. Ziele
 
@@ -143,6 +143,36 @@ Zeitraumwahl: Monat, Quartal, Halbjahr, Jahr, Alles (+ freie Auswahl). „Alles�
 - **Eingesparte Tankkosten gegenüber Verbrennern (grobe Schätzung):** nach demselben Muster; Einstellung Spritpreis in € netto je Liter (leer = aus), Verbrauchswerte wie bei der CO₂e-Einsparung. Ersparnis = kWh × l/100 km ÷ kWh/100 km × €/l minus die tatsächlichen Kosten netto der jeweiligen Summe (gesamt: inklusive Gebühren und Pauschalen; je Fahrer:in nur Ladekosten). Kachel „Tankkosten gespart“ in Dashboard und Auswertungen; in der Flottenbilanz ersetzt sie „Ø kWh je Fahrzeug“ (einzige Kostensumme dort).
 - Export der Tabellen als CSV (Dezimalkomma, `;`, UTF-8 mit BOM) und XLSX; ebenso die gefilterte Ladevorgangsliste.
 
+### Kosten und Umsatzsteuer (beschlossen 23.11.2026)
+
+Grundregel: Alle Kosten in Dashboard, Auswertungen, Listen und Reports sind die **tatsächlichen Kosten** für das
+Unternehmen – netto plus der Teil der Umsatzsteuer, der nicht als Vorsteuer zurückkommt. Beschriftung „Kosten“ (nicht
+„netto“/„brutto“); Exporte zusätzlich mit Netto und USt.
+
+- **Gespeichert** je Ladevorgang und Gebühr: Nettobetrag, USt.-Betrag, USt.-Satz und Land der USt. – maßgeblich ist die
+  USt. auf der Rechnung des MSP, nicht der Ladeort. Nennt die Rechnung keine USt. (Altbestand, Formate ohne Angabe),
+  wird sie aus der Steuersatz-Tabelle geschätzt (Land des Ladevorgangs, sonst Land des MSP bzw. des Unternehmens) und
+  mit ≈ gekennzeichnet. Private Ladungen (Kostenersatz, eigene Wallbox-Importe mit Strompreis) und Pauschalen sind
+  ohne USt.: der Betrag ist der tatsächlich gezahlte.
+- **Steuersätze**: Tabelle Land → Satz mit „gültig ab“ (Einstellungen), vorbelegt mit den Normalsätzen der Nachbarländer
+  und der EU, änderbar. Einstellung **Land des Unternehmens** (Standard AT).
+- **Vorsteuerabzug je Fahrzeug** in Prozent (voll 100 %, keiner 0 %, anteilig z. B. wegen Luxustangente in AT); Standard
+  100 % für neue Fahrzeuge. Für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnet) gilt ein
+  Standardwert aus den Einstellungen. Gebühren nehmen das Fahrzeug der Karte am Ende des Leistungszeitraums.
+- **Ausländische USt.** (Land der USt. ≠ Land des Unternehmens) zählt immer voll als Kosten (keine Rückerstattung über
+  das EU-Vorsteuererstattungsverfahren angenommen).
+- Tatsächliche Kosten = netto + USt. × (1 − Abzug), Abzug = Vorsteuer-% des Fahrzeugs bei inländischer USt., sonst 0.
+  Gespeichert als Spalte `kosten` am Ladevorgang (für Summen, Filter, Sortierung); neu berechnet bei Import, geänderter
+  Fahrzeugzuordnung, geändertem Vorsteuer-% und geänderten Steuereinstellungen.
+- **Näherung offen zeigen**: Hinweis in Dashboard und Reports, dass Summen Näherungen sind (Grundgebühren nach
+  Leistungszeitraum, Pauschalen nach Monat, fehlende Rechnungen, geschätzte kWh bzw. USt.); ≈ an Kosten mit geschätzter
+  USt.
+- **Spritpreis** (Tankkosten-Schätzung): ohne Brutto/Netto – einzugeben ist, was man tatsächlich je Liter zahlen würde.
+- Fremdwährungen vorerst nicht vorgesehen (alle Rechnungen in EUR).
+- Umsetzung in Schritten: (1) Datenmodell, Steuersätze, Vorsteuer je Fahrzeug, Berechnung und Anzeige mit geschätzter
+  USt.; (2) Parser übernehmen die USt. der Rechnung (auch die bisher ignorierte ausländische); (3) Altbestand aus den
+  Rohdaten bzw. per Neuimport nachtragen.
+
 ### Topliste (3 günstigste / 3 teuerste Fahrer:innen)
 
 Die Topliste bewertet **Fahrer:innen, unabhängig vom Fahrzeug** – Zurechnung und Abgrenzung wie bei „Pro Fahrer:in“ (nur Ladekosten, ohne Gebühren). Bewertung über einen **kWh-gewichteten (bayesschen) Preis**:
@@ -261,7 +291,7 @@ Bei unplausiblen Ladevorgängen verlinkt der Hinweis das Originaldokument (Anzei
 
 Ursprünglich offen, geklärt am 04.11.2026:
 
-- Der beim Import angegebene Strompreis ist **netto**.
+- Der beim Import angegebene Strompreis ist der tatsächlich gezahlte bzw. erstattete Preis je kWh (ohne USt.-Aufschlag; bis 11/2026: „netto“).
 - Gastladungen: **eigener Topf „Gäste“** (Gastkarten ohne Zuordnung).
 - Kartenbezogene Grundgebühren werden **auf das Fahrzeug umgelegt**.
 - Benutzer mit Rollen Admin/Operator/Viewer; der `.env`-Admin dient nur zum Einrichten; Theme je Benutzer; ein Änderungsprotokoll (wer hat was geändert) kommt später.

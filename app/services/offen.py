@@ -98,7 +98,7 @@ def fuer_report(db: Session, max_zeilen: int = 30) -> dict:
     tag = stichtag_spalte(e.stichtag)
     gruppen = db.execute(
         select(Ladevorgang.ladekarte_id, Ladevorgang.roh_kartenkennung, Msp.name, func.count(), func.sum(Ladevorgang.kwh),
-               func.sum(Ladevorgang.kosten_netto), func.min(tag), func.max(tag))
+               func.sum(Ladevorgang.kosten), func.min(tag), func.max(tag))
         .join(Msp, Msp.id == Ladevorgang.msp_id).where(*ohne_fahrzeug_bedingungen())
         .group_by(Ladevorgang.ladekarte_id, Ladevorgang.roh_kartenkennung, Msp.name)
         .order_by(func.count().desc())).all()

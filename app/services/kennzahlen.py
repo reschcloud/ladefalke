@@ -38,7 +38,7 @@ def _summen(db: Session, *bedingungen) -> Gesamt:
     ist_dc = and_(Ladevorgang.stromart == "DC", Ladevorgang.kwh > 0)
     dc_dauer = case((ist_dc, func.extract("epoch", Ladevorgang.ende - Ladevorgang.start)), else_=None)
     anzahl, kwh, kosten, kwh_oeff, geschaetzt, erste, letzte, dc_schnitt, dc_anzahl = db.execute(select(
-        func.count(), func.coalesce(func.sum(Ladevorgang.kwh), 0), func.coalesce(func.sum(Ladevorgang.kosten_netto), 0),
+        func.count(), func.coalesce(func.sum(Ladevorgang.kwh), 0), func.coalesce(func.sum(Ladevorgang.kosten), 0),
         func.coalesce(func.sum(oeffentlich), 0), func.bool_or(Ladevorgang.kwh_geschaetzt), func.min(spalte),
         func.max(spalte), func.avg(dc_dauer), func.count(dc_dauer)).where(*bedingungen)).one()
     return Gesamt(anzahl, Decimal(kwh), Decimal(kosten), Decimal(kwh_oeff), bool(geschaetzt), erste, letzte,

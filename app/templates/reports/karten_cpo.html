@@ -14,7 +14,7 @@
 {{ code or "unbekannt" }}{% set land = code | cpo_land %}{% if land %} <span class="klein">{{ land | landname }}</span>{% endif %}
 {%- endmacro %}
 <h1>Karten und Preise je CPO {{ z.label }}</h1>
-<p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · nur öffentliche Ladungen, nur Ladekosten netto (ohne
+<p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · nur öffentliche Ladungen, nur Ladekosten (ohne
   Grundgebühren) · Ladevorgänge nach {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }}</p>
 
 {% set oeff_kosten = details | sum(attribute="summe.kosten") %}
@@ -106,7 +106,7 @@
 {% if uebrige %}
 <h2>{{ "Weitere CPO" if mit_potenzial else "Alle CPO" }}</h2>
 <table>
-  <thead><tr><th>CPO</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th>
+  <thead><tr><th>CPO</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th>
     <th>genutzte {{ MSP_TEXT }}</th></tr></thead>
   <tbody>
   {% for d in uebrige %}

@@ -110,7 +110,7 @@ def cpo(request: Request, code: str, art: str = Depends(art_vorgabe), jahr: str 
 
 def _summen_spalten() -> list[Spalte]:
     return [Spalte("Vorgänge", "ganz"), Spalte("kWh", "kwh"), Spalte("davon geschätzt kWh", "kwh"),
-            Spalte("Kosten netto €", "geld"), Spalte("davon Gebühren €", "geld"), Spalte("Ø €/kWh", "preis"),
+            Spalte("Kosten €", "geld"), Spalte("davon Gebühren €", "geld"), Spalte("Ø €/kWh", "preis"),
             Spalte("kWh öffentlich", "kwh"), Spalte("Kosten öffentlich €", "geld"),
             Spalte("kWh privat", "kwh"), Spalte("Kosten privat €", "geld")]
 
@@ -147,7 +147,7 @@ def tabelle(a: Auswertung, name: str, cpo: str = "") -> Tabelle:
         teil = (cpo or "unbekannt").replace("*", "-").replace("/", "-")
         return Tabelle(f"cpo_{teil}_personen_{suffix}",
                        [Spalte("Fahrer:in"), Spalte("Ladekarte"), Spalte("Bezeichnung"), Spalte("MSP"),
-                        Spalte("Vorgänge", "ganz"), Spalte("kWh", "kwh"), Spalte("Kosten netto €", "geld"),
+                        Spalte("Vorgänge", "ganz"), Spalte("kWh", "kwh"), Spalte("Kosten €", "geld"),
                         Spalte("Ø €/kWh", "preis"), Spalte("Sparpotenzial €", "geld")],
                        [[p.name, k.kennung if k else "ohne Karte", (k.bezeichnung or "") if k else "",
                          k.msp.name if k else "", s.anzahl, s.kwh, s.kosten, s.preis, p.ersparnis_karte(k)]
@@ -174,7 +174,7 @@ def tabelle(a: Auswertung, name: str, cpo: str = "") -> Tabelle:
                   for rang, e in enumerate(eintraege, start=1)]
         return Tabelle(f"{name}_{suffix}",
                        [Spalte("Liste"), Spalte("Rang", "ganz"), Spalte("Fahrer:in"), Spalte("kWh", "kwh"),
-                        Spalte("Kosten netto €", "geld"), Spalte("Ø €/kWh", "preis"), Spalte("Score €/kWh", "preis"),
+                        Spalte("Kosten €", "geld"), Spalte("Ø €/kWh", "preis"), Spalte("Score €/kWh", "preis"),
                         Spalte("Anteil geschätzt", "prozent")], zeilen)
     raise HTTPException(404, "Unbekannte Tabelle")
 

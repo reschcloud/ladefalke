@@ -2,6 +2,7 @@
 E-Mail, Protokoll und Syslog, Backup."""
 import re
 import ssl
+from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -12,7 +13,11 @@ from app import auth
 from app.db import get_db
 from app.formatierung import decimal_lesen, email_lesen, zahl
 from app.config import einstellungen as konfiguration
-from app.services import app_einstellungen, backup, geheim, mail, syslog
+from sqlalchemy import select
+
+from app.models import Steuersatz
+from app.services import app_einstellungen, backup, geheim, kosten, mail, syslog
+from app.services.evse import LAENDER
 from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
 from app.services.aufloesung import neu_zuordnen
 from app.web import meldung, render, weiter
@@ -30,6 +35,7 @@ def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
         "stichtag": e.stichtag, "topliste_m": zahl(e.topliste_m, 1) if e.topliste_m is not None else "",
         "topliste_mindestmenge": zahl(e.topliste_mindestmenge, 1),
         "strompreis_vorbelegung": zahl(e.strompreis_vorbelegung, 4),
+        "firmenland": e.firmenland, "vorsteuer_standard": zahl(e.vorsteuer_standard, 0),
         "co2e_strom": zahl(e.co2e_strom, 0) if e.co2e_strom is not None else "",
         "co2e_verbrauch_e": zahl(e.co2e_verbrauch_e, 1), "co2e_verbrauch_verbrenner": zahl(e.co2e_verbrauch_verbrenner, 1),
         "co2e_verbrenner": zahl(e.co2e_verbrenner, 2),
@@ -65,6 +71,10 @@ def _formular(request: Request, werte: dict, fehler: dict | None = None, status_
     return render(request, "einstellungen.html", {"werte": werte, "fehler": fehler or {},
                                                   "standard": _anzeige(app_einstellungen.aus_werten(STANDARD)),
                                                   "stichtage": list(STICHTAGE.items()),
+                                                  "laender": sorted(LAENDER.items(), key=lambda e: e[1]),
+                                                  "laender_namen": LAENDER,
+                                                  "steuersaetze": db.scalars(select(Steuersatz).order_by(
+                                                      Steuersatz.land, Steuersatz.gueltig_ab)).all() if db else [],
                                                   "backup": {"liste": backup.liste(), "status": backup.status(),
                                                              "passwort": bool(konfiguration().backup_passwort),
                                                              "zeitplaene": BACKUP_ZEITPLAENE, "wochentage": WOCHENTAGE},
@@ -109,6 +119,7 @@ def anzeigen(request: Request, db: Session = Depends(get_db)):
 @router.post("", dependencies=[Depends(auth.admin_erforderlich)])  # lesen dürfen alle, ändern nur Admins
 def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = Form(""),
               topliste_mindestmenge: str = Form(""), strompreis_vorbelegung: str = Form(""),
+              firmenland: str = Form("AT"), vorsteuer_standard: str = Form("100"),
               co2e_strom: str = Form(""), co2e_verbrauch_e: str = Form("20"),
               co2e_verbrauch_verbrenner: str = Form("7,4"), co2e_verbrenner: str = Form("3,2"),
               spritpreis: str = Form(""),
@@ -143,6 +154,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
               gruppe: str = Form(""), db: Session = Depends(get_db)):
     werte = {"stichtag": stichtag, "topliste_m": topliste_m, "topliste_mindestmenge": topliste_mindestmenge,
              "strompreis_vorbelegung": strompreis_vorbelegung, "co2e_strom": co2e_strom,
+             "firmenland": firmenland, "vorsteuer_standard": vorsteuer_standard,
              "co2e_verbrauch_e": co2e_verbrauch_e, "co2e_verbrauch_verbrenner": co2e_verbrauch_verbrenner,
              "co2e_verbrenner": co2e_verbrenner, "spritpreis": spritpreis,
              "plausibel_ac_max_kw": plausibel_ac_max_kw,
@@ -272,7 +284,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
                           ("plausibel_ac_max_kw", True), ("plausibel_dc_min_kw", True), ("plausibel_dc_max_kw", True),
                           ("schaetzung_ac_kw", True), ("schaetzung_dc_kw", True), ("schaetzung_obergrenze_kwh", True),
                           ("co2e_strom", False), ("co2e_verbrauch_e", True), ("co2e_verbrauch_verbrenner", True),
-                          ("co2e_verbrenner", True), ("spritpreis", False)):
+                          ("co2e_verbrenner", True), ("spritpreis", False), ("vorsteuer_standard", True)):
         try:
             wert = decimal_lesen(werte[feld])
         except ValueError as e:
@@ -289,13 +301,22 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
             fehler[feld] = "Bitte einen Wert größer 0 angeben."
         else:
             daten[feld] = str(wert)
+    if "vorsteuer_standard" in daten and Decimal(daten["vorsteuer_standard"]) > 100:
+        fehler["vorsteuer_standard"] = "Bitte einen Wert zwischen 0 und 100 % angeben."
+    if firmenland not in LAENDER:
+        fehler["firmenland"] = "Bitte ein Land wählen."
+    else:
+        daten["firmenland"] = firmenland
     if "plausibel_dc_min_kw" in daten and "plausibel_dc_max_kw" in daten and \
             Decimal(daten["plausibel_dc_min_kw"]) >= Decimal(daten["plausibel_dc_max_kw"]):
         fehler["plausibel_dc_max_kw"] = "Die Obergrenze für DC muss über der Untergrenze liegen."
     if fehler:
         return _formular(request, werte, fehler, 422, db=db)
-    vorher = app_einstellungen.laden(db).stichtag
+    alt = app_einstellungen.laden(db)
+    vorher = alt.stichtag
     app_einstellungen.speichern(db, daten)
+    if (alt.firmenland, alt.vorsteuer_standard) != (daten["firmenland"], Decimal(daten["vorsteuer_standard"])):
+        kosten.neu_berechnen(db)  # tatsächliche Kosten hängen von Land und Vorsteuerabzug ab
     text = "Einstellungen gespeichert."
     if daten.get("stichtag") != vorher:  # Fahrzeug je Vorgang am neuen Stichtag ermitteln (manuelle bleiben)
         geaendert = neu_zuordnen(db)
@@ -306,6 +327,43 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
     # zurück zur zuletzt bearbeiteten Gruppe (Anker aus dem Formular, nur Kleinbuchstaben)
     return weiter("/einstellungen" + (f"#{gruppe}" if re.fullmatch(r"[a-z]{1,30}", gruppe) else ""))
 
+
+
+# ------------------------------------------------------------------ Steuersätze (nur Admin)
+
+@router.post("/steuersatz", dependencies=[Depends(auth.admin_erforderlich)])
+def steuersatz_anlegen(request: Request, land: str = Form(""), gueltig_ab: str = Form(""), satz: str = Form(""),
+                       db: Session = Depends(get_db)):
+    try:
+        ab = date.fromisoformat(gueltig_ab)
+        wert = decimal_lesen(satz)
+        if land not in LAENDER or wert is None or not 0 <= wert < 100:
+            raise ValueError
+    except ValueError:
+        meldung(request, "Steuersatz nicht gespeichert: bitte Land, Datum und einen Satz zwischen 0 und 100 % angeben.",
+                "fehler")
+        return weiter("/einstellungen#steuersaetze")
+    vorhanden = db.scalar(select(Steuersatz).where(Steuersatz.land == land, Steuersatz.gueltig_ab == ab))
+    if vorhanden:
+        vorhanden.satz = wert
+    else:
+        db.add(Steuersatz(land=land, gueltig_ab=ab, satz=wert))
+    kosten.neu_berechnen(db)
+    db.commit()
+    meldung(request, f"Steuersatz {LAENDER[land]} ab {ab:%d.%m.%Y}: {zahl(wert, 1)} % gespeichert.")
+    return weiter("/einstellungen#steuersaetze")
+
+
+@router.post("/steuersatz/{satz_id}/loeschen", dependencies=[Depends(auth.admin_erforderlich)])
+def steuersatz_loeschen(request: Request, satz_id: int, db: Session = Depends(get_db)):
+    s = db.get(Steuersatz, satz_id)
+    if s is None:
+        raise HTTPException(404, "Steuersatz nicht gefunden")
+    db.delete(s)
+    kosten.neu_berechnen(db)
+    db.commit()
+    meldung(request, "Steuersatz entfernt.")
+    return weiter("/einstellungen#steuersaetze")
 
 
 # ------------------------------------------------------------------ Backup (nur Admin; Zeitplan über „Speichern“)

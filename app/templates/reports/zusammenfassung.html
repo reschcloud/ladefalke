@@ -5,9 +5,10 @@
 {% block inhalt %}
 <h1>Zusammenfassung {{ z.label }}</h1>
 <p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · Ladevorgänge nach {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} ·
-  alle Beträge netto{% if vergleich %} · Vergleich mit dem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
+  Kosten inkl. nicht abziehbarer USt.{% if vergleich %} · Vergleich mit dem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
 
 {{ r.kennzahlen(a.gesamt, vergleich, z, dc=dc, drei=true, schnitt=a.schnitt_je_auto) }}
+{{ r.naeherung() }}
 
 {% set v = vollstaendigkeit %}
 {% if v.monate %}
@@ -66,7 +67,7 @@
 
 <h2>Gesamt</h2>
 <table>
-  <thead><tr><th>Bereich</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <thead><tr><th>Bereich</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
   <tbody>
   {% for name, s in [("Fahrzeuge", a.fahrzeuge_summe), ("Nicht zugeordnet", a.nicht_zugeordnet), ("Gäste", a.gaeste),
                      ("Gebühren nicht zuordenbar", a.gebuehren_nicht_zuordenbar), ("Pauschalen", a.pauschalen)] %}
@@ -81,7 +82,7 @@
 
 <h2>Pro Fahrer:in</h2>
 <table>
-  <thead><tr><th>Fahrer:in</th><th>Fahrzeuge</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <thead><tr><th>Fahrer:in</th><th>Fahrzeuge</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
   <tbody>
   {% for zl in a.fahrer | sort(attribute="summe.kosten", reverse=true) %}
     <tr><td>{{ zl.fahrer.name }}</td><td>{{ zl.fahrzeuge | sort | join(", ") }}</td><td class="r">{{ zl.summe.anzahl }}</td>
@@ -94,7 +95,7 @@
 
 <h2>Pro Fahrzeug</h2>
 <table>
-  <thead><tr><th>Kennzeichen</th><th>Fahrer:innen im Zeitraum</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+  <thead><tr><th>Kennzeichen</th><th>Fahrer:innen im Zeitraum</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
   <tbody>
   {% for zl in a.fahrzeuge %}
     <tr><td>{{ zl.fahrzeug.kennzeichen }}{% if zl.fahrzeug.modell %} <span class="klein">{{ zl.fahrzeug.modell }}</span>{% endif %}</td>
@@ -113,7 +114,7 @@
 <div class="spalten">
   <div><div class="block"><h3>Pro Land</h3>
     <table>
-      <thead><tr><th>Land</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten netto</th><th class="r">Ø €/kWh</th></tr></thead>
+      <thead><tr><th>Land</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
       <tbody>{% for code, s in a.laender %}<tr><td>{{ (code | landname) if code else "unbekannt" }}</td><td class="r">{{ s.anzahl }}</td>
         <td class="r">{{ s.kwh | zahl(0) }}</td><td class="r">{{ s.kosten | geld }}</td>
         <td class="r">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td></tr>
@@ -121,7 +122,7 @@
     </table></div></div>
   <div><div class="block"><h3>Meistgenutzte Ladekarten</h3>
     <table>
-      <thead><tr><th>Karte</th><th class="r">Vorgänge</th><th class="r">Kosten netto</th></tr></thead>
+      <thead><tr><th>Karte</th><th class="r">Vorgänge</th><th class="r">Kosten</th></tr></thead>
       <tbody>{% for k in a.karten_meist_genutzt(10) %}<tr><td>{{ r.karte(a.karte(k.karte)) }}</td>
         <td class="r">{{ k.summe.anzahl }}</td><td class="r">{{ k.summe.kosten | geld }}</td></tr>
       {% else %}<tr><td colspan="3">Keine genutzten Karten im Zeitraum.</td></tr>{% endfor %}</tbody>
