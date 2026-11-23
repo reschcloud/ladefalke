@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from app.models import (Fahrer, Fahrzeug, Import, ImportStatus, KennungTyp, Ladeart, Ladekarte, Ladeort, Ladevorgang,
                         Msp, ZuordnungFahrerFahrzeug, ZuordnungKarte, ZuordnungQuelle)
+from app.models import Spritpreis
 from app.services import app_einstellungen
 
 ZEITRAUM = "art=quartal&jahr=2026&nr=3"
@@ -79,7 +80,7 @@ def test_co2e_statt_fahrerinnen(angemeldet, db, flotte):
 
     titel = titel_text()
     assert "Fahrer:innen mit Ladungen" in titel and "CO₂e" not in titel
-    app_einstellungen.speichern(db, {"co2e_strom": "184"})  # 1,184 − 0,184 = 1 kg je kWh
+    app_einstellungen.speichern(db, {"feature_co2e": "1", "co2e_strom": "184"})  # 1,184 − 0,184 = 1 kg je kWh
     titel = titel_text()
     assert "Fahrer:innen mit Ladungen" not in titel
     assert "360 kg" in titel and "CO₂e eingespart" in titel and "geschätzt ggü. Verbrennern" in titel
@@ -92,7 +93,8 @@ def test_tankkosten_statt_kwh_je_fahrzeug(angemeldet, db, flotte):
         return " ".join(_seiten(angemeldet.get(f"/reports/flottenbilanz.pdf?{ZEITRAUM}").content)[0].split())
 
     assert "Ø kWh je Fahrzeug" in titel_text()
-    app_einstellungen.speichern(db, {"spritpreis": "2"})  # 360 kWh × 7,4/20 × 2 € = 266,40 € − 180,00 € Kosten
+    app_einstellungen.speichern(db, {"feature_tank": "1"})
+    db.add(Spritpreis(gueltig_ab=date(2026, 1, 1), preis=D(2)))  # 360 kWh × 7,4/20 × 2 € = 266,40 € − 180,00 € Kosten
     titel = titel_text()
     assert "Ø kWh je Fahrzeug" not in titel and "86 € Tankkosten gespart" in titel
 

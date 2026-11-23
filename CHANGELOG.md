@@ -20,6 +20,11 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Geändert
 
+- Einstellungen → Auswertungen: „Vergleich mit Verbrennern“ (Verbrauch E-PKW und Verbrenner) und zwei Unterabschnitte
+  mit Schalter – „CO₂e-Einsparung“ und „Gesparte Tankkosten“ (wie die Führerscheinkontrolle). Spritpreise als Liste
+  mit „gültig ab“; jede Ladung nimmt den Preis ihres Tages, Pauschalen den ihres Monats.
+- Flottenbilanz: alle Kacheln gleich groß, Zahlen etwas kleiner. CO₂e ab 1.000 kg in ganzen Tonnen (auch in
+  Dashboard und Auswertungen).
 - Spritpreis und Strompreis privater Ladungen ohne „netto“: einzutragen ist, was tatsächlich gezahlt wird.
 - Kennzahlen-Kacheln (Dashboard, Auswertungen, CPO, Detailseiten, PDF-Reports, Flottenbilanz) mit Symbol vor der Zahl:
   Ladestation bei den Ladevorgängen, Geld bei Ø €/kWh und gesparten Tankkosten, Stoppuhr bei der Ladedauer, grünes
@@ -32,6 +37,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   Fahrzeuge starten mit 100 % Vorsteuerabzug – Fahrzeuge ohne oder mit anteiligem Abzug auf der Fahrzeugseite
   anpassen; Steuersätze unter Einstellungen → Kosten und USt. prüfen. Der USt.-Nachtrag aus den Originalrechnungen
   läuft nach dem Start im Hintergrund (je nach Menge einige Minuten); bis dahin ist die USt. geschätzt (≈).
+- Migration 0032: Ein bisher eingetragener Spritpreis wird zum ersten Eintrag der Liste (gültig ab 1.1.2020), die
+  Schalter für CO₂e-Einsparung und Tankkosten sind an, wenn die Werte bisher eingetragen waren.
 
 ## v1.3.0 – 21.11.2026
 

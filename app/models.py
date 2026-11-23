@@ -395,6 +395,15 @@ class Steuersatz(Base):
     satz: Mapped[Decimal] = mapped_column(Numeric(5, 2))  # Prozent
 
 
+class Spritpreis(Base):
+    """Spritpreis je Liter ab einem Datum (Einstellungen → Gesparte Tankkosten) – was man tatsächlich zahlen würde."""
+    __tablename__ = "spritpreis"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    gueltig_ab: Mapped[date] = mapped_column(Date, unique=True)
+    preis: Mapped[Decimal] = mapped_column(Numeric(6, 3))  # € je Liter
+
+
 class Einstellung(Base):
     """Änderbare Einstellungen der Anwendung als Schlüssel/Wert (Standardwerte in services/app_einstellungen.py)."""
     __tablename__ = "einstellung"

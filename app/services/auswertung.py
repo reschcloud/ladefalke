@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import heute
 from app.formatierung import datum, monat
 from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, Ladeart, Ladekarte, Ladeort, Ladevorgang, Pauschale,
-                        ZuordnungFahrerFahrzeug)
+                        Spritpreis, ZuordnungFahrerFahrzeug)
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art, stichtag_spalte
 from app.services import kosten as kosten_dienst
@@ -232,6 +232,7 @@ class Summe:
     kwh_privat: Decimal = NULL
     kosten_privat: Decimal = NULL
     kosten_geschaetzt: Decimal = NULL  # geschätzte USt. in den Kosten (Rechnung ohne USt.-Angabe), für „≈“
+    sprit: Decimal = NULL  # Tankkosten eines Verbrenners für dieselbe Strecke (Spritpreis am Tag der Ladung)
 
     def _verbuchen(self, kwh: Decimal, kosten: Decimal, ladeart: Ladeart) -> None:
         self.kwh += kwh
@@ -244,12 +245,13 @@ class Summe:
             self.kosten_oeffentlich += kosten
 
     def vorgang(self, kwh: Decimal, kosten: Decimal, ladeart: Ladeart, geschaetzt: bool,
-                kosten_geschaetzt: Decimal = NULL) -> None:
+                kosten_geschaetzt: Decimal = NULL, sprit: Decimal = NULL) -> None:
         if kwh > 0:
             self.anzahl += 1
         if geschaetzt:
             self.kwh_geschaetzt += kwh
         self.kosten_geschaetzt += kosten_geschaetzt
+        self.sprit += sprit
         self._verbuchen(kwh, kosten, ladeart)
 
     def gebuehr(self, betrag: Decimal, ladeart: Ladeart, kosten_geschaetzt: Decimal = NULL) -> None:
@@ -257,7 +259,8 @@ class Summe:
         self.kosten_geschaetzt += kosten_geschaetzt
         self._verbuchen(NULL, betrag, ladeart)
 
-    def pauschale(self, kwh: Decimal, betrag: Decimal, ladeart: Ladeart) -> None:
+    def pauschale(self, kwh: Decimal, betrag: Decimal, ladeart: Ladeart, sprit: Decimal = NULL) -> None:
+        self.sprit += sprit
         self._verbuchen(kwh, betrag, ladeart)
 
     def __add__(self, other: "Summe") -> "Summe":
@@ -475,13 +478,12 @@ class Auswertung:
         """Geschätzte CO₂e-Einsparung in kg für die kWh der Summe; None, wenn ausgeschaltet."""
         return s.kwh * self.co2e_je_kwh if self.co2e_je_kwh is not None else None
 
-    # grob geschätzte Tankkosten eines Verbrenners in € netto je kWh (Einstellungen); None = aus
-    tank_je_kwh: Decimal | None = None
+    tank: bool = False  # gesparte Tankkosten eingeschaltet (Einstellungen) und Spritpreise vorhanden
 
     def tank_ersparnis(self, s: "Summe") -> Decimal | None:
-        """Geschätzte Ersparnis: Tankkosten eines Verbrenners für dieselbe Strecke minus die tatsächlichen Kosten
-        (netto, inklusive Gebühren und Pauschalen der Summe); None, wenn ausgeschaltet."""
-        return s.kwh * self.tank_je_kwh - s.kosten if self.tank_je_kwh is not None else None
+        """Geschätzte Ersparnis: Tankkosten eines Verbrenners für dieselbe Strecke (Spritpreis am Tag der Ladung)
+        minus die tatsächlichen Kosten (inklusive Gebühren und Pauschalen der Summe); None, wenn ausgeschaltet."""
+        return s.sprit - s.kosten if self.tank else None
 
     def sparpotenziale(self) -> list[tuple[CpoDetail, CpoPerson, CpoPosten]]:
         """Alle Posten mit Ersparnis über alle CPO, größte zuerst."""
@@ -575,6 +577,22 @@ def gebuehr_stichtag(g: Gebuehr) -> date | None:
             or (imp.importiert_am.date() if imp.importiert_am else None))
 
 
+def tankkosten_rechner(db: Session, einst: AppEinstellungen):
+    """Funktion (kWh, Tag) → Tankkosten eines Verbrenners für dieselbe Strecke mit dem Spritpreis dieses Tages (vor
+    dem ersten Eintrag: der früheste); None, wenn ausgeschaltet oder kein Spritpreis eingetragen ist."""
+    from bisect import bisect_right
+    preise = db.execute(select(Spritpreis.gueltig_ab, Spritpreis.preis).order_by(Spritpreis.gueltig_ab)).all()
+    liter = einst.liter_je_kwh
+    if not einst.feature_tank or not preise or liter is None:
+        return None
+    tage = [ab for ab, _ in preise]
+
+    def rechnen(kwh: Decimal, tag: date) -> Decimal:
+        i = bisect_right(tage, tag)
+        return kwh * liter * preise[i - 1 if i else 0][1]
+    return rechnen
+
+
 def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: bool = True) -> Auswertung:
     """`mit_personen=False`: ohne Zurechnung zu Fahrer:innen (schneller, z. B. für Vergleichszeiträume)."""
     zeilen: dict[int, FahrzeugZeile] = {}
@@ -612,12 +630,14 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
 
     # Ladevorgänge (Kosten: tatsächliche Kosten, services/kosten.py)
     k = kosten_dienst.kontext(db)
+    sprit = tankkosten_rechner(db, einst)
     spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
     for v in db.scalars(select(Ladevorgang).where(zeitbedingung(spalte, z))
                         .options(selectinload(Ladevorgang.fahrzeug), selectinload(Ladevorgang.msp),
                                  selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.ladeort))):
         erg = kosten_dienst.fuer_vorgang(k, v)
-        werte = (v.kwh, erg.kosten, v.ladeart, v.kwh_geschaetzt, erg.geschaetzt_in_kosten)
+        werte = (v.kwh, erg.kosten, v.ladeart, v.kwh_geschaetzt, erg.geschaetzt_in_kosten,
+                 sprit(v.kwh, stichtag(v.start, v.ende, einst.stichtag)) if sprit else NULL)
         msp[v.msp.name].vorgang(*werte)
         laender[v.land].vorgang(*werte)
         cpo[v.betreiber_id].vorgang(*werte)
@@ -699,7 +719,7 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
 
     # Pauschalen
     for p in db.scalars(select(Pauschale).where(Pauschale.monat >= z.von, Pauschale.monat <= z.bis)):
-        pauschalen.pauschale(p.kwh, p.betrag_netto, p.ladeart)
+        pauschalen.pauschale(p.kwh, p.betrag_netto, p.ladeart, sprit(p.kwh, p.monat) if sprit else NULL)
 
     # Fahrer:innen je Fahrzeug
     stichtag_heute = heute()
@@ -757,7 +777,7 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         cpo_details[code] = d
     return Auswertung(
         zeitraum=z, stichtag=einst.stichtag, fahrzeuge=fahrzeug_zeilen, co2e_je_kwh=einst.co2e_ersparnis_je_kwh,
-        tank_je_kwh=einst.tankkosten_je_kwh,
+        tank=sprit is not None,
         msp=sorted(msp.items(), key=lambda e: e[0].lower()),
         fahrzeuge_summe=sum((r.summe for r in fahrzeug_zeilen), Summe()),
         nicht_zugeordnet=nicht_zugeordnet, gaeste=gaeste, gebuehren_nicht_zuordenbar=gebuehren_ohne,

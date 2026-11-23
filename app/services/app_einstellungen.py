@@ -19,14 +19,15 @@ STANDARD = {
     "firmenland": "AT",
     "vorsteuer_standard": "100",
     "ust_nachgetragen": "",  # Datum, an dem die USt. aus den Originalrechnungen nachgetragen wurde (ust_nachtrag)
-    # CO₂e-Einsparung gegenüber Verbrennern (grobe Schätzung): Strommix g CO₂e/kWh (leer = aus), Verbrauch E-PKW
-    # kWh/100 km, Verbrauch Verbrenner l/100 km, Emission Verbrenner kg CO₂e/l
-    "co2e_strom": "",
+    # Vergleich mit Verbrennern (grobe Schätzungen): Verbrauch E-PKW kWh/100 km und Verbrenner l/100 km (für beide);
+    # CO₂e-Einsparung: Schalter, Strommix g CO₂e/kWh, Emission Verbrenner kg CO₂e/l; gesparte Tankkosten: Schalter
+    # (Spritpreise mit „gültig ab“ in der Tabelle spritpreis)
     "co2e_verbrauch_e": "20",
     "co2e_verbrauch_verbrenner": "7.4",
+    "feature_co2e": "",
+    "co2e_strom": "",
     "co2e_verbrenner": "3.2",
-    # eingesparte Tankkosten (grobe Schätzung, Verbrauchswerte wie oben): Spritpreis netto €/l, leer = aus
-    "spritpreis": "",
+    "feature_tank": "",
     # Plausibilität AC/DC (Leistung = kWh / angesteckte Dauer)
     "plausibel_ac_max_kw": "12",  # AC ab diesem Wert unplausibel
     "plausibel_dc_min_kw": "10",  # DC unter diesem Wert unplausibel
@@ -125,28 +126,26 @@ class AppEinstellungen:
     firmenland: str = "AT"  # ISO-Code; USt. dieses Landes ist als Vorsteuer abziehbar (je Fahrzeug)
     vorsteuer_standard: Decimal = Decimal(100)  # Prozent, für Posten ohne Fahrzeug
     ust_nachgetragen: str = ""  # ISO-Datum des letzten Nachtrags der USt. (leer = noch nie)
-    co2e_strom: Decimal | None = None  # g CO₂e/kWh des geladenen Stroms; None = Schätzung aus
     co2e_verbrauch_e: Decimal = Decimal(20)  # kWh/100 km
     co2e_verbrauch_verbrenner: Decimal = Decimal("7.4")  # l/100 km
+    feature_co2e: bool = False  # CO₂e-Einsparung schätzen
+    co2e_strom: Decimal | None = None  # g CO₂e/kWh des geladenen Stroms
     co2e_verbrenner: Decimal = Decimal("3.2")  # kg CO₂e/l Kraftstoff
-    spritpreis: Decimal | None = None  # € netto je Liter; None = Tankkosten-Schätzung aus
+    feature_tank: bool = False  # gesparte Tankkosten schätzen (Spritpreise: Tabelle spritpreis)
 
     @property
     def co2e_ersparnis_je_kwh(self) -> Decimal | None:
         """Grob geschätzte CO₂e-Einsparung in kg je geladener kWh gegenüber einem Verbrenner für dieselbe Strecke:
         (Verbrenner-l/100 km × kg/l) / (E-kWh/100 km) − Strom-g/kWh / 1000; None, wenn ausgeschaltet."""
-        if self.co2e_strom is None or not self.co2e_verbrauch_e:
+        if not self.feature_co2e or self.co2e_strom is None or not self.co2e_verbrauch_e:
             return None
         return (self.co2e_verbrauch_verbrenner * self.co2e_verbrenner / self.co2e_verbrauch_e
                 - self.co2e_strom / 1000)
 
     @property
-    def tankkosten_je_kwh(self) -> Decimal | None:
-        """Grob geschätzte Tankkosten (€ netto) eines Verbrenners für die Strecke, die eine geladene kWh reicht:
-        l/100 km ÷ kWh/100 km × €/l; None, wenn ausgeschaltet."""
-        if self.spritpreis is None or not self.co2e_verbrauch_e:
-            return None
-        return self.co2e_verbrauch_verbrenner / self.co2e_verbrauch_e * self.spritpreis
+    def liter_je_kwh(self) -> Decimal | None:
+        """Liter, die ein Verbrenner für die Strecke einer geladenen kWh bräuchte (l/100 km ÷ kWh/100 km)."""
+        return self.co2e_verbrauch_verbrenner / self.co2e_verbrauch_e if self.co2e_verbrauch_e else None
 
     plausibel_ac_max_kw: Decimal = Decimal(12)
     plausibel_dc_min_kw: Decimal = Decimal(10)
@@ -244,7 +243,7 @@ def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
         co2e_verbrauch_e=Decimal(werte["co2e_verbrauch_e"] or 20),
         co2e_verbrauch_verbrenner=Decimal(werte["co2e_verbrauch_verbrenner"] or "7.4"),
         co2e_verbrenner=Decimal(werte["co2e_verbrenner"] or "3.2"),
-        spritpreis=Decimal(werte["spritpreis"]) if werte["spritpreis"] else None,
+        feature_co2e=bool(werte["feature_co2e"]), feature_tank=bool(werte["feature_tank"]),
         plausibel_ac_max_kw=Decimal(werte["plausibel_ac_max_kw"]),
         plausibel_dc_min_kw=Decimal(werte["plausibel_dc_min_kw"]),
         plausibel_dc_max_kw=Decimal(werte["plausibel_dc_max_kw"]),

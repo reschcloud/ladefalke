@@ -29,6 +29,18 @@
 {% endmacro %}
 
 {% set nur_lesen = request.state.benutzer.rolle != "admin" %}
+{# Schaltbare Funktionen (Fristen, Schätzungen): Hauptschalter zuerst, Einstellungen erst, wenn er an ist (wie beim Versand unter „Reports“) #}
+    {% macro feature(name, titel, schalter, erklaerung) %}
+    <fieldset class="versand-block">
+      <legend>{{ titel }}</legend>
+      <label class="haken haupt"><input type="checkbox" name="{{ name }}" {% if werte.get(name) %}checked{% endif %}
+        {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> {{ schalter }}</label>
+      <div class="versand-details" data-zeigen-wenn="{{ name }}" {% if not werte.get(name) %}hidden{% endif %}>
+        <small class="versand-hinweis">{{ erklaerung }}</small>
+        <div class="einstellung-felder">{{ caller() }}</div>
+      </div>
+    </fieldset>
+    {% endmacro %}
 <h1>Einstellungen</h1>
 {% if nur_lesen %}<p class="meldung meldung-info">Nur lesen – Einstellungen ändern kann ein Admin.</p>{% endif %}
 <nav class="einstellungen-nav" aria-label="Gruppen">
@@ -121,17 +133,40 @@
       {{ einstellung("topliste_m", "Gewichtung m", "kWh", "Leer lassen: Median der kWh je Fahrer:in im Zeitraum.", leer_text="leer (Median im Zeitraum)") }}
       {{ einstellung("topliste_mindestmenge", "Mindestmenge für die Topliste", "kWh", "Wer im Zeitraum weniger geladen hat, erscheint nicht in der Topliste.") }}
     </div>
-    <p class="gruppe-text"><small>Vergleich mit Verbrennern (grobe Schätzung): aus den geladenen kWh die Strecke
-      (Verbrauch E-PKW), dafür Emissionen bzw. Tankkosten eines Verbrenners. CO₂e-Einsparung = abzüglich der Emissionen
-      des geladenen Stroms, eingesparte Tankkosten = abzüglich der tatsächlichen Ladekosten. Leer lassen von „CO₂e des
-      Stroms“ bzw. „Spritpreis“ schaltet die jeweilige Schätzung aus.</small></p>
-    <div class="einstellung-felder">
-      {{ einstellung("co2e_strom", "CO₂e des Stroms", "g CO₂e/kWh", "Emissionsfaktor des geladenen Stroms, z. B. Strommix laut Versorger oder Umweltbundesamt.", leer_text="leer (Schätzung aus)") }}
-      {{ einstellung("co2e_verbrauch_e", "Verbrauch E-PKW", "kWh/100 km", "Durchschnittlicher Verbrauch der E-Fahrzeuge inklusive Ladeverlusten.") }}
-      {{ einstellung("co2e_verbrauch_verbrenner", "Verbrauch Verbrenner", "l/100 km", "Vergleichsfahrzeug: durchschnittlicher Kraftstoffverbrauch.") }}
+    <fieldset class="versand-block">
+      <legend>Vergleich mit Verbrennern</legend>
+      <small class="versand-hinweis">Grobe Schätzungen: aus den geladenen kWh die Strecke (Verbrauch E-PKW), dafür
+        Emissionen bzw. Tankkosten eines Verbrenners (Verbrauch Verbrenner). Gilt für beide Schätzungen unten.</small>
+      <div class="einstellung-felder">
+        {{ einstellung("co2e_verbrauch_e", "Verbrauch E-PKW", "kWh/100 km", "Durchschnittlicher Verbrauch der E-Fahrzeuge inklusive Ladeverlusten.") }}
+        {{ einstellung("co2e_verbrauch_verbrenner", "Verbrauch Verbrenner", "l/100 km", "Vergleichsfahrzeug: durchschnittlicher Kraftstoffverbrauch.") }}
+      </div>
+    </fieldset>
+    {% call feature("feature_co2e", "CO₂e-Einsparung", "CO₂e-Einsparung schätzen", "Emissionen eines Verbrenners für dieselbe Strecke abzüglich der Emissionen des geladenen Stroms – Kachel in Dashboard und Auswertungen, in der Flottenbilanz statt der Zahl der Fahrer:innen.") %}
+      {{ einstellung("co2e_strom", "CO₂e des Stroms", "g CO₂e/kWh", "Emissionsfaktor des geladenen Stroms, z. B. Strommix laut Versorger oder Umweltbundesamt.", leer_text="leer", empfehlung=false) }}
       {{ einstellung("co2e_verbrenner", "Emissionen Verbrenner", "kg CO₂e/l", "CO₂e je Liter Kraftstoff (Diesel/Benzin inklusive Vorkette rund 3,2).") }}
-      {{ einstellung("spritpreis", "Spritpreis", "€/l", "Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet.", leer_text="leer (Schätzung aus)") }}
-    </div>
+    {% endcall %}
+    {% call feature("feature_tank", "Gesparte Tankkosten", "Gesparte Tankkosten schätzen", "Tankkosten eines Verbrenners für dieselbe Strecke (Spritpreis am Tag der Ladung) abzüglich der tatsächlichen Ladekosten – Kachel in Dashboard und Auswertungen, in der Flottenbilanz statt Ø kWh je Fahrzeug.") %}
+      <div class="einstellung spritpreise" id="tankkosten">
+        <label>Spritpreise {{ m.hilfe("Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet, ab dem jeweiligen Datum. Vor dem ersten Eintrag gilt der früheste.") }}</label>
+        <div class="tabelle"><table class="steuersaetze">
+          <thead><tr><th>gültig ab</th><th class="rechts">Preis</th><th></th></tr></thead>
+          <tbody>
+          {% for p in spritpreise %}
+            <tr><td>{{ p.gueltig_ab | datum }}</td><td class="rechts">{{ p.preis | zahl(3) }} €/l</td>
+              <td class="rechts">{% if not nur_lesen %}<button type="submit" form="spritpreis-loeschen-{{ p.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+          {% else %}
+            <tr><td colspan="3"><small>Noch kein Spritpreis – ohne Preis bleibt die Schätzung aus.</small></td></tr>
+          {% endfor %}
+          {% if not nur_lesen %}
+            <tr><td><input type="date" name="gueltig_ab" form="spritpreis-neu" aria-label="gültig ab" required></td>
+              <td><input type="text" name="preis" form="spritpreis-neu" inputmode="decimal" aria-label="Preis je Liter" placeholder="€/l" required class="kurz"></td>
+              <td class="rechts"><button type="submit" form="spritpreis-neu" class="klein">Hinzufügen</button></td></tr>
+          {% endif %}
+          </tbody>
+        </table></div>
+      </div>
+    {% endcall %}
   </section>
 
   <section class="einstellung-gruppe">
@@ -143,18 +178,6 @@
         {{ einstellung("leasing_vorwarnung_tage", "Hinweis vor Leasing-Ende", "Tage", empfehlung=false) }}
       </div>
     </fieldset>
-    {# Schaltbare Fristen: Hauptschalter zuerst, Einstellungen erst, wenn er an ist (wie beim Versand unter „Reports“) #}
-    {% macro feature(name, titel, schalter, erklaerung) %}
-    <fieldset class="versand-block">
-      <legend>{{ titel }}</legend>
-      <label class="haken haupt"><input type="checkbox" name="{{ name }}" {% if werte.get(name) %}checked{% endif %}
-        {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> {{ schalter }}</label>
-      <div class="versand-details" data-zeigen-wenn="{{ name }}" {% if not werte.get(name) %}hidden{% endif %}>
-        <small class="versand-hinweis">{{ erklaerung }}</small>
-        <div class="einstellung-felder">{{ caller() }}</div>
-      </div>
-    </fieldset>
-    {% endmacro %}
     {% call feature("feature_fuehrerschein", "Führerscheinkontrolle", "Führerscheinkontrolle überwachen", "Regelmäßige Kontrolle je Fahrer:in; ohne eingetragene Kontrolle gilt sie als fällig.") %}
       {{ einstellung("fuehrerschein_intervall_monate", "Kontrolle alle", "Monate", empfehlung=false) }}
       {{ einstellung("fuehrerschein_vorwarnung_tage", "Hinweis vor der Kontrolle", "Tage", empfehlung=false) }}
@@ -480,6 +503,8 @@
 {# Backup-Aktionen: eigene Formulare (Formulare lassen sich nicht schachteln), Knöpfe oben über das form-Attribut #}
 <form method="post" action="/einstellungen/backup/erstellen" id="backup-erstellen" hidden></form>
 <form method="post" action="/einstellungen/steuersatz" id="steuersatz-neu" hidden></form>
+<form method="post" action="/einstellungen/spritpreis" id="spritpreis-neu" hidden></form>
+{% for p in spritpreise %}<form method="post" action="/einstellungen/spritpreis/{{ p.id }}/loeschen" id="spritpreis-loeschen-{{ p.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/ust-nachtragen" id="ust-nachtragen" hidden></form>
 {% for s in steuersaetze %}<form method="post" action="/einstellungen/steuersatz/{{ s.id }}/loeschen" id="steuersatz-loeschen-{{ s.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/mail/test" id="mail-test" hidden></form>

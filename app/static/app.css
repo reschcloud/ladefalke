@@ -1229,3 +1229,6 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 .fzl-befunde li.rot { color: var(--pico-del-color); }
 .fzl-befunde li.gelb { color: #8a5a00; }
 @media (max-width: 40rem) { .fzl-zeile { grid-template-columns: minmax(0, 1fr); } .fzl-titel { text-align: left; } }
+
+/* Einstellungen: Spritpreis-Tabelle über die volle Breite der Felder */
+.einstellung.spritpreise { grid-column: 1 / -1; }

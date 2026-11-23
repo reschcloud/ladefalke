@@ -24,11 +24,12 @@
   .folie { display: flex; gap: 7mm; }
   .folie .zahlen { flex: 1.15; min-width: 0; }
   .folie .bild { flex: 1; min-width: 0; }
-  .folie .kacheln.drei { margin: 0; gap: 2.5mm; height: 121mm; grid-auto-rows: 1fr; }  /* so hoch wie die Karte */
+  .folie .kacheln.drei { margin: 0; gap: 2.5mm; height: 121mm; grid-auto-rows: 1fr;
+                         grid-template-columns: repeat(3, minmax(0, 1fr)); }  /* so hoch wie die Karte; Spalten gleich breit */
   .folie .kacheln.drei .kachel { padding: 8mm 4mm 3mm; background: #e6ebf1; border: .5pt solid #cdd5df; }  /* oben bündig: Zahlen einer Reihe auf einer Linie; deutlich vom weißen Grund abgesetzt */
   .folie .kacheln.drei .kachel:nth-child(-n+3) { background: #d6e6f4; border-color: #b9d0e6; }
-  .folie .kacheln.drei .zahl { font-size: 23pt; line-height: 1.1; margin-bottom: 1mm; }
-  .folie .kacheln.drei .text { font-size: 10pt; }
+  .folie .kacheln.drei .zahl { font-size: 20pt; line-height: 1.1; margin-bottom: 1mm; white-space: nowrap; }
+  .folie .kacheln.drei .text { font-size: 9pt; }
   .folie .bild img { width: 100%; height: 115mm; object-fit: cover; border-radius: 1.5mm; border: .4pt solid var(--linie); }
   .folie .bild .leer { height: 115mm; border-radius: 1.5mm; background: var(--flaeche); display: flex;
                        align-items: center; justify-content: center; color: var(--grau); }
@@ -69,7 +70,7 @@
       <div class="kachel"><span class="zahl">{{ laender }} / {{ cpo_anzahl }}</span><span class="text">Länder / Betreiber (CPO)</span></div>
       <div class="kachel"><span class="zahl">{{ fahrzeuge }}</span><span class="text">Fahrzeuge mit Ladungen</span></div>
       {% if co2e is not none %}
-      <div class="kachel"><span class="zahl">{{ icon("co2e") }}{{ co2e | zahl(0) }} kg</span>
+      <div class="kachel"><span class="zahl">{{ icon("co2e") }}{{ (co2e / 1000) | zahl(0) ~ " t" if co2e | abs >= 1000 else (co2e | zahl(0)) ~ " kg" }}</span>
         <span class="text">CO₂e eingespart</span><span class="vgl">geschätzt ggü. Verbrennern</span></div>
       {% else %}
       <div class="kachel"><span class="zahl">{{ fahrer }}</span><span class="text">Fahrer:innen mit Ladungen</span></div>

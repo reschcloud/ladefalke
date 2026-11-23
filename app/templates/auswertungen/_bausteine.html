@@ -109,8 +109,8 @@
   ({{ v.perioden }} {{ "Zeitraum" if v.perioden == 1 else "Zeiträume" }} mit Daten); Ø €/kWh und Anteil öffentlich gewichtet.</small></p>{% endif %}
 {% endmacro %}
 
-{# CO₂e in ganzen kg (Summen in Kacheln ohne Nachkommastellen) #}
-{% macro co2e_text(kg) %}{{ kg | zahl(0) }} kg{% endmacro %}
+{# CO₂e ohne Nachkommastellen: ganze kg, ab 1.000 kg ganze Tonnen #}
+{% macro co2e_text(kg) %}{{ (kg / 1000) | zahl(0) ~ " t" if kg | abs >= 1000 else (kg | zahl(0)) ~ " kg" }}{% endmacro %}
 
 {% macro oeffentlich_privat(g) %}
 <div class="tabelle">

@@ -15,7 +15,7 @@ from app.formatierung import datum, decimal_lesen, email_lesen, zahl
 from app.config import einstellungen as konfiguration
 from sqlalchemy import select
 
-from app.models import Steuersatz
+from app.models import Spritpreis, Steuersatz
 from app.services import app_einstellungen, backup, geheim, kosten, mail, syslog
 from app.services.evse import LAENDER
 from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
@@ -26,7 +26,8 @@ router = APIRouter(prefix="/einstellungen")
 GANZZAHLEN = ("leasing_dauer_monate", "leasing_vorwarnung_tage", "fuehrerschein_intervall_monate",
               "fuehrerschein_vorwarnung_tage", "backup_behalten", "protokoll_aufbewahrung_jahre",
               "vignette_vorwarnung_tage", "streckenmaut_vorwarnung_tage", "karten_min", "karten_max")
-FEATURES = ("feature_fuehrerschein", "feature_vignette", "feature_streckenmaut", "feature_kartenpruefung")
+FEATURES = ("feature_fuehrerschein", "feature_vignette", "feature_streckenmaut", "feature_kartenpruefung", "feature_co2e",
+            "feature_tank")
 
 
 def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
@@ -40,7 +41,6 @@ def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
         "co2e_strom": zahl(e.co2e_strom, 0) if e.co2e_strom is not None else "",
         "co2e_verbrauch_e": zahl(e.co2e_verbrauch_e, 1), "co2e_verbrauch_verbrenner": zahl(e.co2e_verbrauch_verbrenner, 1),
         "co2e_verbrenner": zahl(e.co2e_verbrenner, 2),
-        "spritpreis": zahl(e.spritpreis, 3) if e.spritpreis is not None else "",
         "plausibel_ac_max_kw": zahl(e.plausibel_ac_max_kw, 1), "plausibel_dc_min_kw": zahl(e.plausibel_dc_min_kw, 1),
         "plausibel_dc_max_kw": zahl(e.plausibel_dc_max_kw, 0),
         "schaetzung_ac_kw": zahl(e.schaetzung_ac_kw, 1), "schaetzung_dc_kw": zahl(e.schaetzung_dc_kw, 1),
@@ -74,6 +74,8 @@ def _formular(request: Request, werte: dict, fehler: dict | None = None, status_
                                                   "stichtage": list(STICHTAGE.items()),
                                                   "laender": sorted(LAENDER.items(), key=lambda e: e[1]),
                                                   "laender_namen": LAENDER,
+                                                  "spritpreise": db.scalars(select(Spritpreis).order_by(
+                                                      Spritpreis.gueltig_ab)).all() if db else [],
                                                   "steuersaetze": db.scalars(select(Steuersatz).order_by(
                                                       Steuersatz.land, Steuersatz.gueltig_ab)).all() if db else [],
                                                   "backup": {"liste": backup.liste(), "status": backup.status(),
@@ -123,7 +125,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
               firmenland: str = Form("AT"), vorsteuer_standard: str = Form("100"),
               co2e_strom: str = Form(""), co2e_verbrauch_e: str = Form("20"),
               co2e_verbrauch_verbrenner: str = Form("7,4"), co2e_verbrenner: str = Form("3,2"),
-              spritpreis: str = Form(""),
+              feature_co2e: str = Form(""), feature_tank: str = Form(""),
               plausibel_ac_max_kw: str = Form("12"), plausibel_dc_min_kw: str = Form("10"),
               plausibel_dc_max_kw: str = Form("1000"), schaetzung_ac_kw: str = Form("11"),
               schaetzung_dc_kw: str = Form("90"), schaetzung_obergrenze_kwh: str = Form("50"),
@@ -157,7 +159,8 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
              "strompreis_vorbelegung": strompreis_vorbelegung, "co2e_strom": co2e_strom,
              "firmenland": firmenland, "vorsteuer_standard": vorsteuer_standard,
              "co2e_verbrauch_e": co2e_verbrauch_e, "co2e_verbrauch_verbrenner": co2e_verbrauch_verbrenner,
-             "co2e_verbrenner": co2e_verbrenner, "spritpreis": spritpreis,
+             "co2e_verbrenner": co2e_verbrenner,
+             "feature_co2e": bool(feature_co2e), "feature_tank": bool(feature_tank),
              "plausibel_ac_max_kw": plausibel_ac_max_kw,
              "plausibel_dc_min_kw": plausibel_dc_min_kw, "plausibel_dc_max_kw": plausibel_dc_max_kw,
              "schaetzung_ac_kw": schaetzung_ac_kw, "schaetzung_dc_kw": schaetzung_dc_kw,
@@ -285,7 +288,7 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
                           ("plausibel_ac_max_kw", True), ("plausibel_dc_min_kw", True), ("plausibel_dc_max_kw", True),
                           ("schaetzung_ac_kw", True), ("schaetzung_dc_kw", True), ("schaetzung_obergrenze_kwh", True),
                           ("co2e_strom", False), ("co2e_verbrauch_e", True), ("co2e_verbrauch_verbrenner", True),
-                          ("co2e_verbrenner", True), ("spritpreis", False), ("vorsteuer_standard", True)):
+                          ("co2e_verbrenner", True), ("vorsteuer_standard", True)):
         try:
             wert = decimal_lesen(werte[feld])
         except ValueError as e:
@@ -302,6 +305,8 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
             fehler[feld] = "Bitte einen Wert größer 0 angeben."
         else:
             daten[feld] = str(wert)
+    if werte["feature_co2e"] and daten.get("co2e_strom") == "" and "co2e_strom" not in fehler:
+        fehler["co2e_strom"] = "Bitte den Emissionsfaktor des Stroms angeben (oder die Schätzung ausschalten)."
     if "vorsteuer_standard" in daten and Decimal(daten["vorsteuer_standard"]) > 100:
         fehler["vorsteuer_standard"] = "Bitte einen Wert zwischen 0 und 100 % angeben."
     if firmenland not in LAENDER:
@@ -328,6 +333,40 @@ def speichern(request: Request, stichtag: str = Form("ende"), topliste_m: str = 
     # zurück zur zuletzt bearbeiteten Gruppe (Anker aus dem Formular, nur Kleinbuchstaben)
     return weiter("/einstellungen" + (f"#{gruppe}" if re.fullmatch(r"[a-z]{1,30}", gruppe) else ""))
 
+
+
+# ------------------------------------------------------------------ Spritpreise (nur Admin)
+
+@router.post("/spritpreis", dependencies=[Depends(auth.admin_erforderlich)])
+def spritpreis_anlegen(request: Request, gueltig_ab: str = Form(""), preis: str = Form(""),
+                       db: Session = Depends(get_db)):
+    try:
+        ab = date.fromisoformat(gueltig_ab)
+        wert = decimal_lesen(preis)
+        if wert is None or not 0 < wert < 100:
+            raise ValueError
+    except ValueError:
+        meldung(request, "Spritpreis nicht gespeichert: bitte Datum und Preis je Liter angeben.", "fehler")
+        return weiter("/einstellungen#tankkosten")
+    vorhanden = db.scalar(select(Spritpreis).where(Spritpreis.gueltig_ab == ab))
+    if vorhanden:
+        vorhanden.preis = wert
+    else:
+        db.add(Spritpreis(gueltig_ab=ab, preis=wert))
+    db.commit()
+    meldung(request, f"Spritpreis ab {ab:%d.%m.%Y}: {zahl(wert, 3)} €/l gespeichert.")
+    return weiter("/einstellungen#tankkosten")
+
+
+@router.post("/spritpreis/{preis_id}/loeschen", dependencies=[Depends(auth.admin_erforderlich)])
+def spritpreis_loeschen(request: Request, preis_id: int, db: Session = Depends(get_db)):
+    p = db.get(Spritpreis, preis_id)
+    if p is None:
+        raise HTTPException(404, "Spritpreis nicht gefunden")
+    db.delete(p)
+    db.commit()
+    meldung(request, "Spritpreis entfernt.")
+    return weiter("/einstellungen#tankkosten")
 
 
 # ------------------------------------------------------------------ Steuersätze (nur Admin)
