@@ -3,7 +3,7 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
-## Unveröffentlicht
+## v1.5.0 – 23.11.2026
 
 ### Geändert
 
@@ -15,6 +15,11 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 - Kacheln überall gleich groß (Dashboard, Auswertungen, Detailseiten, PDF-Reports – auch über die Reihen); in allen
   Reports wie in der Flottenbilanz deutlich vom Hintergrund abgesetzt (Fläche und feiner Rahmen).
 - Symbol der Ladevorgänge (Ladestation) in den Kacheln pink wie die Heatmap.
+- Abhängigkeiten aktualisiert: FastAPI 0.165, Pydantic 2.14.4.
+
+### Beim Update beachten
+
+- nichts
 
 ## v1.4.0 – 23.11.2026
 

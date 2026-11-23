@@ -206,7 +206,7 @@ als fertiges Image aus der GitHub Container Registry (`ghcr.io/reschcloud/ladefa
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.4.0                            # gewünschtes Release
+V=v1.5.0                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # LADEFALKE_VERSION, Passwörter, SECRET_KEY, BACKUP_PASSWORT, ggf. TLS=aus
@@ -216,7 +216,7 @@ docker compose ps                   # app „healthy“ = App antwortet und erre
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.4.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.5.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
@@ -239,7 +239,7 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.4.0 && docker compose up -d --build`. Der Footer zeigt danach die
+Selbst gebaut: `git fetch --tags && git checkout v1.5.0 && docker compose up -d --build`. Der Footer zeigt danach die
 neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
