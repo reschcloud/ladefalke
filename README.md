@@ -9,27 +9,33 @@ Spezifikation: [SPEC.md](SPEC.md).
 
 - Ein **Linux-Server oder eine VM** (z. B. Debian, Ubuntu, Fedora) mit **x86-64-Prozessor** (amd64); andere
   Architekturen gehen nur mit selbst gebautem Image (siehe [Betrieb](#betrieb)).
-- **Docker Engine mit Compose-Plugin** (`docker compose version` muss funktionieren) – oder Podman mit Compose.
+- **Docker Engine mit Compose-Plugin** – oder Podman mit Compose. Fehlt Docker, bietet `setup.sh` an, es über das
+  offizielle Skript von get.docker.com zu installieren (braucht root bzw. sudo).
 - Etwa **2 GB RAM** und **5 GB Speicher** (mehr, je nach Menge der Rechnungen und Sicherungen).
-- **Internetzugang bei der Installation**, um das Image zu laden. Im Betrieb geht die App nicht ins Internet – außer
-  für Dienste, die man selbst einschaltet (siehe [Geodaten](#geodaten-karte-verortung-der-ladeorte)).
+- **Internetzugang**: bei der Installation für das Image; im Betrieb holt die App Postleitzahlen (GeoNames), auf
+  Wunsch Spritpreise und sieht nach neuen Versionen – gesendet werden dabei keine Daten (siehe
+  [Geodaten](#geodaten-karte-verortung-der-ladeorte)). Ohne Internet geht es auch, mit ein paar Handgriffen.
 - Erreichbarkeit im Netz über **Port 8000** (änderbar mit `APP_PORT`); für den Echtbetrieb am besten hinter einem
   Reverse Proxy mit eigenem Zertifikat (siehe [HTTPS und Reverse Proxy](#https-und-reverse-proxy)).
 
 ### Einrichten
 
+Ein Befehl:
+
 ```sh
-mkdir ladefalke && cd ladefalke
-curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh
-sh setup.sh
+curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh
 ```
 
-`setup.sh` ermittelt das neueste Release, holt dessen `compose.yaml` und `.env.example`, legt `.env` mit **zufällig erzeugten** Passwörtern und
-Schlüsseln an (Datenbank, erster Admin, `SECRET_KEY`, `BACKUP_PASSWORT`), fragt nach dem Namen des Servers für das
-HTTPS-Zertifikat, legt die Datenordner an und startet die App. Am Ende zeigt es Adresse, Admin-Zugang und
-Backup-Passwort an – **das Backup-Passwort sicher aufbewahren**, ohne lassen sich Sicherungen nicht wiederherstellen.
-Eine vorhandene `.env` überschreibt es nie; in `.env` steht die installierte Version (`LADEFALKE_VERSION`), Updates
-macht man bewusst (siehe [Update](#update)). Bestimmtes Release: `LADEFALKE_VERSION=1.6.1 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
+`setup.sh` installiert bei Bedarf Docker (nach Rückfrage), legt den Ordner `ladefalke` an (im leeren Ordner
+installiert es direkt dort), ermittelt das neueste Release, holt dessen `compose.yaml` und `.env.example`, legt `.env`
+mit **zufällig erzeugten** Passwörtern und Schlüsseln an (Datenbank, erster Admin, `SECRET_KEY`, `BACKUP_PASSWORT`),
+fragt nach dem Namen des Servers für das HTTPS-Zertifikat, legt die Datenordner an, startet die App und wartet, bis
+sie bereit ist. Am Ende zeigt es Adresse, Admin-Zugang und Backup-Passwort an – **das Backup-Passwort sicher
+aufbewahren**, ohne lassen sich Sicherungen nicht wiederherstellen. Sich selbst legt es als `setup.sh` in den Ordner
+(für Updates). Die Postleitzahlen für die Karte lädt die App danach selbst – sonst ist nichts nachzuladen.
+
+Eine vorhandene `.env` überschreibt es nie; in `.env` steht die installierte Version (`LADEFALKE_VERSION`).
+Bestimmtes Release: `LADEFALKE_VERSION=1.7.0 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
 `TLS_NAMEN=… sh setup.sh --ja`); nur einrichten, nicht starten: `--ohne-start`.
 
 ### Erster Aufruf
@@ -39,10 +45,11 @@ Aufruf einmal nach. Mit dem angezeigten Admin-Zugang anmelden, das Passwort unte
 „Einstellungen“ das Nötige einrichten (z. B. E-Mail für Reports). Weitere Benutzer:innen legt ein Admin unter
 „Benutzer:innen“ an. Den Zustand zeigt `docker compose ps` (app „healthy“ = läuft und erreicht die Datenbank).
 
-**Update** auf das neueste Release – im selben Ordner:
+**Update:** Gibt es ein neues Release, zeigt die App neben der Version „Update auf … verfügbar“ (Footer bzw.
+Seitenleiste; Einzelheiten unter Einstellungen → System). Dann im Installationsordner:
 
 ```sh
-sh setup.sh --update
+sh setup.sh
 ```
 
 Details, Sicherungen und Umzug: siehe [Betrieb](#betrieb) und [Backup und Umzug](#backup-und-umzug).
@@ -162,20 +169,24 @@ löschen sie danach wieder; die Produktivdaten bleiben unberührt.
 
 ## Geodaten (Karte, Verortung der Ladeorte)
 
-Die App geht von sich aus nicht ins Internet – außer für Dienste, die man selbst einrichtet bzw. einschaltet:
-Mail-Versand, Syslog und den wöchentlichen Abruf der Spritpreise aus dem EU Weekly Oil Bulletin (Einstellungen →
-Auswertungen → Gesparte Tankkosten; nur ein Download von energy.ec.europa.eu, es werden keine Daten gesendet;
-abschaltbar, dann die Datei von Hand hochladen). Für die Verortung der Ladeorte wird einmalig das freie Postleitzahlen-Verzeichnis
-von GeoNames eingespielt (Lizenz CC-BY 4.0, © GeoNames, https://www.geonames.org/):
+Was die App selbst aus dem Internet holt – es werden dabei keine Daten gesendet, alles abschaltbar:
 
-```
-mkdir -p data/geo && cd data/geo
-curl -LO https://download.geonames.org/export/zip/allCountries.zip && unzip -o allCountries.zip
-cd ../.. && docker compose run --rm app python -m app.services.geokodierung
-```
+- **Postleitzahlen** von GeoNames (Lizenz CC-BY 4.0, © GeoNames, https://www.geonames.org/) für die Verortung der
+  Ladeorte: beim ersten Start, nach jedem Update und einmal im Monat (`allCountries.zip` von download.geonames.org,
+  nur europäische Länder werden eingespielt), danach werden alle Ladeorte neu verortet. Stand und „Jetzt
+  aktualisieren“ unter Einstellungen → System. Schlägt der Download fehl, bleibt der bisherige Stand; neuer Versuch
+  am nächsten Tag.
+- **Neue Versionen**: einmal täglich die Versions-Tags auf GitHub (Einstellungen → System).
+- **Spritpreise** aus dem EU Weekly Oil Bulletin, wöchentlich, nur mit eingeschalteter Schätzung der gesparten
+  Tankkosten (Einstellungen → Auswertungen → Gesparte Tankkosten; energy.ec.europa.eu).
 
-Eingespielt werden nur europäische Länder; danach werden alle Ladeorte neu verortet. `data/geo` wird nur lesend
-in den Container eingebunden und nicht committet. Zum Aktualisieren die Schritte wiederholen.
+Dazu, was man selbst einrichtet: Mail-Versand und Syslog.
+
+**Ohne Internet:** `allCountries.zip` (https://download.geonames.org/export/zip/allCountries.zip) nach `data/geo/`
+legen – geht der Download nicht, nimmt die App diese Datei (oder ein entpacktes `allCountries.txt`). Sofort
+einspielen: Einstellungen → System → „Jetzt aktualisieren“ oder
+`docker compose run --rm app python -m app.services.geokodierung`. `data/geo` wird nur lesend eingebunden und nie
+committet. Spritpreise lassen sich als Datei hochladen.
 
 Die Heatmap im Dashboard braucht keine Kartenkacheln: Leaflet und Leaflet.heat liegen unter `app/static/leaflet/`,
 die Grenzen (Natural Earth, gemeinfrei) vereinfacht in `app/static/geo/basiskarte.js`. Neu erzeugen nur bei Bedarf,
@@ -247,7 +258,7 @@ auf dem Server braucht es nur `compose.yaml` und `.env`. Von Hand ohne Skript:
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.6.1                            # gewünschtes Release
+V=v1.7.0                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # jedes „bitte-aendern“ ersetzen, BACKUP_PASSWORT setzen, ggf. TLS=aus
@@ -257,24 +268,27 @@ docker compose ps                   # app „healthy“ = App antwortet und erre
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.6.1`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.7.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
 Umzug bzw. Neuaufbau mit Daten: danach eine Sicherung einspielen (siehe [Backup und Umzug](#backup-und-umzug)) –
-mit dem `BACKUP_PASSWORT` der Sicherung. Die Sicherung enthält auch die eingespielten Postleitzahlen; GeoNames muss
-nicht neu geladen werden. Das TLS-Zertifikat entsteht neu (oder eigenes nach `data/tls/`). Sicherungen landen in
+mit dem `BACKUP_PASSWORT` der Sicherung. Die Sicherung enthält auch die eingespielten Postleitzahlen. Das TLS-Zertifikat entsteht neu (oder eigenes nach `data/tls/`). Sicherungen landen in
 `data/backups/` auf demselben Server – zusätzlich auf ein anderes System kopieren.
 
 ### Update
 
-**Mit `setup.sh`** (empfohlen): `sh setup.sh --update` (neuestes Release) bzw. `sh setup.sh --update 1.7.0`. Das
+**Mit `setup.sh`** (empfohlen): `sh setup.sh` im Installationsordner bietet das neueste Release an, wenn es neuer
+ist als das installierte (ohne Terminal, z. B. per Cron, nur mit `--ja`); gezielt: `sh setup.sh --update 1.8.0`. Das
 Skript zeigt die Hinweise „Beim Update beachten“ aller übersprungenen Versionen, fragt nach, sichert die bisherige
 `compose.yaml` (`compose.yaml.vor-<version>`), holt die neue, ergänzt neue Einträge aus `.env.example` in `.env`
-(vorhandene Werte bleiben), setzt `LADEFALKE_VERSION` und startet mit dem neuen Image. Ältere Versionen lehnt es ab
+(vorhandene Werte bleiben), setzt `LADEFALKE_VERSION`, startet mit dem neuen Image und wartet, bis die App bereit
+ist; die Geodaten aktualisiert die App danach selbst. Ältere Versionen lehnt es ab
 (siehe [Zurück auf ein älteres Release](#zurück-auf-ein-älteres-release)). Das Skript ist dasselbe wie bei der
-Installation; fehlt es, holen mit
-`curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh`.
+Installation; fehlt es, im Installationsordner
+`curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh`.
+
+Ob es ein neues Release gibt, sieht die App einmal täglich auf GitHub nach (Einstellungen → System, abschaltbar).
 
 **Von Hand:**
 
@@ -290,7 +304,7 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.6.1 && docker compose up -d --build`. Der Footer zeigt danach die
+Selbst gebaut: `git fetch --tags && git checkout v1.7.0 && docker compose up -d --build`. Der Footer zeigt danach die
 neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
@@ -400,5 +414,5 @@ unveränderten Einsatz (auch intern in einer Firma) ist nichts zu tun.
 Mitgelieferte Fremdbestandteile behalten ihre Lizenzen: Leaflet und Leaflet.heat (BSD-2-Clause), htmx (Zero-Clause
 BSD), Pico CSS (MIT), Material Design Icons von Pictogrammers (Apache 2.0, ausgewählte Icons in `app/icons_mdi.py`,
 Lizenztexte unter `app/static/mdi/`), Natural-Earth-Daten (gemeinfrei); die GeoNames-Postleitzahlen (CC-BY 4.0) werden nicht
-mitgeliefert, sondern bei Bedarf geladen (siehe „Geodaten“).
+mitgeliefert, sondern von der App geladen (siehe „Geodaten“).
 

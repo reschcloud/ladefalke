@@ -3,6 +3,27 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.7.0 – 24.11.2026
+
+### Neu
+
+- Geodaten lädt die App selbst: die GeoNames-Postleitzahlen für die Verortung der Ladeorte beim ersten Start, nach
+  jedem Update und monatlich (download.geonames.org, es werden keine Daten gesendet); danach werden alle Ladeorte neu
+  verortet. Ohne Internet gilt `data/geo/allCountries.zip` bzw. `.txt`. Das Einspielen per Befehl entfällt.
+- Hinweis auf neue Versionen: die App sieht täglich auf GitHub nach und zeigt neben der Version „Update auf …
+  verfügbar“.
+- Einstellungen → System: installierte Version, Update-Anleitung, Stand der Geodaten mit „Jetzt aktualisieren“;
+  beides abschaltbar.
+- Installation mit einem Befehl: `curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh`
+  – installiert bei Bedarf Docker (nach Rückfrage, get.docker.com), legt den Ordner `ladefalke` an, legt sich selbst
+  dort ab und wartet, bis die App bereit ist.
+- Update: `sh setup.sh` im Installationsordner bietet ein neueres Release an (`--update` geht weiter).
+
+### Beim Update beachten
+
+- nichts. Wer die Postleitzahlen bisher von Hand eingespielt hat: `data/geo` kann bleiben (dient nur noch als
+  Rückfall ohne Internet). Nach dem Update lädt die App die Geodaten einmal neu.
+
 ## v1.6.1 – 23.11.2026
 
 ### Neu

@@ -16,7 +16,7 @@ from app.config import einstellungen as konfiguration
 from sqlalchemy import select
 
 from app.models import Spritpreis, Steuersatz
-from app.services import app_einstellungen, backup, geheim, kosten, mail, oil_bulletin, syslog
+from app.services import aktualisierung, app_einstellungen, backup, geheim, geodaten, kosten, mail, oil_bulletin, syslog
 from app.services.evse import LAENDER
 from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
 from app.web import meldung, render, weiter
@@ -26,7 +26,7 @@ GANZZAHLEN = ("leasing_dauer_monate", "leasing_vorwarnung_tage", "fuehrerschein_
               "fuehrerschein_vorwarnung_tage", "backup_behalten", "protokoll_aufbewahrung_jahre",
               "vignette_vorwarnung_tage", "streckenmaut_vorwarnung_tage", "karten_min", "karten_max")
 FEATURES = ("feature_fuehrerschein", "feature_vignette", "feature_streckenmaut", "feature_kartenpruefung", "feature_co2e",
-            "feature_tank", "oil_bulletin_auto")
+            "feature_tank", "oil_bulletin_auto", "geodaten_auto", "update_pruefen")
 
 
 def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
@@ -76,6 +76,12 @@ def _formular(request: Request, werte: dict, fehler: dict | None = None, status_
                                                       Spritpreis.gueltig_ab.desc())).all() if db else [],
                                                   "oil_bulletin": {"status": oil_bulletin.status(db) if db else {},
                                                                    "arten": oil_bulletin.ARTEN, "seite": oil_bulletin.SEITE},
+                                                  "system": {"geodaten": geodaten.status(db) if db else {},
+                                                             "release": aktualisierung.status(db) if db else {},
+                                                             "laufende": aktualisierung.laufende(),
+                                                             "verfuegbar": aktualisierung.verfuegbar(),
+                                                             "releases": aktualisierung.RELEASES,
+                                                             "changelog": aktualisierung.CHANGELOG},
                                                   "steuersaetze": db.scalars(select(Steuersatz).order_by(
                                                       Steuersatz.land, Steuersatz.gueltig_ab)).all() if db else [],
                                                   "backup": {"liste": backup.liste(), "status": backup.status(),
@@ -126,7 +132,7 @@ def speichern(request: Request, topliste_m: str = Form(""),
               co2e_strom: str = Form(""), co2e_verbrauch_e: str = Form("20"),
               co2e_verbrauch_verbrenner: str = Form("7,4"), co2e_verbrenner: str = Form("3,2"),
               feature_co2e: str = Form(""), feature_tank: str = Form(""), sprit_art: str = Form("diesel"),
-              oil_bulletin_auto: str = Form(""),
+              oil_bulletin_auto: str = Form(""), geodaten_auto: str = Form(""), update_pruefen: str = Form(""),
               plausibel_ac_max_kw: str = Form("12"), plausibel_dc_min_kw: str = Form("10"),
               plausibel_dc_max_kw: str = Form("1000"), schaetzung_ac_kw: str = Form("11"),
               schaetzung_dc_kw: str = Form("90"), schaetzung_obergrenze_kwh: str = Form("50"),
@@ -161,7 +167,8 @@ def speichern(request: Request, topliste_m: str = Form(""),
              "co2e_verbrauch_e": co2e_verbrauch_e, "co2e_verbrauch_verbrenner": co2e_verbrauch_verbrenner,
              "co2e_verbrenner": co2e_verbrenner,
              "feature_co2e": bool(feature_co2e), "feature_tank": bool(feature_tank), "sprit_art": sprit_art,
-             "oil_bulletin_auto": bool(oil_bulletin_auto),
+             "oil_bulletin_auto": bool(oil_bulletin_auto), "geodaten_auto": bool(geodaten_auto),
+             "update_pruefen": bool(update_pruefen),
              "plausibel_ac_max_kw": plausibel_ac_max_kw,
              "plausibel_dc_min_kw": plausibel_dc_min_kw, "plausibel_dc_max_kw": plausibel_dc_max_kw,
              "schaetzung_ac_kw": schaetzung_ac_kw, "schaetzung_dc_kw": schaetzung_dc_kw,
@@ -327,6 +334,34 @@ def speichern(request: Request, topliste_m: str = Form(""),
     # zurück zur zuletzt bearbeiteten Gruppe (Anker aus dem Formular, nur Kleinbuchstaben)
     return weiter("/einstellungen" + (f"#{gruppe}" if re.fullmatch(r"[a-z]{1,30}", gruppe) else ""))
 
+
+
+# ------------------------------------------------------------------ System: Geodaten und Updates (nur Admin)
+
+@router.post("/geodaten/laden", dependencies=[Depends(auth.admin_erforderlich)])
+def geodaten_laden(request: Request):
+    """Postleitzahlen jetzt neu laden (im Hintergrund, dauert etwa eine Minute)."""
+    if geodaten.status_laeuft():
+        meldung(request, "Die Geodaten werden bereits geladen.", "warnung")
+    else:
+        geodaten.im_hintergrund()
+        meldung(request, "Die Geodaten werden im Hintergrund geladen – das dauert etwa eine Minute. Danach sind alle "
+                         "Ladeorte neu verortet.")
+    return weiter("/einstellungen#system")
+
+
+@router.post("/update/pruefen", dependencies=[Depends(auth.admin_erforderlich)])
+def update_pruefen_jetzt(request: Request, db: Session = Depends(get_db)):
+    """Jetzt nach einem neuen Release sehen."""
+    neu = aktualisierung.pruefen(db)
+    st = aktualisierung.status(db)
+    if not st.get("ok"):
+        meldung(request, f"Abfrage fehlgeschlagen ({st.get('fehler')}).", "fehler")
+    elif neu:
+        meldung(request, f"Version {neu} ist verfügbar.")
+    else:
+        meldung(request, "Die App ist auf dem neuesten Stand.")
+    return weiter("/einstellungen#system")
 
 
 # ------------------------------------------------------------------ Spritpreise (nur Admin)

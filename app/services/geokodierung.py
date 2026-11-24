@@ -1,8 +1,9 @@
 """Geokodierung der Ladeorte ohne externe Dienste (Raumbezug Phase 3).
 
-Grundlage: GeoNames-Postleitzahlen (download.geonames.org/export/zip/allCountries.zip, CC-BY 4.0), einmalig per
-Befehl in die Tabelle geo_plz eingespielt (nur die Länder aus services/evse.LAENDER):
-    docker compose run --rm app python -m app.services.geokodierung [/data/geo/allCountries.txt]
+Grundlage: GeoNames-Postleitzahlen (download.geonames.org/export/zip/allCountries.zip, CC-BY 4.0) in der Tabelle
+geo_plz (nur die Länder aus services/evse.LAENDER). Die App lädt sie selbst (services/geodaten.py: beim ersten Start,
+nach jedem Update und monatlich); von Hand, z. B. ohne Internet, aus einer Datei (.txt oder .zip):
+    docker compose run --rm app python -m app.services.geokodierung [/data/geo/allCountries.zip]
 
 Je Ladeort, der Reihe nach (Genauigkeit in Klammern):
 1. Land + PLZ (wirksame PLZ, also auch manuell eingetragene) → Mittel der Einträge, bei mehreren Orten
@@ -14,8 +15,10 @@ Je Ladeort, der Reihe nach (Genauigkeit in Klammern):
 Ein manuell eingetragener Ortsname ersetzt Schritt 2 (nur dieser Name, exakt bzw. eindeutiger Namensanfang).
 Ein Ladeort mit Genauigkeit „manuell“ oder „verzichtet“ (bewusst ohne Verortung) wird nie überschrieben.
 """
+import io
 import re
 import sys
+import zipfile
 import unicodedata
 from decimal import Decimal
 from pathlib import Path
@@ -50,19 +53,34 @@ def name_norm(text: str | None) -> str:
 # ------------------------------------------------------------------ Einspielen
 
 def einlesen(db: Session, pfad: Path, laender: set[str] | None = None) -> int:
-    """GeoNames-Datei (Tab-getrennt) einspielen; ersetzt den bisherigen Inhalt. Liefert die Anzahl Einträge."""
-    laender = laender or set(LAENDER)
-    db.execute(delete(GeoPlz))
-    zeilen = []
+    """GeoNames-Datei (Tab-getrennt, auch als ZIP mit allCountries.txt) einspielen; ersetzt den bisherigen Inhalt.
+    Liefert die Anzahl Einträge."""
+    pfad = Path(pfad)
+    if pfad.suffix.lower() == ".zip":
+        with zipfile.ZipFile(pfad) as archiv:
+            namen = [n for n in archiv.namelist() if n.lower().endswith(".txt") and "readme" not in n.lower()]
+            if not namen:
+                raise ValueError(f"Keine GeoNames-Datei in {pfad.name}.")
+            with archiv.open(namen[0]) as roh:
+                return _einlesen(db, io.TextIOWrapper(roh, encoding="utf-8"), laender)
     with open(pfad, encoding="utf-8") as datei:
-        for zeile in datei:
-            teile = zeile.rstrip("\n").split("\t")
-            if len(teile) < 11 or teile[0] not in laender or not teile[9] or not teile[10]:
-                continue
-            land, plz, name = teile[0], teile[1], teile[2]
-            zeilen.append({"land": land, "plz": plz[:20], "plz_norm": plz_norm(plz, land)[:20], "name": name[:180],
-                           "name_norm": name_norm(name)[:180], "lat": Decimal(teile[9]).quantize(SECHS),
-                           "lon": Decimal(teile[10]).quantize(SECHS)})
+        return _einlesen(db, datei, laender)
+
+
+def _einlesen(db: Session, datei, laender: set[str] | None) -> int:
+    laender = laender or set(LAENDER)
+    zeilen = []
+    for zeile in datei:
+        teile = zeile.rstrip("\n").split("\t")
+        if len(teile) < 11 or teile[0] not in laender or not teile[9] or not teile[10]:
+            continue
+        land, plz, name = teile[0], teile[1], teile[2]
+        zeilen.append({"land": land, "plz": plz[:20], "plz_norm": plz_norm(plz, land)[:20], "name": name[:180],
+                       "name_norm": name_norm(name)[:180], "lat": Decimal(teile[9]).quantize(SECHS),
+                       "lon": Decimal(teile[10]).quantize(SECHS)})
+    if not zeilen:
+        raise ValueError("Die Datei enthält keine Postleitzahlen der unterstützten Länder.")
+    db.execute(delete(GeoPlz))  # erst nach dem Lesen: eine unbrauchbare Datei lässt den bisherigen Stand stehen
     for i in range(0, len(zeilen), 5000):
         db.execute(GeoPlz.__table__.insert(), zeilen[i:i + 5000])
     db.flush()
@@ -192,7 +210,12 @@ if __name__ == "__main__":  # Einspielen per Befehl (siehe Modul-Docstring)
     from app.config import einstellungen
     from app.db import SessionLocal
 
-    pfad = Path(sys.argv[1] if len(sys.argv) > 1 else Path(einstellungen().geo_dir) / "allCountries.txt")
+    if len(sys.argv) > 1:
+        pfad = Path(sys.argv[1])
+    else:
+        ordner = Path(einstellungen().geo_dir)
+        pfad = next((p for p in (ordner / "allCountries.txt", ordner / "allCountries.zip") if p.is_file()),
+                    ordner / "allCountries.txt")
     with SessionLocal() as sitzung:
         anzahl = einlesen(sitzung, pfad)
         print(f"{anzahl} Postleitzahlen eingespielt ({pfad}).")

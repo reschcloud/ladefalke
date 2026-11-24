@@ -14,18 +14,20 @@ from starlette.middleware.sessions import SessionMiddleware
 from app import auth
 from app.config import einstellungen
 from app.db import get_db
-from app.services import aufloesung, backup, fristen_mail, kosten, neuschaetzung, offen, oil_bulletin, parser_verwaltung, protokoll, syslog, ust_nachtrag, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
+from app.services import aktualisierung, aufloesung, backup, fristen_mail, geodaten, kosten, neuschaetzung, offen, oil_bulletin, parser_verwaltung, protokoll, syslog, ust_nachtrag, versand  # noqa: F401  (kosten, neuschaetzung, protokoll: Ereignisse beim Speichern)
 from app.routers import (auswertungen, benutzer, dashboard, einstellungen as einstellungen_router, fahrer, fahrzeuge,
                          importe, konto, ladekarten, ladevorgaenge, msp, pauschalen, protokoll as protokoll_router, reports,
                          zu_klaeren, zuordnungen)
 
 async def taktgeber() -> None:
-    """Hintergrund: jede Minute prüfen, ob eine automatische Sicherung, ein Report-Versand oder das Löschen alter
-    Protokolleinträge fällig ist (Thread)."""
+    """Hintergrund: jede Minute prüfen, ob eine automatische Sicherung, ein Report-Versand, ein Abgleich (Spritpreise,
+    Geodaten, neue Releases) oder das Löschen alter Protokolleinträge fällig ist (Thread)."""
     while True:
         await asyncio.sleep(60)
         for aufgabe, name in ((backup.automatisch_pruefen, "Sicherung"), (versand.automatisch_pruefen, "Report-Versand"),
                               (oil_bulletin.automatisch_pruefen, "Spritpreis-Abruf"),
+                              (geodaten.automatisch_pruefen, "Geodaten-Aktualisierung"),
+                              (aktualisierung.automatisch_pruefen, "Update-Prüfung"),
                               (fristen_mail.automatisch_pruefen, "Fristen-Benachrichtigung"),
                               (protokoll.automatisch_aufraeumen, "Protokoll-Bereinigung")):
             try:
@@ -40,6 +42,7 @@ async def lebenszyklus(_app: FastAPI):
     parser_verwaltung.beim_start()  # MSP für neu installierte Parser anlegen
     aufloesung.stichtag_festlegen()  # Stichtag fest Ladebeginn (früher wählbar): einmal neu zuordnen
     kosten.beim_start()  # tatsächliche Kosten nachtragen (nach Migration 0031)
+    aktualisierung.beim_start()  # zuletzt gefundenes Release für den Hinweis „Update verfügbar“
     ust_nachtrag.beim_start()  # USt. aus den Originalrechnungen nachtragen (einmal, im Hintergrund)
     takt = asyncio.create_task(taktgeber())
     yield

@@ -31,6 +31,12 @@ STANDARD = {
     "sprit_art": "diesel",  # Kraftstoff des Vergleichs: diesel | euro95 (Oil Bulletin)
     "oil_bulletin_auto": "1",  # Spritpreise wöchentlich aus dem EU Weekly Oil Bulletin laden (nur mit feature_tank)
     "oil_bulletin_status": "",  # JSON: letzter Abruf (services/oil_bulletin.py)
+    # System: GeoNames-Postleitzahlen selbst laden und aktuell halten (services/geodaten.py), täglich nach neuen
+    # Releases sehen (services/aktualisierung.py); dazu jeweils der letzte Stand als JSON
+    "geodaten_auto": "1",
+    "geodaten_status": "",
+    "update_pruefen": "1",
+    "update_status": "",
     # Plausibilität AC/DC (Leistung = kWh / angesteckte Dauer)
     "plausibel_ac_max_kw": "12",  # AC ab diesem Wert unplausibel
     "plausibel_dc_min_kw": "10",  # DC unter diesem Wert unplausibel
@@ -136,6 +142,8 @@ class AppEinstellungen:
     feature_tank: bool = False  # gesparte Tankkosten schätzen (Spritpreise: Tabelle spritpreis)
     sprit_art: str = "diesel"  # diesel | euro95
     oil_bulletin_auto: bool = True  # Spritpreise automatisch aus dem Oil Bulletin
+    geodaten_auto: bool = True  # Postleitzahlen automatisch laden (erster Start, nach Updates, monatlich)
+    update_pruefen: bool = True  # täglich nach neuen Releases sehen
 
     @property
     def co2e_ersparnis_je_kwh(self) -> Decimal | None:
@@ -249,6 +257,7 @@ def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
         feature_co2e=bool(werte["feature_co2e"]), feature_tank=bool(werte["feature_tank"]),
         sprit_art=werte["sprit_art"] if werte["sprit_art"] in ("diesel", "euro95") else "diesel",
         oil_bulletin_auto=bool(werte["oil_bulletin_auto"]),
+        geodaten_auto=bool(werte["geodaten_auto"]), update_pruefen=bool(werte["update_pruefen"]),
         plausibel_ac_max_kw=Decimal(werte["plausibel_ac_max_kw"]),
         plausibel_dc_min_kw=Decimal(werte["plausibel_dc_min_kw"]),
         plausibel_dc_max_kw=Decimal(werte["plausibel_dc_max_kw"]),

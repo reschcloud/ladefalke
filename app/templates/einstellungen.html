@@ -53,7 +53,7 @@
 <p class="einstellungen-keine" hidden><small>Keine Einstellung gefunden.</small></p>
 <nav class="einstellungen-nav" aria-label="Rubriken">
   <a href="#ladevorgaenge">Import und Ladevorgänge</a><a href="#kosten">Kosten und USt.</a><a href="#fristen">Aufgaben und Fristen</a>
-  <a href="#auswertungen">Auswertungen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a>
+  <a href="#auswertungen">Auswertungen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a><a href="#system">System</a>
 </nav>
 
 <form method="post" action="/einstellungen" id="einstellungen-form" data-verfolgen{{ '="start"' if fehler }} class="einstellungen{{ ' einstellungen-nur-lesen' if nur_lesen }}">
@@ -524,6 +524,52 @@
     </table>
     </div>
   </details>
+
+  {% set sy = system %}
+  <details class="einstellung-gruppe system-gruppe"{{ " open" if fehler }}>
+    {{ gruppe_kopf("system", "System", "Daten, die die App selbst aus dem Internet holt, und Updates. Es werden dabei keine Daten gesendet.") }}
+    <h3>Version</h3>
+    <p class="system-version"><small>
+      Installiert: <strong>{{ app_version() }}</strong>
+      {% if sy.verfuegbar %}– <strong class="update-verfuegbar">{{ icon("info") }} Version {{ sy.verfuegbar }} ist verfügbar</strong>
+        (<a href="{{ sy.changelog }}" target="_blank" rel="noopener" hx-boost="false">Änderungen ↗</a>)
+      {% elif sy.laufende and sy.release.get("ok") %}– auf dem neuesten Stand
+      {% elif not sy.laufende %}– selbst gebaut (kein Release), daher kein Update-Hinweis{% endif %}</small></p>
+    {% if sy.verfuegbar %}
+    <p class="gruppe-text"><small>So wird aktualisiert – auf dem Server im Installationsordner (dort liegen
+      <code>compose.yaml</code> und <code>.env</code>):</small></p>
+    <pre class="befehl"><code>sh setup.sh</code></pre>
+    <p class="gruppe-text"><small>Das Skript zeigt, was beim Update zu beachten ist, fragt nach und startet die App neu;
+      vor Datenbank-Änderungen legt die App selbst eine Sicherung an. Fehlt <code>setup.sh</code>:
+      <code>curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh</code></small></p>
+    {% endif %}
+    <label class="haken"><input type="checkbox" name="update_pruefen" {% if werte.get("update_pruefen") %}checked{% endif %}
+      {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Täglich nach neuen Versionen sehen (GitHub)</label>
+    {% set st = sy.release %}
+    {% if st.zeit %}<p class="system-status"><small>{{ icon("ok" if st.ok else "warnung") }} Zuletzt nachgesehen am
+      {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}{% if st.ok %}{% if st.neueste %}: neuestes Release {{ st.neueste }}{% endif %}{% else %}: {{ st.fehler }}{% endif %}</small></p>{% endif %}
+    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="update-pruefen" class="outline secondary klein">Jetzt nachsehen</button></div>{% endif %}
+
+    <h3>Geodaten</h3>
+    <p class="gruppe-text"><small>Postleitzahlen und Orte von GeoNames (CC-BY 4.0, © GeoNames) für die Verortung der
+      Ladeorte auf der Karte. Die App lädt sie beim ersten Start, nach jedem Update und einmal im Monat selbst von
+      download.geonames.org und verortet danach alle Ladeorte neu. Ohne Internet: <code>allCountries.zip</code> von
+      dort nach <code>data/geo/</code> legen – die App nimmt dann diese Datei. Kartengrundlagen (Grenzen, Orte, Relief)
+      sind in der App enthalten.</small></p>
+    <label class="haken"><input type="checkbox" name="geodaten_auto" {% if werte.get("geodaten_auto") %}checked{% endif %}
+      {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Geodaten automatisch laden und aktuell halten</label>
+    {% set st = sy.geodaten %}
+    <p class="system-status"><small>
+      {% if st.laeuft %}{{ icon("dauer") }} Wird gerade geladen …
+      {% elif st.zeit %}{{ icon("ok" if st.ok else "warnung") }} Zuletzt
+        {{ {"automatisch": "automatisch geladen", "manuell": "geladen", "download": "geladen", "datei": "aus data/geo übernommen"}.get(st.quelle, "geladen") }}
+        am {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}: {{ st.text }}
+      {% elif st.anzahl %}{{ icon("ok") }} {{ st.anzahl | zahl(0) }} Postleitzahlen vorhanden.
+      {% else %}{{ icon("warnung") }} Noch keine Geodaten{% if werte.get("geodaten_auto") %} – werden kurz nach dem Start geladen{% endif %}.{% endif %}
+      {% if st.zeit and not st.ok and st.anzahl %}Es gilt weiter der bisherige Stand ({{ st.anzahl | zahl(0) }} Postleitzahlen).{% endif %}</small></p>
+    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="geodaten-laden" class="outline secondary klein"
+      {% if st.laeuft %}disabled{% endif %}>Jetzt aktualisieren</button></div>{% endif %}
+  </details>
 </fieldset>
 
   <div class="speichern-leiste">
@@ -542,6 +588,8 @@
 <form method="post" action="/einstellungen/steuersatz" id="steuersatz-neu" hidden></form>
 <form method="post" action="/einstellungen/spritpreis" id="spritpreis-neu" hidden></form>
 <form method="post" action="/einstellungen/oil-bulletin/laden" id="oil-laden" hidden></form>
+<form method="post" action="/einstellungen/geodaten/laden" id="geodaten-laden" hidden></form>
+<form method="post" action="/einstellungen/update/pruefen" id="update-pruefen" hidden></form>
 <form method="post" action="/einstellungen/oil-bulletin/hochladen" id="oil-hochladen" enctype="multipart/form-data" hx-boost="false" hidden></form>
 {% for p in spritpreise %}<form method="post" action="/einstellungen/spritpreis/{{ p.id }}/loeschen" id="spritpreis-loeschen-{{ p.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/ust-nachtragen" id="ust-nachtragen" hidden></form>
