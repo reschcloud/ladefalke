@@ -20,6 +20,10 @@
     {{ m.feld("kennzeichen", "Kennzeichen", werte, fehler, pflicht=true) }}
     {{ m.feld("modell", "Modell", werte, fehler) }}
   </div>
+  {{ m.haken("ersatzfahrzeug", "Ersatz-/Mietfahrzeug", werte) }}
+  <small class="formular-hinweis">Für Autos, die eine Person nur vorübergehend fährt (Mietwagen, Werkstatt-Ersatz).
+    Sie werden normal zugeordnet und ausgewertet, lösen aber keine Prüfungen der Dienstwagen aus (Lücken ohne
+    Fahrer:in, Ladekarten je Fahrzeug, Vignette, Streckenmaut, Leasingfristen).</small>
   <div class="grid leasing" data-leasing-monate="{{ leasing_monate }}">
     {{ m.feld("leasing_beginn", "Leasingbeginn", werte, fehler, typ="date") }}
     {{ m.feld("leasing_ende", "Leasing-Ende", werte, fehler, typ="date") }}

@@ -46,7 +46,7 @@ def ermitteln(db: Session, e: AppEinstellungen, fahrzeuge: list[Fahrzeug], tag: 
               ) -> dict[int, list[Warnung]]:
     """Warnungen je Fahrzeug-ID (nur Fahrzeuge mit Leasingbeginn oder -ende)."""
     tag = tag or heute()
-    mit_leasing = [fz for fz in fahrzeuge if fz.leasing_beginn or fz.leasing_ende]
+    mit_leasing = [fz for fz in fahrzeuge if (fz.leasing_beginn or fz.leasing_ende) and not fz.ersatzfahrzeug]
     zuordnungen: dict[int, list[ZuordnungFahrerFahrzeug]] = {}
     for z in db.scalars(select(ZuordnungFahrerFahrzeug)
                         .where(ZuordnungFahrerFahrzeug.fahrzeug_id.in_([fz.id for fz in mit_leasing]))

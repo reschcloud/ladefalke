@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 from app.config import heute
 from app.db import get_db
 from app.formatierung import datum_lesen
-from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
+from app.models import (FahrerOhneFahrzeug, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug,
+                        ZuordnungKarte)
 from app.routers.ladekarten import ziel_lesen, ziele
 from app.services import zeitleiste as zeitleiste_service
 from app.services.aufloesung import neu_zuordnen_fahrer, neu_zuordnen_karte, zeitraum_vereinigen
-from app.services.zuordnung import (ZuordnungsFehler, fahrer_fahrzeug_aendern, gueltig_am,
+from app.services.zuordnung import (ZuordnungsFehler, fahrer_fahrzeug_aendern, gueltig_am, ohne_dienstwagen_aendern,
                                     karten_zuordnung_aendern, ohne_fahrer_aendern)
 from app.web import meldung, render, weiter
 
@@ -258,3 +259,54 @@ def ohne_loeschen(request: Request, ohne_id: int, db: Session = Depends(get_db))
     db.commit()
     meldung(request, "Zeitraum „ohne Fahrer:in“ gelöscht – der Zeitraum gilt wieder als Lücke, falls niemand zugeordnet ist.")
     return weiter(_zurueck(request, f"/stammdaten/fahrzeuge/{fahrzeug_id}"))
+
+
+# ------------------------------------------------------------------ Fahrer:in ohne Dienstwagen
+
+def _ohne_dw(db: Session, ohne_id: int) -> FahrerOhneFahrzeug:
+    o = db.get(FahrerOhneFahrzeug, ohne_id)
+    if o is None:
+        raise HTTPException(404, "Zeitraum nicht gefunden")
+    return o
+
+
+def _ohne_dw_formular(request, o, werte, fehler=None, status_code=200):
+    return render(request, "stammdaten/zuordnung_ohne_dienstwagen_formular.html",
+                  {"o": o, "werte": werte, "fehler": fehler,
+                   "zurueck": _zurueck(request, f"/stammdaten/fahrer/{o.fahrer_id}#fahrzeug")}, status_code)
+
+
+@router.get("/ohne-dienstwagen/{ohne_id}")
+def ohne_dienstwagen_formular(request: Request, ohne_id: int, db: Session = Depends(get_db)):
+    o = _ohne_dw(db, ohne_id)
+    return _ohne_dw_formular(request, o, {"ab": o.gueltig_ab.isoformat(), "grund": o.grund or "",
+                                          "bis": o.gueltig_bis.isoformat() if o.gueltig_bis else ""})
+
+
+@router.post("/ohne-dienstwagen/{ohne_id}")
+def ohne_dienstwagen_speichern(request: Request, ohne_id: int, ab: str = Form(""), bis: str = Form(""),
+                               grund: str = Form(""), db: Session = Depends(get_db)):
+    o = _ohne_dw(db, ohne_id)
+    try:
+        ab_datum = datum_lesen(ab)
+        if ab_datum is None:
+            raise ZuordnungsFehler("Bitte ein Beginndatum angeben.")
+        hinweise = ohne_dienstwagen_aendern(db, o, ab=ab_datum, bis=datum_lesen(bis), grund=grund)
+    except ValueError as e:
+        db.rollback()
+        return _ohne_dw_formular(request, o, {"ab": ab, "bis": bis, "grund": grund}, str(e), 422)
+    db.commit()
+    meldung(request, "Zeitraum „ohne Dienstwagen“ gespeichert.")
+    for h in hinweise:
+        meldung(request, h)
+    return weiter(_zurueck(request, f"/stammdaten/fahrer/{o.fahrer_id}#fahrzeug"))
+
+
+@router.post("/ohne-dienstwagen/{ohne_id}/loeschen")
+def ohne_dienstwagen_loeschen(request: Request, ohne_id: int, db: Session = Depends(get_db)):
+    o = _ohne_dw(db, ohne_id)
+    fahrer_id = o.fahrer_id
+    db.delete(o)
+    db.commit()
+    meldung(request, "Zeitraum „ohne Dienstwagen“ gelöscht – Ladungen ohne Fahrzeug in dieser Zeit sind wieder Aufgaben.")
+    return weiter(_zurueck(request, f"/stammdaten/fahrer/{fahrer_id}#fahrzeug"))

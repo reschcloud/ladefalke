@@ -117,6 +117,7 @@ def ermitteln(db: Session, e: AppEinstellungen, tag: date | None = None,
     tag = tag or heute()
     if fahrzeuge is None:
         fahrzeuge = db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv).order_by(Fahrzeug.kennzeichen)).all()
+    fahrzeuge = [fz for fz in fahrzeuge if not fz.ersatzfahrzeug]  # Ersatz-/Mietfahrzeuge haben keine eigenen Karten
     ids = [fz.id for fz in fahrzeuge if fz.aktiv]
     karten: dict[int, list[ZuordnungKarte]] = {}
     for z in db.scalars(select(ZuordnungKarte).where(ZuordnungKarte.fahrzeug_id.in_(ids))

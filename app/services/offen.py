@@ -3,22 +3,37 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from fastapi import Depends, Request
-from sqlalchemy import false, func, or_, select
+from sqlalchemy import Date, cast, exists, false, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, Ladekarte, Ladeort, Ladevorgang, Msp
+from app.models import (Fahrer, FahrerOhneFahrzeug, Fahrzeug, Gebuehr, Import, ImportStatus, Ladekarte, Ladeort,
+                        Ladevorgang, Msp, ZuordnungKarte)
 from app.services.app_einstellungen import laden as einstellungen_laden
 from app.services.geokodierung import verzeichnis_vorhanden
 from app.services import fristen, kartenpruefung, stromart
 from app.services.ladeprofil import unplausibel_sql
 
 
+def ohne_dienstwagen_bedingung():
+    """SQL: die Karte gehörte am Ladetag (Stichtag = Ladebeginn) einer Person, die da „ohne Dienstwagen“ war – der
+    Vorgang ist begründet ohne Fahrzeug (services/zuordnung.py, FahrerOhneFahrzeug)."""
+    tag = cast(Ladevorgang.start, Date)
+    return exists(select(ZuordnungKarte.id).join(
+        FahrerOhneFahrzeug, FahrerOhneFahrzeug.fahrer_id == ZuordnungKarte.fahrer_id).where(
+        ZuordnungKarte.ladekarte_id == Ladevorgang.ladekarte_id,
+        ZuordnungKarte.gueltig_ab <= tag, or_(ZuordnungKarte.gueltig_bis.is_(None), ZuordnungKarte.gueltig_bis >= tag),
+        FahrerOhneFahrzeug.gueltig_ab <= tag,
+        or_(FahrerOhneFahrzeug.gueltig_bis.is_(None), FahrerOhneFahrzeug.gueltig_bis >= tag)))
+
+
 def ohne_fahrzeug_bedingungen():
-    """Ladevorgänge ohne Fahrzeug, außer Gastkarten (die bleiben bewusst unzugeordnet)."""
+    """Offene Ladevorgänge ohne Fahrzeug: außer Gastkarten (bleiben bewusst unzugeordnet) und Ladungen von Personen
+    „ohne Dienstwagen“ (begründet)."""
     return [Ladevorgang.fahrzeug_id.is_(None),
             or_(Ladevorgang.ladekarte_id.is_(None),
-                Ladevorgang.ladekarte.has(Ladekarte.ist_gastkarte == false()))]
+                Ladevorgang.ladekarte.has(Ladekarte.ist_gastkarte == false())),
+            ~ohne_dienstwagen_bedingung()]
 
 
 @dataclass(frozen=True)

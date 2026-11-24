@@ -167,7 +167,8 @@ def tabelle(a: Auswertung, name: str, cpo: str = "") -> Tabelle:
         return Tabelle(f"laender_{suffix}", [Spalte("Land"), Spalte("ISO")] + _summen_spalten(),
                        [[landname(c), c or ""] + _summen_werte(s) for c, s in a.laender])
     if name == "gesamt":
-        zeilen = [("Fahrzeuge", a.fahrzeuge_summe), ("Nicht zugeordnet", a.nicht_zugeordnet), ("Gäste", a.gaeste),
+        zeilen = [("Fahrzeuge", a.fahrzeuge_summe), ("Nicht zugeordnet", a.nicht_zugeordnet),
+                  ("Ohne Dienstwagen", a.ohne_dienstwagen), ("Gäste", a.gaeste),
                   ("Gebühren nicht zuordenbar", a.gebuehren_nicht_zuordenbar), ("Pauschalen", a.pauschalen),
                   ("Gesamt", a.gesamt)]
         return Tabelle(f"gesamt_{suffix}", [Spalte("Bereich")] + _summen_spalten(),

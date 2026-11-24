@@ -9,6 +9,9 @@ Aneinandergrenzende Perioden mit gleichem Inhalt (dieselbe Person am selben Fahr
 Ein Fahrzeug kann Zeiträume „ohne Fahrer:in“ haben (FahrzeugOhneFahrer): bewusst niemandem zugeordnet, daher keine
 Lücke. Sie dürfen sich nicht mit Fahrer:in-Zuordnungen des Fahrzeugs überschneiden; ein offener Zeitraum „ohne
 Fahrer:in“ endet automatisch, wenn das Fahrzeug ab einem späteren Tag offen jemandem zugeordnet wird.
+Gegenstück bei der Person: Zeiträume „ohne Dienstwagen“ (FahrerOhneFahrzeug, mit Grund) – Ladungen mit ihrer
+persönlichen Karte sind dann begründet ohne Fahrzeug. Sie dürfen sich nicht mit Fahrzeug-Zuordnungen der Person
+überschneiden; ein offener Zeitraum endet automatisch, wenn die Person ab einem späteren Tag offen ein Fahrzeug bekommt.
 """
 from collections import defaultdict
 from contextlib import contextmanager
@@ -19,7 +22,8 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.formatierung import datum, zeitraum
-from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
+from app.models import (Fahrer, FahrerOhneFahrzeug, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug,
+                        ZuordnungKarte)
 
 
 class ZuordnungsFehler(ValueError):
@@ -54,7 +58,10 @@ def vorgeladen(db: Session):
                         .order_by(ZuordnungFahrerFahrzeug.id)):
         fahrer_fz[z.fahrer_id].append(z)
         fz_fahrer[z.fahrzeug_id].append(z)
-    db.info[SPEICHER] = (karten, fahrer_fz, fz_fahrer)
+    ohne_dw = defaultdict(list)
+    for o in db.scalars(select(FahrerOhneFahrzeug).order_by(FahrerOhneFahrzeug.id)):
+        ohne_dw[o.fahrer_id].append(o)
+    db.info[SPEICHER] = (karten, fahrer_fz, fz_fahrer, ohne_dw)
     try:
         yield
     finally:
@@ -236,6 +243,7 @@ def fahrer_fahrzeug_zuordnen(db: Session, fahrer: Fahrer, fahrzeug: Fahrzeug, *,
                              ) -> tuple[ZuordnungFahrerFahrzeug, list[str]]:
     zu_beenden = _pruefen(_fahrer_perioden(db, fahrer.id), ab, bis, vorperiode_beenden=True)
     hinweise = _ohne_fahrer_kuerzen(db, fahrzeug.id, ab, bis)
+    hinweise += _ohne_dienstwagen_kuerzen(db, fahrer.id, ab, bis)
     hinweise += _beenden(db, zu_beenden, ab, lambda z: f"Fahrzeug {z.fahrzeug.kennzeichen}")
     neu = ZuordnungFahrerFahrzeug(fahrer_id=fahrer.id, fahrzeug_id=fahrzeug.id, gueltig_ab=ab, gueltig_bis=bis)
     db.add(neu)
@@ -269,6 +277,7 @@ def fahrer_fahrzeug_aendern(db: Session, z: ZuordnungFahrerFahrzeug, *, ab: date
                             fahrzeug_id: int, heute: date) -> list[str]:
     _pruefen(_fahrer_perioden(db, z.fahrer_id, ohne_id=z.id), ab, bis, vorperiode_beenden=False)
     _ohne_fahrer_pruefen(db, fahrzeug_id, ab, bis)
+    _ohne_dienstwagen_pruefen(db, z.fahrer_id, ab, bis)
     rueckwirkend = ab < z.gueltig_ab
     z.gueltig_ab, z.gueltig_bis, z.fahrzeug_id = ab, bis, fahrzeug_id
     db.flush()
@@ -364,3 +373,77 @@ def ohne_fahrer_aendern(db: Session, o: FahrzeugOhneFahrer, *, ab: date, bis: da
 def ohne_fahrer_am(db: Session, fahrzeug_id: int, stichtag: date) -> FahrzeugOhneFahrer | None:
     return db.scalars(select(FahrzeugOhneFahrer).where(
         FahrzeugOhneFahrer.fahrzeug_id == fahrzeug_id, gueltig_am(FahrzeugOhneFahrer, stichtag))).first()
+
+
+# ------------------------------------------------------------------ Fahrer:in ohne Dienstwagen
+
+def _ohne_dw_perioden(db: Session, fahrer_id: int, ohne_id: int | None = None):
+    q = select(FahrerOhneFahrzeug).where(FahrerOhneFahrzeug.fahrer_id == fahrer_id)
+    if ohne_id is not None:
+        q = q.where(FahrerOhneFahrzeug.id != ohne_id)
+    return db.scalars(q).all()
+
+
+def _ohne_dienstwagen_pruefen(db: Session, fahrer_id: int, ab: date, bis: date | None) -> None:
+    """Fahrzeug-Zuordnung der Person darf keinen Zeitraum „ohne Dienstwagen“ überschneiden."""
+    for o in _ohne_dw_perioden(db, fahrer_id):
+        if ueberlappt(ab, bis, o.gueltig_ab, o.gueltig_bis):
+            raise ZuordnungsFehler(f"Die Person ist {zeitraum(o.gueltig_ab, o.gueltig_bis)} als „ohne Dienstwagen“ "
+                                   "eingetragen – bitte diesen Zeitraum zuerst anpassen.")
+
+
+def _ohne_dienstwagen_kuerzen(db: Session, fahrer_id: int, ab: date, bis: date | None) -> list[str]:
+    """Neue offene Fahrzeug-Zuordnung ab `ab`: ein offener Zeitraum „ohne Dienstwagen“, der vorher beginnt, endet am
+    Vortag. Andere Überschneidungen sind ein Fehler."""
+    hinweise = []
+    for o in _ohne_dw_perioden(db, fahrer_id):
+        if bis is None and o.gueltig_bis is None and o.gueltig_ab < ab:
+            o.gueltig_bis = ab - timedelta(days=1)
+            hinweise.append(f"Der Zeitraum „ohne Dienstwagen“ wurde zum {datum(o.gueltig_bis)} beendet.")
+    db.flush()
+    _ohne_dienstwagen_pruefen(db, fahrer_id, ab, bis)
+    return hinweise
+
+
+def _gegen_fahrzeuge_pruefen(db: Session, fahrer_id: int, ab: date, bis: date | None) -> None:
+    for z in db.scalars(select(ZuordnungFahrerFahrzeug).where(ZuordnungFahrerFahrzeug.fahrer_id == fahrer_id)):
+        if ueberlappt(ab, bis, z.gueltig_ab, z.gueltig_bis):
+            raise ZuordnungsFehler(f"Die Person hat {zeitraum(z.gueltig_ab, z.gueltig_bis)} das Fahrzeug "
+                                   f"{z.fahrzeug.kennzeichen} – bitte die Fahrzeug-Zuordnung zuerst anpassen.")
+
+
+def _grund(grund: str | None) -> str | None:
+    grund = (grund or "").strip()
+    if len(grund) > 200:
+        raise ZuordnungsFehler("Der Grund darf höchstens 200 Zeichen haben.")
+    return grund or None
+
+
+def ohne_dienstwagen_eintragen(db: Session, fahrer: Fahrer, *, ab: date, bis: date | None = None,
+                               grund: str | None = None) -> list[str]:
+    """Zeitraum „ohne Dienstwagen“ anlegen; ein offener früherer endet am Vortag, angrenzende mit gleichem Grund werden
+    zusammengefasst. Liefert Hinweise."""
+    grund = _grund(grund)
+    _gegen_fahrzeuge_pruefen(db, fahrer.id, ab, bis)
+    zu_beenden = _pruefen(_ohne_dw_perioden(db, fahrer.id), ab, bis, vorperiode_beenden=True)
+    hinweise = _beenden(db, zu_beenden, ab, lambda o: "ohne Dienstwagen")
+    db.add(FahrerOhneFahrzeug(fahrer_id=fahrer.id, gueltig_ab=ab, gueltig_bis=bis, grund=grund))
+    db.flush()
+    return hinweise + zusammenfassen(db, FahrerOhneFahrzeug, fahrer_id=fahrer.id, grund=grund)
+
+
+def ohne_dienstwagen_aendern(db: Session, o: FahrerOhneFahrzeug, *, ab: date, bis: date | None,
+                             grund: str | None) -> list[str]:
+    grund = _grund(grund)
+    _pruefen(_ohne_dw_perioden(db, o.fahrer_id, ohne_id=o.id), ab, bis, vorperiode_beenden=False)
+    _gegen_fahrzeuge_pruefen(db, o.fahrer_id, ab, bis)
+    o.gueltig_ab, o.gueltig_bis, o.grund = ab, bis, grund
+    db.flush()
+    return zusammenfassen(db, FahrerOhneFahrzeug, fahrer_id=o.fahrer_id, grund=grund)
+
+
+def ohne_dienstwagen_am(db: Session, fahrer_id: int, stichtag: date) -> FahrerOhneFahrzeug | None:
+    if (speicher := db.info.get(SPEICHER)) is not None:
+        return next((o for o in speicher[3].get(fahrer_id, ()) if _gilt(o, stichtag)), None)
+    return db.scalars(select(FahrerOhneFahrzeug).where(
+        FahrerOhneFahrzeug.fahrer_id == fahrer_id, gueltig_am(FahrerOhneFahrzeug, stichtag))).first()

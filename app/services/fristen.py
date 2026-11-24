@@ -66,7 +66,7 @@ def ermitteln(db: Session, e: AppEinstellungen, tag: date | None = None) -> list
     tag = tag or heute()
     fristen = []
     grenze_leasing = tag + timedelta(days=e.leasing_vorwarnung_tage)
-    for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv, Fahrzeug.leasing_ende.is_not(None),
+    for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv, ~Fahrzeug.ersatzfahrzeug, Fahrzeug.leasing_ende.is_not(None),
                                                 Fahrzeug.leasing_ende <= grenze_leasing)):
         fristen.append(Frist("leasing", fz.kennzeichen, f"/stammdaten/fahrzeuge/{fz.id}", fz.leasing_ende, tag))
     if e.feature_fuehrerschein:
@@ -78,7 +78,7 @@ def ermitteln(db: Session, e: AppEinstellungen, tag: date | None = None) -> list
     for art in MAUT:
         if not maut_aktiv(e, art):
             continue
-        for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv)):
+        for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv, ~Fahrzeug.ersatzfahrzeug)):
             if (frist := maut_frist(fz, art, e, tag)) is not None:
                 fristen.append(frist)
     return sorted(fristen, key=lambda x: (x.faellig or date.min, x.art, x.name))

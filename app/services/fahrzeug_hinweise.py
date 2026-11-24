@@ -62,12 +62,27 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
     unplausibel = _anzahl_je_fahrzeug(db, unplausibel_sql(e))
     ohne_stromart = _anzahl_je_fahrzeug(db, stromart.ohne_angabe())
 
+    def daten_hinweise(fz: Fahrzeug, h: list[Hinweis]) -> None:
+        """Hinweise zu den Ladevorgängen – gelten auch für Ersatz-/Mietfahrzeuge."""
+        if n := unplausibel.get(fz.id):
+            h.append(Hinweis("gelb", f"{n} unplausible AC/DC", f"/ladevorgaenge?fahrzeug_id={fz.id}&unplausibel=1",
+                             "AC/DC passt nicht zur Leistung über den Vorgang"))
+        if n := ohne_stromart.get(fz.id):
+            h.append(Hinweis("grau", f"{n} ohne AC/DC", f"/ladevorgaenge?fahrzeug_id={fz.id}&stromart=-",
+                             "Ladevorgänge ohne AC/DC-Angabe (unter „Aufgaben“ setzbar)"))
+
     ergebnis = {}
     for fz in fahrzeuge:
         if not fz.aktiv:
             continue
         seite = f"/stammdaten/fahrzeuge/{fz.id}"
         h: list[Hinweis] = []
+        if fz.ersatzfahrzeug:  # keine Prüfungen der Dienstwagen (Leasing, Lücken, Karten, Maut)
+            h.append(Hinweis("grau", "Ersatz-/Mietfahrzeug", seite,
+                             "Wird zugeordnet und ausgewertet, aber nicht wie ein Dienstwagen geprüft"))
+            daten_hinweise(fz, h)
+            ergebnis[fz.id] = sorted(h, key=lambda x: STUFEN.index(x.stufe))
+            continue
         # Leasing
         if not fz.leasing_beginn and not fz.leasing_ende:
             h.append(Hinweis("grau", "keine Leasingdaten", seite, "Leasingbeginn und -ende beim Fahrzeug eintragen"))
@@ -115,13 +130,7 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
                                 *((a, f"{n} außerhalb des Leasings", seite) for a, n in MAUT.items())):
             if eigene := [w for w in warnungen if w.art == art]:
                 h.append(Hinweis("gelb", text, ziel, "; ".join(w.text for w in eigene)))
-        # Ladevorgänge
-        if n := unplausibel.get(fz.id):
-            h.append(Hinweis("gelb", f"{n} unplausible AC/DC", f"/ladevorgaenge?fahrzeug_id={fz.id}&unplausibel=1",
-                             "AC/DC passt nicht zur Leistung über den Vorgang"))
-        if n := ohne_stromart.get(fz.id):
-            h.append(Hinweis("grau", f"{n} ohne AC/DC", f"/ladevorgaenge?fahrzeug_id={fz.id}&stromart=-",
-                             "Ladevorgänge ohne AC/DC-Angabe (unter „Aufgaben“ setzbar)"))
+        daten_hinweise(fz, h)
         ergebnis[fz.id] = sorted(h, key=lambda x: STUFEN.index(x.stufe))
     return ergebnis
 

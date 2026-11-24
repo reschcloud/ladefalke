@@ -29,7 +29,8 @@ from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, Ladeart, Ladekarte, L
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art, stichtag_spalte
 from app.services import kosten as kosten_dienst
-from app.services.zuordnung import fahrer_von_fahrzeug_am, karten_zuordnung_am, mit_vorgeladenen_zuordnungen
+from app.services.zuordnung import (fahrer_von_fahrzeug_am, karten_zuordnung_am, mit_vorgeladenen_zuordnungen,
+                                    ohne_dienstwagen_am)
 
 NULL = Decimal(0)
 
@@ -482,6 +483,8 @@ class Auswertung:
     ladeorte: list[tuple[Ladeort, Summe]] = field(default_factory=list)
     cpo_personen: dict[str | None, CpoDetail] = field(default_factory=dict)  # nur öffentlich, siehe Moduldoku
     karten_anzeige: dict = field(default_factory=dict)  # Karten-ID → kartenanzeige.Anzeige (nur mit Personen)
+    # Ladevorgänge ohne Fahrzeug von Personen „ohne Dienstwagen“ (begründet, keine Aufgabe); nicht in nicht_zugeordnet
+    ohne_dienstwagen: Summe = field(default_factory=Summe)
     # je Monatserstem (nur mit Personen und bei ganzen Monaten, sonst None): Werte für die Monatsdiagramme
     monatsteile: dict[date, Monatsteil] | None = None
     # grob geschätzte CO₂e-Einsparung gegenüber Verbrennern in kg je kWh (Einstellungen); None = aus
@@ -526,8 +529,8 @@ class Auswertung:
 
     @property
     def gesamt(self) -> Summe:
-        return (self.fahrzeuge_summe + self.nicht_zugeordnet + self.gaeste + self.gebuehren_nicht_zuordenbar
-                + self.pauschalen)
+        return (self.fahrzeuge_summe + self.nicht_zugeordnet + self.ohne_dienstwagen + self.gaeste
+                + self.gebuehren_nicht_zuordenbar + self.pauschalen)
 
     def fahrzeug(self, fahrzeug_id: int) -> FahrzeugZeile | None:
         return next((z for z in self.fahrzeuge if z.fahrzeug.id == fahrzeug_id), None)
@@ -617,6 +620,7 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
     cpo: dict[str | None, Summe] = defaultdict(Summe)
     ladeorte: dict[int, tuple[Ladeort, Summe]] = {}
     nicht_zugeordnet, gaeste, gebuehren_ohne, pauschalen = Summe(), Summe(), Summe(), Summe()
+    ohne_dienstwagen = Summe()
     nicht_eindeutig, nicht_eindeutig_oeffentlich = Summe(), Summe()
     karten_nutzung: dict[int, KartenZeile] = {}
     cpo_gruppen: dict[str | None, dict] = defaultdict(dict)  # CPO → Schlüssel → CpoPerson
@@ -660,7 +664,8 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         msp[v.msp.name].vorgang(*werte)
         laender[v.land].vorgang(*werte)
         cpo[v.betreiber_id].vorgang(*werte)
-        monat = stichtag(v.start, v.ende, einst.stichtag).replace(day=1)
+        monat_tag = stichtag(v.start, v.ende, einst.stichtag)
+        monat = monat_tag.replace(day=1)
         if ganze_monate:
             m_msp[monat][v.msp.name].vorgang(*werte)
             m_cpo[monat][v.betreiber_id].vorgang(*werte)
@@ -679,7 +684,11 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
                 cpo_buchen(v, werte, "gaeste")
             continue
         else:
-            nicht_zugeordnet.vorgang(*werte)
+            zk = karten_zuordnung_am(db, v.ladekarte_id, monat_tag) if v.ladekarte_id else None
+            if zk is not None and zk.fahrer_id is not None and ohne_dienstwagen_am(db, zk.fahrer_id, monat_tag):
+                ohne_dienstwagen.vorgang(*werte)  # Person bewusst ohne Dienstwagen – begründet
+            else:
+                nicht_zugeordnet.vorgang(*werte)
         if not mit_personen:
             continue
 
@@ -807,7 +816,7 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         tank=sprit is not None,
         msp=sorted(msp.items(), key=lambda e: e[0].lower()),
         fahrzeuge_summe=sum((r.summe for r in fahrzeug_zeilen), Summe()),
-        nicht_zugeordnet=nicht_zugeordnet, gaeste=gaeste, gebuehren_nicht_zuordenbar=gebuehren_ohne,
+        nicht_zugeordnet=nicht_zugeordnet, ohne_dienstwagen=ohne_dienstwagen, gaeste=gaeste, gebuehren_nicht_zuordenbar=gebuehren_ohne,
         pauschalen=pauschalen, topliste=topliste, topliste_oeffentlich=topliste_oeffentlich, fahrer=fahrer_zeilen,
         karten=karten_zeilen, fahrer_nicht_eindeutig=nicht_eindeutig,
         laender=sorted(laender.items(), key=lambda e: (-e[1].kwh, e[0] or "~")),

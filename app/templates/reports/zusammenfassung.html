@@ -69,7 +69,8 @@
 <table>
   <thead><tr><th>Bereich</th><th class="r">Vorgänge</th><th class="r">kWh</th><th class="r">Kosten</th><th class="r">Ø €/kWh</th></tr></thead>
   <tbody>
-  {% for name, s in [("Fahrzeuge", a.fahrzeuge_summe), ("Nicht zugeordnet", a.nicht_zugeordnet), ("Gäste", a.gaeste),
+  {% for name, s in [("Fahrzeuge", a.fahrzeuge_summe), ("Nicht zugeordnet", a.nicht_zugeordnet),
+                     ("Ohne Dienstwagen", a.ohne_dienstwagen), ("Gäste", a.gaeste),
                      ("Gebühren nicht zuordenbar", a.gebuehren_nicht_zuordenbar), ("Pauschalen", a.pauschalen)] %}
     {% if not s.leer %}<tr><td>{{ name }}</td><td class="r">{{ s.anzahl }}</td><td class="r">{{ s.kwh | zahl(0) }}</td>
       <td class="r">{{ s.kosten | geld }}</td><td class="r">{{ s.preis | zahl(2) if s.preis is not none else "–" }}</td></tr>{% endif %}

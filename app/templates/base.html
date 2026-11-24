@@ -804,6 +804,37 @@
       </span>
     </div>
   </footer>
+  <script>
+    // Seitentitel kleben oben (app.css „Seitentitel kleben oben“): Abstand = Höhe der Menüleiste, wenn sie oben quer
+    // steht (schmales Fenster, kompaktes Menü), sonst 0 (Menü links). Sprungziele (#anker) landen unter dem Titel.
+    // Eine Linie unter dem Titel erscheint erst, wenn er tatsächlich klebt.
+    (() => {
+      const kopf = document.querySelector("body > header.container");
+      const titel = document.querySelector("body > main > h1, body > main > .kopf:has(> h1)");
+      const setzen = () => {
+        let oben = 0;
+        if (kopf) {
+          const r = kopf.getBoundingClientRect();
+          if (getComputedStyle(kopf).position === "sticky" && r.width > window.innerWidth * 0.6) oben = r.height;
+        }
+        const wurzel = document.documentElement;
+        wurzel.style.setProperty("--kopf-oben", `${oben}px`);
+        wurzel.style.scrollPaddingTop = `${oben + (titel ? titel.offsetHeight : 0) + 8}px`;
+        if (titel) titel.classList.toggle("klebt", titel.getBoundingClientRect().top <= oben + 1 && window.scrollY > 0);
+      };
+      if (window.ResizeObserver) {
+        const beobachter = new ResizeObserver(setzen);
+        [kopf, titel].forEach((el) => el && beobachter.observe(el));
+      }
+      window.titelSetzen = setzen;  // neueste Seite (hx-boost tauscht den Inhalt)
+      if (!window.titelKlebtEingerichtet) {
+        window.titelKlebtEingerichtet = true;
+        addEventListener("resize", () => window.titelSetzen());
+        addEventListener("scroll", () => window.titelSetzen(), { passive: true });
+      }
+      setzen();
+    })();
+  </script>
   {# Lade-Animation (siehe Skript oben); eigene Zeichnung im Stil der Symbole #}
   <div class="lade-anzeige" role="status" aria-live="polite">
     <div class="lade-karte">

@@ -34,6 +34,7 @@
     <tbody>
       <tr><td>Fahrzeuge</td>{{ summenzellen(a.fahrzeuge_summe) }}</tr>
       <tr><td><a href="/aufgaben#ohne-fahrzeug">Nicht zugeordnet</a></td>{{ summenzellen(a.nicht_zugeordnet) }}</tr>
+      {% if a.ohne_dienstwagen.anzahl %}<tr><td>Ohne Dienstwagen {{ m.hilfe("Ladungen mit der persönlichen Karte von Personen, die in diesem Zeitraum bewusst keinen Dienstwagen hatten (Fahrer:in → Fahrzeug → „ohne Dienstwagen“). Begründet – keine Aufgabe; die Kosten zählen bei der Person.") }}</td>{{ summenzellen(a.ohne_dienstwagen) }}</tr>{% endif %}
       <tr><td>Gäste</td>{{ summenzellen(a.gaeste) }}</tr>
       <tr><td>Gebühren nicht zuordenbar</td>{{ summenzellen(a.gebuehren_nicht_zuordenbar) }}</tr>
       <tr><td><a href="/import?pauschalen_jahr={{ a.zeitraum.von.year }}#pauschalen">Pauschalen</a></td>{{ summenzellen(a.pauschalen) }}</tr>

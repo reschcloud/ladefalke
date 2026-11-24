@@ -62,7 +62,8 @@ def ermitteln(db: Session, tag: date | None = None) -> list[Luecke]:
     for z in [*db.scalars(select(ZuordnungFahrerFahrzeug)), *db.scalars(select(FahrzeugOhneFahrer))]:
         zuordnungen.setdefault(z.fahrzeug_id, []).append((z.gueltig_ab, z.gueltig_bis))
     ergebnis = []
-    for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv).order_by(Fahrzeug.kennzeichen)):
+    for fz in db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv, ~Fahrzeug.ersatzfahrzeug)  # Ersatz-/Mietfahrzeuge: keine Lücken
+                         .order_by(Fahrzeug.kennzeichen)):
         eigene = zuordnungen.get(fz.id, [])
         von = fz.leasing_beginn or min((ab for ab, _ in eigene), default=None)
         if von is None:  # weder Leasingbeginn noch Zuordnung: kein Bezugszeitraum

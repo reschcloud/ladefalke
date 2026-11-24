@@ -149,6 +149,9 @@ class Fahrzeug(Base):
     # Vorsteuerabzug für inländische USt. auf Ladekosten in Prozent (100 = voll, 0 = keiner, anteilig z. B. wegen
     # Luxustangente); bestimmt die tatsächlichen Kosten (services/kosten.py), Migration 0031
     vorsteuer_prozent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal(100), server_default="100")
+    # Ersatz-/Mietfahrzeug (Migration 0036): wird normal zugeordnet und ausgewertet, ist aber von den Prüfungen der
+    # Dienstwagen ausgenommen (Lücken ohne Fahrer:in, Kartenanzahl, Vignette/Streckenmaut, Hinweise)
+    ersatzfahrzeug: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # Grundlage der kWh-Schätzung kommt aus den Daten (services/ladeprofil.py, schaetzgrundlage)
 
 
@@ -192,6 +195,24 @@ class FahrzeugOhneFahrer(Base):
     gueltig_bis: Mapped[date | None] = mapped_column(Date)
 
     fahrzeug: Mapped[Fahrzeug] = relationship()
+
+
+class FahrerOhneFahrzeug(Base):
+    """Zeitraum, in dem eine Person bewusst keinen Dienstwagen hatte (Migration 0036) – Ladungen mit ihrer
+    persönlichen Karte sind dann begründet ohne Fahrzeug: keine Aufgabe, in den Auswertungen „ohne Dienstwagen“.
+    Je Person keine Überlappung; darf sich nicht mit einer Fahrzeug-Zuordnung der Person überschneiden."""
+    __tablename__ = "fahrer_ohne_fahrzeug"
+    __table_args__ = (
+        CheckConstraint("gueltig_bis IS NULL OR gueltig_bis >= gueltig_ab", name="zeitraum"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fahrer_id: Mapped[int] = mapped_column(ForeignKey("fahrer.id", ondelete="CASCADE"), index=True)
+    gueltig_ab: Mapped[date] = mapped_column(Date)
+    gueltig_bis: Mapped[date | None] = mapped_column(Date)
+    grund: Mapped[str | None] = mapped_column(String(200))  # z. B. „noch kein Dienstwagen“, „Mietwagen“
+
+    fahrer: Mapped[Fahrer] = relationship()
 
 
 class ZuordnungFahrerFahrzeug(Base):

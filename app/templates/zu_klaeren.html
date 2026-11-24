@@ -134,7 +134,9 @@
 </div>
 <p>Je Karte steht die Ursache dabei: Fehlt der Karte eine Zuordnung, die Karte rückwirkend zuordnen; gehört sie
   einer Person, die damals kein Fahrzeug hatte, der Person das Fahrzeug zuordnen – jeweils mit „bereits importierte
-  Ladevorgänge neu zuordnen“. Einzelne Vorgänge lassen sich unten auch manuell zuweisen.</p>
+  Ladevorgänge neu zuordnen“. Hatte die Person bewusst keinen Dienstwagen: „ohne Dienstwagen“ (gab es ein Ersatz- oder
+  Mietauto, dieses als Ersatz-/Mietfahrzeug anlegen und zuordnen). Einzelne Vorgänge lassen sich unten auch manuell
+  zuweisen.</p>
 {% if gaeste[0] %}
   <p><small>Nicht enthalten: {{ gaeste[0] }} Ladevorgänge von Gastkarten ({{ gaeste[1] | zahl(0) }} kWh,
     {{ gaeste[2] | geld }}) – sie bleiben bewusst ohne Fahrzeug (Topf „Gäste“).</small></p>
@@ -166,6 +168,8 @@
           {% for f, f_von, f_bis in u.personen %}
           <a href="/stammdaten/fahrer/{{ f.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ f_von.isoformat() }}&bis={{ f_bis.isoformat() }}#neue-fahrzeug-zuordnung"
              role="button" data-schreiben class="outline klein" title="{{ f.name }} für den Zeitraum der offenen Ladevorgänge ein Fahrzeug zuordnen, danach zurück hierher">Fahrzeug zuordnen</a>
+          <a href="/stammdaten/fahrer/{{ f.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ f_von.isoformat() }}&bis={{ f_bis.isoformat() }}#ohne-dienstwagen"
+             role="button" data-schreiben class="outline secondary klein" title="{{ f.name }} hatte in dieser Zeit bewusst keinen Dienstwagen – die Ladungen sind begründet und keine Aufgabe mehr">ohne Dienstwagen</a>
           {% endfor %}
           {% if u.ohne_zuordnung or not u.personen %}
           <a href="/stammdaten/ladekarten/{{ k.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ (u.ohne_zuordnung[0] if u.ohne_zuordnung else von.date()).isoformat() }}#neue-karten-zuordnung"

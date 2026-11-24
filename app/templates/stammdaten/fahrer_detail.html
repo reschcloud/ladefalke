@@ -66,6 +66,26 @@
   </form>
 </article>
 
+{# Zeitraum ohne Dienstwagen: Ladungen mit der persönlichen Karte sind dann begründet ohne Fahrzeug (keine Aufgabe) #}
+<article data-schreiben id="ohne-dienstwagen">
+  <header><strong>Ohne Dienstwagen</strong> {{ m.hilfe("Für Zeiten, in denen die Person bewusst keinen Dienstwagen hatte (z. B. vor dem ersten Auto oder zwischen zwei Autos) und trotzdem mit der persönlichen Karte geladen hat. Diese Ladungen zählen weiter bei der Person, sind aber keine Aufgabe mehr und stehen in den Auswertungen unter „Ohne Dienstwagen“. Gab es ein konkretes Ersatz- oder Mietauto: besser als Fahrzeug anlegen (Häkchen „Ersatz-/Mietfahrzeug“) und oben zuordnen.") }}</header>
+  <form method="post" action="/stammdaten/fahrer/{{ fahrer.id }}/ohne-dienstwagen">
+    {% if zurueck %}<input type="hidden" name="zurueck" value="{{ zurueck }}">{% endif %}
+    <div class="grid">
+      {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
+      {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
+      <label>Grund <small>(optional)</small>
+        <input type="text" name="grund" maxlength="200" list="ohne-dienstwagen-gruende" placeholder="z. B. noch kein Dienstwagen">
+      </label>
+    </div>
+    <datalist id="ohne-dienstwagen-gruende">
+      <option value="noch kein Dienstwagen"><option value="zwischen zwei Dienstwagen"><option value="Dienstwagen in der Werkstatt">
+      <option value="Privatfahrzeug"><option value="Mietwagen">
+    </datalist>
+    <button type="submit" class="outline">Zeitraum „ohne Dienstwagen“ eintragen</button>
+  </form>
+</article>
+
 {% call m.titel("karte", id="ladekarten") %}Ladekarten {{ m.hilfe("Persönliche Karten der Person und die Karten der Fahrzeuge, die sie gefahren ist – diese jeweils für die Zeit, in der sie das Fahrzeug hatte.") }}{% endcall %}
 {{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine Karten – weder persönlich noch über ein Fahrzeug.") }}
 {{ zo.karte_zuordnen(karten_auswahl, "fahrer:%d" % fahrer.id, "/stammdaten/fahrer/%d" % fahrer.id) }}

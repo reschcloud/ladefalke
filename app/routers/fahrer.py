@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import heute
 from app.db import get_db
 from app.formatierung import email_lesen, datum_lesen
-from app.models import Fahrer, Fahrzeug, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
+from app.models import Fahrer, FahrerOhneFahrzeug, Fahrzeug, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
 from app.services import app_einstellungen, fahrzeug_hinweise, mini_zeitleiste
 from app.services import kartenanzeige, kennzahlen, protokoll
 from app.services.kartenanzeige import kurz as kurz_kennung
@@ -17,7 +17,7 @@ from app.services.aufloesung import neu_zuordnen_fahrer
 from app.services.fristen import naechste_kontrolle
 from app.services.ladevorgaenge import letzte_vorgaenge_von_fahrer
 from app.services.zuordnung import (ZuordnungsFehler, bisherige_fahrer_austragen, fahrer_fahrzeug_zuordnen,
-                                    fahrzeug_von_fahrer_am, gueltig_am)
+                                    fahrzeug_von_fahrer_am, gueltig_am, ohne_dienstwagen_eintragen)
 from app.web import blaettern, liste_merken, meldung, render, weiter, zuordnung_vorbelegung
 
 router = APIRouter(prefix="/stammdaten/fahrer")
@@ -77,11 +77,16 @@ def _detail(request, db, fahrer, werte, fehler=None, status_code=200, zuordnung_
             select(ZuordnungKarte).where(ZuordnungKarte.fahrer_id == fahrer.id)
             .order_by(ZuordnungKarte.gueltig_ab.desc())).all()
         zurueck = f"?zurueck=/stammdaten/fahrer/{fahrer.id}"
+        ohne_dw = db.scalars(select(FahrerOhneFahrzeug).where(FahrerOhneFahrzeug.fahrer_id == fahrer.id)).all()
         kontext["fahrzeug_mini"] = mini_zeitleiste.berechnen(
             [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.fahrzeug.kennzeichen,
-                                     f"/stammdaten/fahrzeuge/{z.fahrzeug.id}", z.fahrzeug.modell or "",
+                                     f"/stammdaten/fahrzeuge/{z.fahrzeug.id}",
+                                     (z.fahrzeug.modell or "") + (" · Ersatz-/Mietfahrzeug" if z.fahrzeug.ersatzfahrzeug else ""),
                                      f"/stammdaten/zuordnungen/fahrer/{z.id}{zurueck}", art="auto")
-             for z in kontext["fahrzeug_historie"]], heute())  # Person ohne Fahrzeug ist keine Lücke
+             for z in kontext["fahrzeug_historie"]]
+            + [mini_zeitleiste.Eintrag(o.gueltig_ab, o.gueltig_bis, "ohne Dienstwagen", zusatz=o.grund or "", stil="ohne",
+                                       bearbeiten=f"/stammdaten/zuordnungen/ohne-dienstwagen/{o.id}{zurueck}")
+               for o in ohne_dw], heute())  # Person ohne Fahrzeug ist keine Lücke
         karten = [mini_zeitleiste.Eintrag(z.gueltig_ab, z.gueltig_bis, z.ladekarte.msp.name,
                                           f"/stammdaten/ladekarten/{z.ladekarte.id}",
                                           f"…{kurz_kennung(z.ladekarte.kennung)} · persönlich",
@@ -278,6 +283,33 @@ def fahrzeug_zuordnen(request: Request, fahrer_id: int, fahrzeug_id: str = Form(
     ziel = _lokal(zurueck) or f"/stammdaten/fahrer/{fahrer.id}"
     if not bisherige_austragen:
         _pool_hinweis(request, db, fahrer, fahrzeug, ab_datum, bis_datum, ziel)
+    return weiter(ziel)
+
+
+@router.post("/{fahrer_id}/ohne-dienstwagen")
+def ohne_dienstwagen(request: Request, fahrer_id: int, ab: str = Form(""), bis: str = Form(""), grund: str = Form(""),
+                     zurueck: str = Form(""), db: Session = Depends(get_db)):
+    """Zeitraum „ohne Dienstwagen“ eintragen: Ladungen mit der persönlichen Karte sind dann begründet ohne Fahrzeug
+    (keine Aufgabe; in den Auswertungen „ohne Dienstwagen“). Vom Formular der Personenseite bzw. aus den Aufgaben."""
+    fahrer = _laden(db, fahrer_id)
+    ziel = _lokal(zurueck) or f"/stammdaten/fahrer/{fahrer.id}#fahrzeug"
+    try:
+        ab_datum = datum_lesen(ab)
+        if ab_datum is None:
+            raise ZuordnungsFehler("Bitte ein Beginndatum angeben.")
+        bis_datum = datum_lesen(bis)
+        hinweise = ohne_dienstwagen_eintragen(db, fahrer, ab=ab_datum, bis=bis_datum, grund=grund)
+    except ValueError as e:
+        db.rollback()
+        meldung(request, str(e), "fehler")
+        return weiter(f"/stammdaten/fahrer/{fahrer.id}?" + urlencode(
+            {k: w for k, w in {"ab": ab, "bis": bis, "zurueck": _lokal(zurueck)}.items() if w}) + "#ohne-dienstwagen")
+    db.commit()
+    von_bis = f"ab {ab_datum:%d.%m.%Y}" if bis_datum is None else f"vom {ab_datum:%d.%m.%Y} bis {bis_datum:%d.%m.%Y}"
+    meldung(request, f"{fahrer.name} ist {von_bis} ohne Dienstwagen – Ladungen mit der persönlichen Karte sind in "
+                     "dieser Zeit begründet ohne Fahrzeug.")
+    for h in hinweise:
+        meldung(request, h, "warnung")
     return weiter(ziel)
 
 

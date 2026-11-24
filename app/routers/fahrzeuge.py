@@ -43,6 +43,7 @@ def _werte(kennzeichen: str, modell: str, notiz: str, aktiv: str | None, leasing
     return {"kennzeichen": " ".join(kennzeichen.upper().split()), "modell": modell.strip() or None,
             "vorsteuer_prozent": (maut.get("vorsteuer_prozent") or "100").strip(),
             "notiz": notiz.strip() or None, "aktiv": aktiv is not None,
+            "ersatzfahrzeug": bool(maut.get("ersatzfahrzeug")),
             "leasing_beginn": leasing_beginn.strip(), "leasing_ende": leasing_ende.strip(),
             "vignette_noetig": bool(maut.get("vignette_noetig")), "streckenmaut_noetig": bool(maut.get("streckenmaut_noetig")),
             **{f: (maut.get(f) or "").strip() for f in MAUT_FELDER}}
@@ -50,6 +51,7 @@ def _werte(kennzeichen: str, modell: str, notiz: str, aktiv: str | None, leasing
 
 def _werte_von(fz: Fahrzeug) -> dict:
     return {"kennzeichen": fz.kennzeichen, "modell": fz.modell, "notiz": fz.notiz, "aktiv": fz.aktiv,
+            "ersatzfahrzeug": fz.ersatzfahrzeug,
             "leasing_beginn": fz.leasing_beginn.isoformat() if fz.leasing_beginn else "",
             "leasing_ende": fz.leasing_ende.isoformat() if fz.leasing_ende else "",
             "vorsteuer_prozent": zahl(fz.vorsteuer_prozent, 0 if fz.vorsteuer_prozent % 1 == 0 else 2),
@@ -59,7 +61,7 @@ def _werte_von(fz: Fahrzeug) -> dict:
 
 def _daten(db: Session, werte: dict, fehler: dict) -> dict:
     """Formularwerte → Spaltenwerte; Leasing-Ende ohne Angabe = Beginn + Leasingdauer (Einstellungen)."""
-    daten = {k: werte[k] for k in ("kennzeichen", "modell", "notiz", "aktiv")}
+    daten = {k: werte[k] for k in ("kennzeichen", "modell", "notiz", "aktiv", "ersatzfahrzeug")}
     try:
         prozent = decimal_lesen(werte["vorsteuer_prozent"])
         if prozent is None or not 0 <= prozent <= 100:
@@ -211,7 +213,8 @@ def neu_formular(request: Request, db: Session = Depends(get_db)):
 
 async def _maut_formular(request: Request) -> dict:
     formular = await request.form()
-    return {k: formular.get(k) for k in ("vignette_noetig", "streckenmaut_noetig", "vorsteuer_prozent", *MAUT_FELDER)}
+    return {k: formular.get(k) for k in ("vignette_noetig", "streckenmaut_noetig", "vorsteuer_prozent", "ersatzfahrzeug",
+                                         *MAUT_FELDER)}
 
 
 @router.post("/neu")

@@ -3,6 +3,27 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.10.0 – 24.11.2026
+
+### Neu
+
+- **Ohne Dienstwagen:** Hat eine Person in einem Zeitraum bewusst keinen Dienstwagen, aber mit ihrer persönlichen
+  Karte geladen, lässt sich das auf ihrer Seite eintragen (Zeitraum, optional Grund) – oder direkt unter „Aufgaben →
+  Ladevorgänge ohne Fahrzeug“ mit dem Knopf „ohne Dienstwagen“. Die Ladungen sind dann keine Aufgabe mehr, zählen
+  weiter bei der Person und stehen in den Auswertungen als eigener Posten „Ohne Dienstwagen“.
+- **Ersatz-/Mietfahrzeug:** Häkchen am Fahrzeug für Autos, die jemand nur vorübergehend fährt. Sie werden normal
+  zugeordnet und ausgewertet, lösen aber keine Prüfungen der Dienstwagen aus (Lücken ohne Fahrer:in, Ladekarten je
+  Fahrzeug, Vignette, Streckenmaut, Leasing).
+
+### Geändert
+
+- Seitentitel bleiben beim Scrollen oben stehen (bei schmalem Fenster unter der Menüleiste); der Inhalt scrollt
+  darunter durch. Sprungziele innerhalb einer Seite landen unter dem Titel statt dahinter.
+
+### Beim Update beachten
+
+- nichts (Migration 0036 läuft beim Start; vorher legt die App eine Sicherung an).
+
 ## v1.9.0 – 24.11.2026
 
 ### Geändert

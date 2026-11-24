@@ -578,6 +578,20 @@ article.gefahrenzone > header { color: #c92a2a; }
 .luecken { margin-bottom: 1.5rem; }
 .luecken ul { margin: .4rem 0 .4rem 1.2rem; padding: 0; }
 .luecken li { margin: .15rem 0; list-style: disc; }
+/* ---------------------------------------------------------------- Seitentitel kleben oben */
+/* Der Titel jeder Seite (h1 bzw. die Kopfzeile .kopf mit h1 und Knöpfen) bleibt beim Scrollen stehen – ganz oben bzw.
+   unter der Menüleiste (--kopf-oben setzt base.html aus deren Höhe); der Inhalt scrollt darunter durch, hinter einer
+   halbtransparenten, weichzeichnenden Fläche wie bei der Menüleiste. Unter der Menüleiste (900) und Vollbildkarte. */
+:root { --kopf-oben: 0px; }
+body > main > h1, body > main > .kopf:has(> h1) {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--kopf-oben)); z-index: 850;
+  margin-inline: -.6rem; padding: .5rem .6rem;
+  background: color-mix(in srgb, var(--dash-grund, var(--pico-background-color)) 80%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+  border-radius: 0 0 var(--pico-border-radius) var(--pico-border-radius); }
+body > main > h1.klebt, body > main > .kopf.klebt {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--pico-muted-border-color) 70%, transparent); }
+
 /* ---------------------------------------------------------------- Menüleiste: klebt oben, Inhalt dahinter unscharf */
 /* Die Leiste ist so breit wie der Inhalt; ::before legt eine fensterbreite, halbtransparente, weichzeichnende Fläche
    dahinter. z-index unter der Vollbild-Karte (1000) und der Admin-Leiste. Etwas schmaler als Picos Standard. */

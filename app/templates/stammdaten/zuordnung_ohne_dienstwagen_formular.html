@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Zeitraum ohne Dienstwagen{% endblock %}
+{% block inhalt %}
+<p class="nav-leiste"><a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a></p>
+<h1>Zeitraum „ohne Dienstwagen“ bearbeiten</h1>
+<p><a href="/stammdaten/fahrer/{{ o.fahrer.id }}">{{ o.fahrer.name }}</a> hatte bewusst keinen Dienstwagen ·
+  {{ m.zeitraum_zelle(o) }}</p>
+<form method="post" class="formular" action="{{ request.url.path }}?zurueck={{ zurueck | urlencode }}">
+  {% if fehler %}<p class="meldung meldung-fehler" role="alert">{{ fehler }}</p>{% endif %}
+  <div class="grid">
+    {{ m.feld("ab", "Gültig ab", werte, {}, typ="date", pflicht=true) }}
+    {{ m.feld("bis", "Gültig bis (leer = offen)", werte, {}, typ="date") }}
+    <label>Grund <small>(optional)</small>
+      <input type="text" name="grund" maxlength="200" value="{{ werte.grund }}" placeholder="z. B. noch kein Dienstwagen">
+    </label>
+  </div>
+  <small class="formular-hinweis">Ladungen mit der persönlichen Karte der Person sind in diesem Zeitraum begründet ohne
+    Fahrzeug: keine Aufgabe, in den Auswertungen unter „Ohne Dienstwagen“, die Kosten zählen bei der Person. Der
+    Zeitraum darf sich nicht mit einer Fahrzeug-Zuordnung der Person überschneiden; ein offener endet automatisch,
+    wenn die Person ab einem späteren Tag ein Fahrzeug bekommt.</small>
+  <button type="submit">Speichern</button>
+</form>
+{{ m.loeschen_knopf(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode), "Zeitraum „ohne Dienstwagen“ löschen?") }}
+{% endblock %}
