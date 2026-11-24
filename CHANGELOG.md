@@ -3,6 +3,20 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.7.1 – 24.11.2026
+
+### Geändert
+
+- `setup.sh` prüft, ob sudo nötig ist: Docker installieren oder den gestoppten Docker-Dienst starten, Zugriff auf
+  Docker ohne Gruppe `docker` (dann Compose über sudo). Es sagt vorher, wofür, und fragt das Passwort einmal ab;
+  ohne Terminal eine klare Meldung statt einer hängenden Abfrage. Gehört eine bestehende Installation root (früher
+  mit sudo eingerichtet), bietet es an, sich mit sudo neu zu starten. Die Ausgabe nennt die Rechte („ohne sudo“,
+  „Docker über sudo“, „als root“).
+
+### Beim Update beachten
+
+- nichts.
+
 ## v1.7.0 – 24.11.2026
 
 ### Neu

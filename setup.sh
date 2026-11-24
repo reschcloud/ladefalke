@@ -19,9 +19,10 @@
 # Vor anstehenden Datenbank-Migrationen legt die App selbst eine Sicherung an.
 set -eu
 
-RUECKFALL="1.7.0"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
+RUECKFALL="1.7.1"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
 REPO="reschcloud/ladefalke"
 ROH="https://raw.githubusercontent.com/$REPO"
+ARGUMENTE="$*"  # für einen Neustart mit sudo (Optionen enthalten keine Leerzeichen)
 JA=""
 OHNE_START=""
 UPDATE=""
@@ -60,17 +61,41 @@ compose_finden() {
   else return 1
   fi
 }
+# ---------------------------------------------------------------- Rechte: wofür sudo nötig ist
+# Ohne root nur dort sudo, wo es gebraucht wird: Docker installieren bzw. starten, Zugriff auf Docker ohne Gruppe
+# „docker“. Vorher sagen, wofür, und das Passwort einmal am Stück abfragen (nicht mitten in einer Ausgabe).
 ALS_ROOT=""
-if [ "$(id -u)" -ne 0 ]; then
-  command -v sudo >/dev/null 2>&1 && ALS_ROOT="sudo"
-fi
+sudo_bereit() {  # sudo_bereit "Zweck"
+  [ "$(id -u)" -eq 0 ] && return 0
+  command -v sudo >/dev/null 2>&1 || fehler "Für $1 werden root-Rechte gebraucht, sudo fehlt – bitte als root ausführen."
+  if ! sudo -n true 2>/dev/null; then
+    [ -n "$TTY" ] || fehler "Für $1 wird sudo gebraucht – ohne Terminal geht die Passwortabfrage nicht (als root ausführen)."
+    hinweis "Für $1 wird sudo gebraucht – bitte das Passwort von $(id -un) eingeben."
+    sudo -v </dev/tty || fehler "sudo nicht möglich – bitte als root ausführen."
+  fi
+  ALS_ROOT="sudo"
+}
+neu_mit_sudo() {  # neu_mit_sudo "Grund" – als Datei aufgerufen: anbieten, das Skript mit sudo neu zu starten
+  if [ "$(id -u)" -ne 0 ] && [ -n "$SKRIPT" ] && [ -n "$TTY" ] && command -v sudo >/dev/null 2>&1; then
+    case "$(frage "$1 – mit sudo neu starten? [J/n]" "j")" in
+      [nN]*) ;;
+      *) sudo -v </dev/tty || fehler "sudo nicht möglich."
+         cd "$START_ORDNER"
+         # shellcheck disable=SC2086 – Optionen bewusst einzeln
+         exec sudo sh "$SKRIPT" $ARGUMENTE ;;
+    esac
+  fi
+  fehler "$1 – bitte mit root-Rechten ausführen: sudo sh setup.sh${ARGUMENTE:+ $ARGUMENTE}"
+}
+START_ORDNER=$(pwd)
+
 if ! compose_finden; then
   [ "$(uname -s)" = "Linux" ] || fehler "Docker mit Compose (oder Podman mit Compose) wird gebraucht – siehe README „Voraussetzungen“."
   command -v curl >/dev/null 2>&1 || fehler "Docker fehlt, und für die Installation wird curl gebraucht."
-  [ "$(id -u)" -eq 0 ] || [ -n "$ALS_ROOT" ] || fehler "Docker fehlt; zum Installieren als root ausführen (oder sudo einrichten)."
   case "$(frage "Docker ist nicht installiert. Jetzt mit dem offiziellen Skript von get.docker.com installieren? [J/n]" "j")" in
     [nN]*) fehler "Ohne Docker geht es nicht – Installation siehe https://docs.docker.com/engine/install/" ;;
   esac
+  sudo_bereit "die Installation von Docker"
   hinweis "Installiere Docker (get.docker.com) …"
   installer=$(mktemp)
   curl -fsSL https://get.docker.com -o "$installer" || fehler "Konnte das Docker-Installationsskript nicht laden."
@@ -79,16 +104,37 @@ if ! compose_finden; then
   $ALS_ROOT systemctl enable --now docker >/dev/null 2>&1 || true
   compose_finden || fehler "Docker ist installiert, aber „docker compose“ fehlt noch – bitte die Ausgabe oben prüfen."
 fi
-# Zugriff auf den Docker-Dienst: ohne Mitgliedschaft in der Gruppe „docker“ über sudo
-if [ "$COMPOSE" != "podman compose" ] && ! docker info >/dev/null 2>&1; then
-  if [ -n "$ALS_ROOT" ] && $ALS_ROOT docker info >/dev/null 2>&1; then
-    COMPOSE="$ALS_ROOT $COMPOSE"
-    hinweis "Docker läuft nur mit sudo – künftig ohne: sudo usermod -aG docker $(id -un) (danach neu anmelden)"
-  else
-    fehler "Der Docker-Dienst ist nicht erreichbar (läuft er? sudo systemctl start docker)."
+
+# Zugriff auf den Docker-Dienst: läuft er nicht → starten (sudo); keine Berechtigung (nicht in der Gruppe „docker“)
+# → Compose über sudo. Podman läuft ohne Dienst und ohne sudo.
+RECHTE="ohne sudo"
+[ "$(id -u)" -eq 0 ] && RECHTE="als root"
+if [ "$COMPOSE" != "podman compose" ]; then
+  if ! meldung=$(docker info 2>&1 >/dev/null); then
+    case "$meldung" in
+      *ermission*denied*) ;;  # läuft, aber keine Berechtigung: unten
+      *)  # Dienst nicht erreichbar: starten
+        command -v systemctl >/dev/null 2>&1 || fehler "Der Docker-Dienst läuft nicht: $meldung"
+        sudo_bereit "das Starten des Docker-Dienstes"
+        hinweis "Docker-Dienst läuft nicht – starte ihn …"
+        $ALS_ROOT systemctl enable --now docker >/dev/null 2>&1 || fehler "Konnte den Docker-Dienst nicht starten (sudo systemctl status docker)."
+        sleep 2
+        meldung=$(docker info 2>&1 >/dev/null) && meldung="" ;;
+    esac
+    if [ -n "$meldung" ]; then
+      case "$meldung" in
+        *ermission*denied*)
+          sudo_bereit "den Zugriff auf Docker ($(id -un) ist nicht in der Gruppe „docker“)"
+          sudo docker info >/dev/null 2>&1 || fehler "Docker ist auch mit sudo nicht erreichbar (sudo systemctl status docker)."
+          COMPOSE="sudo $COMPOSE"
+          RECHTE="Docker über sudo"
+          hinweis "Künftig ohne sudo: sudo usermod -aG docker $(id -un) (danach neu anmelden)" ;;
+        *) fehler "Der Docker-Dienst ist nicht erreichbar: $meldung" ;;
+      esac
+    fi
   fi
 fi
-hinweis "Container-Werkzeug: $COMPOSE"
+hinweis "Container-Werkzeug: $COMPOSE ($RECHTE)"
 
 # ---------------------------------------------------------------- Installationsordner
 # Hier, wenn schon eine Installation (oder ein Checkout) da ist oder der Ordner leer ist; sonst ./ladefalke
@@ -96,10 +142,17 @@ if [ ! -f .env ] && [ ! -f compose.yaml ]; then
   if [ -f ladefalke/.env ]; then
     cd ladefalke
   elif [ -n "$(ls -A | grep -vx 'setup.sh' || true)" ]; then
+    [ -w . ] || [ -d ladefalke ] || neu_mit_sudo "Keine Schreibrechte in $(pwd) für den Ordner „ladefalke“"
     mkdir -p ladefalke && cd ladefalke
   fi
 fi
 hinweis "Ordner: $(pwd)"
+# Schreibrechte: eine früher mit sudo bzw. als root angelegte Installation gehört root
+for pfad in . .env compose.yaml .env.example setup.sh; do
+  if [ -e "$pfad" ] && [ ! -w "$pfad" ]; then
+    neu_mit_sudo "Keine Schreibrechte auf $(pwd)/$pfad (gehört $(ls -ld "$pfad" | awk '{print $3}'))"
+  fi
+done
 if [ ! -f setup.sh ]; then  # für spätere Updates griffbereit
   if [ -n "$SKRIPT" ]; then cp "$SKRIPT" setup.sh
   else curl -fsSL "$ROH/main/setup.sh" -o setup.sh 2>/dev/null || rm -f setup.sh

@@ -11,6 +11,9 @@ Spezifikation: [SPEC.md](SPEC.md).
   Architekturen gehen nur mit selbst gebautem Image (siehe [Betrieb](#betrieb)).
 - **Docker Engine mit Compose-Plugin** – oder Podman mit Compose. Fehlt Docker, bietet `setup.sh` an, es über das
   offizielle Skript von get.docker.com zu installieren (braucht root bzw. sudo).
+- **Normaler Benutzer genügt:** `setup.sh` prüft selbst, ob sudo nötig ist – zum Installieren oder Starten von
+  Docker und, wenn der Benutzer nicht in der Gruppe `docker` ist, für Docker selbst – sagt vorher, wofür, und fragt
+  das Passwort einmal ab. Gehört eine bestehende Installation root, bietet es an, sich mit sudo neu zu starten.
 - Etwa **2 GB RAM** und **5 GB Speicher** (mehr, je nach Menge der Rechnungen und Sicherungen).
 - **Internetzugang**: bei der Installation für das Image; im Betrieb holt die App Postleitzahlen (GeoNames), auf
   Wunsch Spritpreise und sieht nach neuen Versionen – gesendet werden dabei keine Daten (siehe
@@ -35,7 +38,7 @@ aufbewahren**, ohne lassen sich Sicherungen nicht wiederherstellen. Sich selbst 
 (für Updates). Die Postleitzahlen für die Karte lädt die App danach selbst – sonst ist nichts nachzuladen.
 
 Eine vorhandene `.env` überschreibt es nie; in `.env` steht die installierte Version (`LADEFALKE_VERSION`).
-Bestimmtes Release: `LADEFALKE_VERSION=1.7.0 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
+Bestimmtes Release: `LADEFALKE_VERSION=1.7.1 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
 `TLS_NAMEN=… sh setup.sh --ja`); nur einrichten, nicht starten: `--ohne-start`.
 
 ### Erster Aufruf
@@ -258,7 +261,7 @@ auf dem Server braucht es nur `compose.yaml` und `.env`. Von Hand ohne Skript:
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.7.0                            # gewünschtes Release
+V=v1.7.1                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # jedes „bitte-aendern“ ersetzen, BACKUP_PASSWORT setzen, ggf. TLS=aus
@@ -268,7 +271,7 @@ docker compose ps                   # app „healthy“ = App antwortet und erre
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.7.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.7.1`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
@@ -304,7 +307,7 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.7.0 && docker compose up -d --build`. Der Footer zeigt danach die
+Selbst gebaut: `git fetch --tags && git checkout v1.7.1 && docker compose up -d --build`. Der Footer zeigt danach die
 neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine
