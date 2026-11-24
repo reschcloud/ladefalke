@@ -10,10 +10,13 @@ Ein Fahrzeug kann Zeiträume „ohne Fahrer:in“ haben (FahrzeugOhneFahrer): be
 Lücke. Sie dürfen sich nicht mit Fahrer:in-Zuordnungen des Fahrzeugs überschneiden; ein offener Zeitraum „ohne
 Fahrer:in“ endet automatisch, wenn das Fahrzeug ab einem späteren Tag offen jemandem zugeordnet wird.
 """
+from collections import defaultdict
+from contextlib import contextmanager
 from datetime import date, timedelta
+from functools import wraps
 
 from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.formatierung import datum, zeitraum
 from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
@@ -25,6 +28,50 @@ class ZuordnungsFehler(ValueError):
 
 def ueberlappt(ab1: date, bis1: date | None, ab2: date, bis2: date | None) -> bool:
     return ab1 <= (bis2 or date.max) and ab2 <= (bis1 or date.max)
+
+
+# ------------------------------------------------------------------ Vorladen für Auswertungen
+# Auswertungen fragen je Ladevorgang „wem gehörte die Karte an diesem Tag“ und „wer fuhr das Fahrzeug“ – bei einem
+# Jahr tausende Einzelabfragen (auf langsamen Servern viele Sekunden). Die Zuordnungstabellen sind klein: innerhalb
+# von `vorgeladen` werden sie einmal geladen und die Fragen im Speicher beantwortet. Nur für rein lesende
+# Berechnungen – Änderungen an Zuordnungen innerhalb des Blocks sieht der Speicher nicht.
+
+SPEICHER = "zuordnungen_vorgeladen"
+
+
+@contextmanager
+def vorgeladen(db: Session):
+    if SPEICHER in db.info:  # verschachtelt: der äußere Block hat schon geladen
+        yield
+        return
+    karten, fahrer_fz, fz_fahrer = defaultdict(list), defaultdict(list), defaultdict(list)
+    for z in db.scalars(select(ZuordnungKarte).options(selectinload(ZuordnungKarte.fahrer),
+                                                       selectinload(ZuordnungKarte.fahrzeug))
+                        .order_by(ZuordnungKarte.id)):
+        karten[z.ladekarte_id].append(z)
+    for z in db.scalars(select(ZuordnungFahrerFahrzeug).options(selectinload(ZuordnungFahrerFahrzeug.fahrer),
+                                                                selectinload(ZuordnungFahrerFahrzeug.fahrzeug))
+                        .order_by(ZuordnungFahrerFahrzeug.id)):
+        fahrer_fz[z.fahrer_id].append(z)
+        fz_fahrer[z.fahrzeug_id].append(z)
+    db.info[SPEICHER] = (karten, fahrer_fz, fz_fahrer)
+    try:
+        yield
+    finally:
+        db.info.pop(SPEICHER, None)
+
+
+def mit_vorgeladenen_zuordnungen(funktion):
+    """Dekorator für lesende Berechnungen mit der Session als erstem Argument."""
+    @wraps(funktion)
+    def mit_speicher(db: Session, *args, **kwargs):
+        with vorgeladen(db):
+            return funktion(db, *args, **kwargs)
+    return mit_speicher
+
+
+def _gilt(z, stichtag: date) -> bool:
+    return z.gueltig_ab <= stichtag and (z.gueltig_bis is None or z.gueltig_bis >= stichtag)
 
 
 def gueltig_am(model, stichtag: date):
@@ -159,8 +206,11 @@ def karten_zuordnung_aendern(db: Session, z: ZuordnungKarte, *, ab: date, bis: d
 
 
 def karten_zuordnung_am(db: Session, karte_id: int, stichtag: date) -> ZuordnungKarte | None:
+    if (speicher := db.info.get(SPEICHER)) is not None:
+        return next((z for z in speicher[0].get(karte_id, ()) if _gilt(z, stichtag)), None)
     return db.scalars(select(ZuordnungKarte).where(
-        ZuordnungKarte.ladekarte_id == karte_id, gueltig_am(ZuordnungKarte, stichtag))).first()
+        ZuordnungKarte.ladekarte_id == karte_id, gueltig_am(ZuordnungKarte, stichtag))
+        .order_by(ZuordnungKarte.id)).first()
 
 
 # ------------------------------------------------------------------ Fahrer:in → Fahrzeug
@@ -219,12 +269,19 @@ def fahrer_fahrzeug_aendern(db: Session, z: ZuordnungFahrerFahrzeug, *, ab: date
 
 
 def fahrzeug_von_fahrer_am(db: Session, fahrer_id: int, stichtag: date) -> Fahrzeug | None:
-    z = db.scalars(select(ZuordnungFahrerFahrzeug).where(
-        ZuordnungFahrerFahrzeug.fahrer_id == fahrer_id, gueltig_am(ZuordnungFahrerFahrzeug, stichtag))).first()
+    if (speicher := db.info.get(SPEICHER)) is not None:
+        z = next((z for z in speicher[1].get(fahrer_id, ()) if _gilt(z, stichtag)), None)
+    else:
+        z = db.scalars(select(ZuordnungFahrerFahrzeug).where(
+            ZuordnungFahrerFahrzeug.fahrer_id == fahrer_id, gueltig_am(ZuordnungFahrerFahrzeug, stichtag))
+            .order_by(ZuordnungFahrerFahrzeug.id)).first()
     return z.fahrzeug if z else None
 
 
 def fahrer_von_fahrzeug_am(db: Session, fahrzeug_id: int, stichtag: date) -> list[Fahrer]:
+    if (speicher := db.info.get(SPEICHER)) is not None:
+        fahrer = {z.fahrer.id: z.fahrer for z in speicher[2].get(fahrzeug_id, ()) if _gilt(z, stichtag)}
+        return sorted(fahrer.values(), key=lambda f: (f.name.casefold(), f.name))
     return list(db.scalars(
         select(Fahrer).join(ZuordnungFahrerFahrzeug, ZuordnungFahrerFahrzeug.fahrer_id == Fahrer.id)
         .where(ZuordnungFahrerFahrzeug.fahrzeug_id == fahrzeug_id,

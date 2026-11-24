@@ -6,7 +6,7 @@ from app.db import get_db
 from app.routers.auswertungen import navigation
 from app.services import app_einstellungen, kennzahlen
 from app.services.auswertung import auswerten, vergleichen, vormonat, zeitraum_aus_parametern
-from app.services import diagramme, karte
+from app.services import diagramme, karte, zuordnung
 from app.services.vollstaendigkeit import pruefen as vollstaendigkeit_pruefen
 from app.web import art_vorgabe, render
 
@@ -23,6 +23,11 @@ def _verteilungen(db, a, einst) -> dict:
 def dashboard(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
               db: Session = Depends(get_db)):
     z = zeitraum_aus_parametern(art, jahr, nr, von, bis, standard=vormonat(), db=db)
+    with zuordnung.vorgeladen(db):  # Zuordnungen einmal laden statt tausender Einzelabfragen (nur lesend)
+        return _dashboard(request, db, z)
+
+
+def _dashboard(request: Request, db: Session, z):
     einst = app_einstellungen.laden(db)
     a = auswerten(db, z, einst)
     # Vergleich mit dem Durchschnitt der drei Vorperioden (bei Monat: die drei Vormonate)

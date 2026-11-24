@@ -29,7 +29,7 @@ from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, Ladeart, Ladekarte, L
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art, stichtag_spalte
 from app.services import kosten as kosten_dienst
-from app.services.zuordnung import fahrer_von_fahrzeug_am, karten_zuordnung_am
+from app.services.zuordnung import fahrer_von_fahrzeug_am, karten_zuordnung_am, mit_vorgeladenen_zuordnungen
 
 NULL = Decimal(0)
 
@@ -593,6 +593,7 @@ def tankkosten_rechner(db: Session, einst: AppEinstellungen):
     return rechnen
 
 
+@mit_vorgeladenen_zuordnungen
 def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: bool = True) -> Auswertung:
     """`mit_personen=False`: ohne Zurechnung zu Fahrer:innen (schneller, z. B. für Vergleichszeiträume)."""
     zeilen: dict[int, FahrzeugZeile] = {}

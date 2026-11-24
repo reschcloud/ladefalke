@@ -3,6 +3,20 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.7.3 – 24.11.2026
+
+### Behoben
+
+- Dashboard und Auswertungen auf langsamen Servern sehr träge (Zeitraum „Jahr“ bzw. „Alles“, z. B. 15 s auf einem
+  Mac mini): je Ladevorgang wurde einzeln nachgefragt, wem die Karte am Tag gehörte und wer das Fahrzeug fuhr –
+  bei einem Jahr über 10.000 Datenbankabfragen. Die Zuordnungen werden jetzt je Auswertung einmal geladen
+  (Jahr: 762 statt 10.087 Abfragen, rund 2,5× schneller; auf langsamen Servern mehr, weil dort jede Abfrage teurer
+  ist).
+
+### Beim Update beachten
+
+- nichts.
+
 ## v1.7.2 – 24.11.2026
 
 ### Behoben

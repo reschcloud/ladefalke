@@ -270,3 +270,39 @@ def test_bearbeiten_neu_zuordnen_vorausgewaehlt(angemeldet, daten, db):
     if zk:
         text = angemeldet.get(f"/stammdaten/zuordnungen/karte/{zk.id}").text
         assert text.split("Zuordnung löschen")[0].count('name="neu_zuordnen" checked') == 1
+
+
+def test_vorgeladen_gleiche_antworten_ohne_einzelabfragen(db, daten):
+    """Auswertungen laden die Zuordnungen einmal (zuordnung.vorgeladen) – die Antworten müssen dieselben sein wie
+    aus der Datenbank, und innerhalb des Blocks fragt keine der Funktionen mehr einzeln nach."""
+    from sqlalchemy import event
+    from app.services import zuordnung
+    db.add_all([ZuordnungKarte(ladekarte_id=daten["karte"].id, fahrer_id=daten["f1"].id,
+                               gueltig_ab=date(2026, 1, 1), gueltig_bis=date(2026, 5, 31)),
+                ZuordnungKarte(ladekarte_id=daten["karte"].id, fahrzeug_id=daten["fz2"].id, gueltig_ab=date(2026, 6, 1)),
+                ZuordnungFahrerFahrzeug(fahrer_id=daten["f1"].id, fahrzeug_id=daten["fz1"].id,
+                                        gueltig_ab=date(2026, 1, 1), gueltig_bis=date(2026, 3, 31)),
+                ZuordnungFahrerFahrzeug(fahrer_id=daten["f2"].id, fahrzeug_id=daten["fz1"].id, gueltig_ab=date(2026, 3, 1)),
+                ZuordnungFahrerFahrzeug(fahrer_id=daten["f1"].id, fahrzeug_id=daten["fz2"].id, gueltig_ab=date(2026, 4, 1))])
+    db.flush()
+    tage = [date(2025, 12, 31), date(2026, 1, 1), date(2026, 3, 15), date(2026, 3, 31), date(2026, 4, 1),
+            date(2026, 5, 31), date(2026, 6, 1), date(2027, 1, 1)]
+
+    def antworten():
+        return [(getattr(karten_zuordnung_am(db, daten["karte"].id, t), "id", None),
+                 getattr(fahrzeug_von_fahrer_am(db, daten["f1"].id, t), "id", None),
+                 [f.id for f in fahrer_von_fahrzeug_am(db, daten["fz1"].id, t)]) for t in tage]
+
+    aus_datenbank = antworten()
+    abfragen = []
+    zaehlen = lambda *a: abfragen.append(1)  # noqa: E731
+    with zuordnung.vorgeladen(db):
+        event.listen(db.connection(), "before_cursor_execute", zaehlen)
+        try:
+            aus_speicher = antworten()
+        finally:
+            event.remove(db.connection(), "before_cursor_execute", zaehlen)
+    assert aus_speicher == aus_datenbank
+    assert aus_datenbank[2][2] == sorted([daten["f1"].id, daten["f2"].id])  # März: beide fahren fz1
+    assert abfragen == []
+    assert zuordnung.SPEICHER not in db.info  # nach dem Block wieder aus der Datenbank

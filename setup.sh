@@ -19,7 +19,7 @@
 # Vor anstehenden Datenbank-Migrationen legt die App selbst eine Sicherung an.
 set -eu
 
-RUECKFALL="1.7.2"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
+RUECKFALL="1.7.3"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
 REPO="reschcloud/ladefalke"
 ROH="https://raw.githubusercontent.com/$REPO"
 ARGUMENTE="$*"  # für einen Neustart mit sudo (Optionen enthalten keine Leerzeichen)
