@@ -37,8 +37,12 @@ sie bereit ist. Am Ende zeigt es Adresse, Admin-Zugang und Backup-Passwort an �
 aufbewahren**, ohne lassen sich Sicherungen nicht wiederherstellen. Sich selbst legt es als `setup.sh` in den Ordner
 (für Updates). Die Postleitzahlen für die Karte lädt die App danach selbst – sonst ist nichts nachzuladen.
 
+Den Servernamen prüft es und lässt ihn bestätigen. Liegt noch eine Datenbank aus einem früheren Versuch ohne
+zugehörige `.env` herum, fragt es, ob sie gelöscht werden soll (ihr Passwort wäre sonst unbekannt). Startet die App
+nicht, bricht es das Warten gleich ab und zeigt den Grund.
+
 Eine vorhandene `.env` überschreibt es nie; in `.env` steht die installierte Version (`LADEFALKE_VERSION`).
-Bestimmtes Release: `LADEFALKE_VERSION=1.7.1 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
+Bestimmtes Release: `LADEFALKE_VERSION=1.7.2 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
 `TLS_NAMEN=… sh setup.sh --ja`); nur einrichten, nicht starten: `--ohne-start`.
 
 ### Erster Aufruf
@@ -62,7 +66,9 @@ Details, Sicherungen und Umzug: siehe [Betrieb](#betrieb) und [Backup und Umzug]
 **Ohne Proxy (Standard, `TLS=an`):** Die App spricht direkt HTTPS. Beim ersten Start erzeugt sie ein
 selbstsigniertes Zertifikat (10 Jahre gültig) in `data/tls/` für `localhost`, `127.0.0.1` und die Namen/IP-Adressen
 aus `TLS_NAMEN` (z. B. `TLS_NAMEN=ladefalke.firma.lan 192.168.1.20`). Es bleibt über Neustarts erhalten, damit die
-Ausnahme im Browser gültig bleibt. Neu erzeugen: `data/tls/` leeren und die App neu starten. Ein eigenes Zertifikat:
+Ausnahme im Browser gültig bleibt. Neu erzeugen, z. B. nach einem Tippfehler beim Servernamen: in `.env` `TLS_NAMEN`
+korrigieren, `data/tls/cert.pem` und `key.pem` löschen, dann `docker compose up -d`. Ungültige Angaben (z. B. mit
+Umlaut) überspringt die App mit einer Warnung im Log. Ein eigenes Zertifikat:
 `cert.pem` und `key.pem` (PEM, Schlüssel unverschlüsselt) nach `data/tls/` legen. Reines HTTP auf diesem Port wird
 nicht beantwortet.
 
@@ -261,7 +267,7 @@ auf dem Server braucht es nur `compose.yaml` und `.env`. Von Hand ohne Skript:
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.7.1                            # gewünschtes Release
+V=v1.7.2                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # jedes „bitte-aendern“ ersetzen, BACKUP_PASSWORT setzen, ggf. TLS=aus
@@ -271,7 +277,7 @@ docker compose ps                   # app „healthy“ = App antwortet und erre
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.7.1`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.7.2`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
@@ -307,7 +313,7 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.7.1 && docker compose up -d --build`. Der Footer zeigt danach die
+Selbst gebaut: `git fetch --tags && git checkout v1.7.2 && docker compose up -d --build`. Der Footer zeigt danach die
 neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine

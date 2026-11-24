@@ -3,6 +3,23 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.7.2 – 24.11.2026
+
+### Behoben
+
+- `setup.sh`, neue Installation nach einem abgebrochenen Versuch: Lag die Datenbank des ersten Versuchs noch da (Volume
+  `ladefalke_pgdata`), aber keine `.env`, entstand ein neues Passwort, mit dem die App nicht in die alte Datenbank kam
+  – sie startete immer wieder neu. Jetzt fragt das Skript, ob die alte Datenbank gelöscht werden soll (nie
+  automatisch, auch nicht mit `--ja`).
+- Startet die App nicht, wartet `setup.sh` nicht mehr 10 Minuten, sondern bricht ab, sobald der Container neu
+  startet, und zeigt die Fehlerzeilen – beim falschen Datenbank-Passwort mit Anleitung.
+- Servername für das Zertifikat: `setup.sh` prüft die Eingabe (IP-Adresse oder Rechnername) und lässt sie bestätigen;
+  die App überspringt ungültige Angaben in `TLS_NAMEN` mit Warnung, statt beim Start abzustürzen.
+
+### Beim Update beachten
+
+- nichts.
+
 ## v1.7.1 – 24.11.2026
 
 ### Geändert

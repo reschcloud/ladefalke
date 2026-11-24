@@ -9,7 +9,9 @@ Aufruf: `python -m app.tls` (gibt die Pfade von Zertifikat und Schlüssel aus).
 """
 import ipaddress
 import os
+import re
 import socket
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -19,6 +21,20 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 GUELTIG_TAGE = 3650
+# Rechnername: Abschnitte aus Buchstaben, Ziffern und Bindestrich (nicht am Rand), durch Punkte getrennt
+RECHNERNAME = re.compile(r"(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\.?")
+
+
+def gueltiger_name(name: str) -> bool:
+    """IP-Adresse oder Rechnername (ASCII); nur aus Ziffern und Punkten muss es eine gültige IPv4-Adresse sein."""
+    try:
+        ipaddress.ip_address(name)
+        return True
+    except ValueError:
+        pass
+    if re.fullmatch(r"[\d.]+", name):
+        return False  # vertippte IP wie 192.168.1.300
+    return bool(RECHNERNAME.fullmatch(name))
 
 
 def _alt_namen(namen: list[str]) -> list[x509.GeneralName]:
@@ -26,6 +42,10 @@ def _alt_namen(namen: list[str]) -> list[x509.GeneralName]:
     for name in namen:
         name = name.strip()
         if not name or name.lower() in gesehen:
+            continue
+        if not gueltiger_name(name):  # vertippt (z. B. Umlaut, „https://…“, „:8000“): überspringen statt abstürzen
+            print(f"TLS_NAMEN: „{name}“ ist keine IP-Adresse und kein gültiger Rechnername – übersprungen.",
+                  file=sys.stderr)
             continue
         gesehen.add(name.lower())
         try:

@@ -19,7 +19,7 @@
 # Vor anstehenden Datenbank-Migrationen legt die App selbst eine Sicherung an.
 set -eu
 
-RUECKFALL="1.7.1"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
+RUECKFALL="1.7.2"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
 REPO="reschcloud/ladefalke"
 ROH="https://raw.githubusercontent.com/$REPO"
 ARGUMENTE="$*"  # für einen Neustart mit sudo (Optionen enthalten keine Leerzeichen)
@@ -54,10 +54,10 @@ frage() {  # frage "Text" "Vorgabe" → Antwort (ohne Terminal oder mit --ja: Vo
 }
 
 # ---------------------------------------------------------------- Voraussetzungen: Docker (oder Podman) mit Compose
-compose_finden() {
-  if docker compose version >/dev/null 2>&1; then COMPOSE="docker compose"
-  elif podman compose version >/dev/null 2>&1; then COMPOSE="podman compose"
-  elif command -v docker-compose >/dev/null 2>&1; then COMPOSE="docker-compose"
+compose_finden() {  # COMPOSE: Compose-Befehl, ENGINE: docker bzw. podman (für Volumes und Container)
+  if docker compose version >/dev/null 2>&1; then COMPOSE="docker compose"; ENGINE="docker"
+  elif podman compose version >/dev/null 2>&1; then COMPOSE="podman compose"; ENGINE="podman"
+  elif command -v docker-compose >/dev/null 2>&1; then COMPOSE="docker-compose"; ENGINE="docker"
   else return 1
   fi
 }
@@ -127,6 +127,7 @@ if [ "$COMPOSE" != "podman compose" ]; then
           sudo_bereit "den Zugriff auf Docker ($(id -un) ist nicht in der Gruppe „docker“)"
           sudo docker info >/dev/null 2>&1 || fehler "Docker ist auch mit sudo nicht erreichbar (sudo systemctl status docker)."
           COMPOSE="sudo $COMPOSE"
+          ENGINE="sudo $ENGINE"
           RECHTE="Docker über sudo"
           hinweis "Künftig ohne sudo: sudo usermod -aG docker $(id -un) (danach neu anmelden)" ;;
         *) fehler "Der Docker-Dienst ist nicht erreichbar: $meldung" ;;
@@ -177,11 +178,29 @@ kleiner() {  # kleiner A B: Version A < B
   [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -n 1)" = "$1" ]
 }
 
+startfehler() {  # letzte Fehlerzeilen der App und, wo bekannt, was zu tun ist
+  protokoll=$($COMPOSE logs --tail 60 app 2>/dev/null | sed 's/^[^|]*| //')
+  printf '\n✗ Die App startet nicht – sie bricht beim Start ab und wird immer wieder neu gestartet.\n' >&2
+  printf '%s\n' "$protokoll" | grep -E 'Error|FATAL|fehlgeschlagen|abgebrochen' | tail -n 3 | sed 's/^/  /' >&2
+  case "$protokoll" in
+    *"password authentication failed"*)
+      printf '\n  Die Datenbank stammt aus einer früheren Installation und hat ein anderes Passwort als .env.\n' >&2
+      printf '  Frische Installation ohne Daten: alte Datenbank löschen und neu starten:\n' >&2
+      printf '    %s down -v && %s up -d\n' "$COMPOSE" "$COMPOSE" >&2
+      printf '  Mit Daten: das alte POSTGRES_PASSWORD wieder in .env eintragen.\n' >&2 ;;
+  esac
+  printf '\n  Ganzes Protokoll: %s logs app\n' "$COMPOSE" >&2
+}
+
 warten() {  # bis die App antwortet (Sicherung und Migrationen laufen vorher), höchstens 10 Minuten
   printf '› Warte, bis die App bereit ist '
   i=0
   while [ $i -lt 120 ]; do
     if $COMPOSE exec -T app python -m werkzeuge.gesund >/dev/null 2>&1; then printf ' bereit.\n'; return 0; fi
+    # startet der Container immer wieder neu, wird das nichts mehr – sofort melden statt 10 Minuten warten
+    id=$($COMPOSE ps -q app 2>/dev/null | head -n 1)
+    neustarts=$([ -n "$id" ] && $ENGINE inspect -f '{{.RestartCount}}' "$id" 2>/dev/null || echo 0)
+    if [ "${neustarts:-0}" -ge 2 ] 2>/dev/null; then printf ' abgebrochen.\n'; startfehler; return 1; fi
     printf '.'; sleep 5; i=$((i + 1))
   done
   printf '\n'
@@ -281,10 +300,46 @@ laden compose.yaml
 laden .env.example
 
 # ---------------------------------------------------------------- .env
+# Datenbank aus einer früheren Installation, aber keine .env dazu: ihr Passwort steht nur in der alten .env –
+# mit neuen Zufallswerten käme die App nicht hinein. Löschen nur nach ausdrücklicher Zustimmung (nie mit --ja).
+alte_datenbank() {
+  $ENGINE volume inspect ladefalke_pgdata >/dev/null 2>&1 || return 0
+  printf '\n'
+  hinweis "Es gibt schon eine Datenbank aus einer früheren Installation (Volume ladefalke_pgdata), aber keine .env dazu."
+  hinweis "Ihr Passwort steht nur in der alten .env – mit einer neuen .env käme die App nicht hinein."
+  [ -n "$TTY" ] || fehler "Abgebrochen: alte .env hierher zurücklegen oder die alte Datenbank löschen ($ENGINE volume rm ladefalke_pgdata – löscht alle Daten darin)."
+  case "$(frage "Alte Datenbank löschen und neu beginnen? Alle Daten darin gehen verloren. [j/N]" "n")" in
+    [jJ]*) ;;
+    *) fehler "Abgebrochen – nichts geändert. Gibt es die alte .env noch: zurücklegen und erneut starten." ;;
+  esac
+  $ENGINE rm -f ladefalke-app-1 ladefalke-db-1 ladefalke_app_1 ladefalke_db_1 >/dev/null 2>&1 || true
+  $ENGINE volume rm ladefalke_pgdata >/dev/null || fehler "Konnte die alte Datenbank nicht löschen."
+  hinweis "Alte Datenbank gelöscht."
+}
+
+# Servername(n) für das Zertifikat: IPv4, IPv6 oder Rechnername (nur ASCII), mehrere mit Leerzeichen oder Komma
+name_gueltig() {
+  case "$1" in
+    *[!0-9.]*) ;;
+    *) printf '%s' "$1" | LC_ALL=C grep -Eq '^((25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])$'
+       return ;;
+  esac
+  case "$1" in *:*) printf '%s' "$1" | LC_ALL=C grep -Eq '^[0-9A-Fa-f:.]+$'; return ;; esac
+  printf '%s' "$1" | LC_ALL=C grep -Eq '^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$'
+}
+namen_pruefen() {  # gibt die erste ungültige Angabe aus (Rückgabe 1) bzw. nichts
+  set -f
+  for n in $(printf '%s' "$1" | tr ',' ' '); do
+    name_gueltig "$n" || { set +f; printf '%s' "$n"; return 1; }
+  done
+  set +f
+}
+
 NEU=""
 if [ -f .env ]; then
   hinweis ".env vorhanden – bleibt erhalten, nur offene Platzhalter werden ersetzt"
 else
+  alte_datenbank
   cp .env.example .env
   NEU=1
   hinweis ".env aus .env.example angelegt"
@@ -300,8 +355,16 @@ if [ -z "$(wert BACKUP_PASSWORT)" ] && [ -n "$NEU" ]; then setzen BACKUP_PASSWOR
 [ -n "$NEU" ] && setzen LADEFALKE_VERSION "$VERSION"
 
 if [ -n "$NEU" ] && [ -z "$(wert TLS_NAMEN)" ]; then
-  name=$(frage "Name oder IP-Adresse des Servers im Netz (für das HTTPS-Zertifikat, leer = nur localhost):" "${TLS_NAMEN:-}")
-  [ -n "$name" ] && setzen TLS_NAMEN "$name"
+  while :; do
+    name=$(frage "Name oder IP-Adresse des Servers im Netz (für das HTTPS-Zertifikat, leer = nur localhost):" "${TLS_NAMEN:-}")
+    if falsch=$(namen_pruefen "$name"); then
+      [ -z "$name" ] || [ -z "$TTY" ] && break
+      case "$(frage "Zertifikat für „$name“ – stimmt das? [J/n]" "j")" in [nN]*) continue ;; *) break ;; esac
+    fi
+    [ -n "$TTY" ] || fehler "TLS_NAMEN: „$falsch“ ist keine IP-Adresse und kein gültiger Rechnername."
+    printf '  „%s“ ist keine IP-Adresse und kein gültiger Rechnername (z. B. 192.168.1.20 oder server.firma.lan).\n' "$falsch" >/dev/tty
+  done
+  [ -n "$name" ] && setzen TLS_NAMEN "$(printf '%s' "$name" | tr ',' ' ')"
 fi
 
 mkdir -p data/uploads data/backups data/tls data/geo

@@ -2,8 +2,10 @@
 import ipaddress
 import ssl
 
+import pytest
 from cryptography import x509
 
+from app import tls
 from app.tls import sicherstellen
 
 
@@ -24,3 +26,20 @@ def test_eigenes_zertifikat_wird_verwendet(tmp_path):
     (tmp_path / "key.pem").write_text("eigener")
     cert, key = sicherstellen(tmp_path)
     assert cert.read_text() == "eigenes" and key.read_text() == "eigener"
+
+
+@pytest.mark.parametrize("name, gueltig", [
+    ("192.168.1.20", True), ("::1", True), ("server.firma.lan", True), ("macminiserver", True),
+    ("192.168.1.300", False), ("192.168.1.", False), ("sërver", False), ("https://10.0.0.5", False),
+    ("server.lan:8000", False), ("-server", False),
+])
+def test_gueltiger_name(name, gueltig):
+    assert tls.gueltiger_name(name) is gueltig
+
+
+def test_vertippte_namen_werden_uebersprungen(tmp_path, capsys):
+    cert, _ = tls.sicherstellen(tmp_path, "sërver 192.168.1.300 server.lan")
+    zertifikat = x509.load_pem_x509_certificate(cert.read_bytes())
+    namen = zertifikat.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+    assert "server.lan" in namen.get_values_for_type(x509.DNSName)
+    assert "sërver" in capsys.readouterr().err
