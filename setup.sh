@@ -19,7 +19,7 @@
 # Vor anstehenden Datenbank-Migrationen legt die App selbst eine Sicherung an.
 set -eu
 
-RUECKFALL="1.8.0"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
+RUECKFALL="1.9.0"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
 REPO="reschcloud/ladefalke"
 ROH="https://raw.githubusercontent.com/$REPO"
 ARGUMENTE="$*"  # für einen Neustart mit sudo (Optionen enthalten keine Leerzeichen)
@@ -208,6 +208,29 @@ warten() {  # bis die App antwortet (Sicherung und Migrationen laufen vorher), h
   return 1
 }
 
+# Erster Admin: per Befehl in der laufenden App (nur solange es keine Benutzer:innen gibt), Passwort nur hier
+# angezeigt – nicht in .env. Gibt ADMIN_ANMELDUNG („name / passwort“) zurück.
+ADMIN_ANMELDUNG=""
+admin_anlegen() {
+  ausgabe=$($COMPOSE exec -T app python -m werkzeuge.admin admin --nur-wenn-leer 2>/dev/null) || return 0
+  pw=$(printf '%s\n' "$ausgabe" | sed -n 's/^Passwort: //p')
+  [ -n "$pw" ] && ADMIN_ANMELDUNG="admin / $pw"
+}
+
+# ADMIN_USER/ADMIN_PASSWORD aus .env (frühere Installationen): werden nicht mehr gebraucht, sobald es Konten gibt –
+# entfernen und die App mit der bereinigten .env neu erzeugen
+env_admin_aufraeumen() {
+  grep -q -e '^ADMIN_USER=' -e '^ADMIN_PASSWORD=' .env || return 0
+  $COMPOSE exec -T app python -m werkzeuge.admin --vorhanden >/dev/null 2>&1 || return 0
+  tmp=$(mktemp)
+  grep -v -e '^ADMIN_USER=' -e '^ADMIN_PASSWORD=' .env >"$tmp" || true
+  cat "$tmp" >.env && rm -f "$tmp"
+  hinweis "ADMIN_USER/ADMIN_PASSWORD aus .env entfernt – die Konten verwaltet die App (dein Passwort bleibt, wie es ist)."
+  hinweis "Notfall (kein Admin, Passwort vergessen): $COMPOSE exec app python -m werkzeuge.admin"
+  $COMPOSE up -d >/dev/null 2>&1 || true  # App mit der bereinigten .env neu erzeugen
+  warten || true
+}
+
 # ---------------------------------------------------------------- Version: vorgegeben, sonst neuestes Release
 neueste() {  # höchster Tag vX.Y.Z laut GitHub
   command -v curl >/dev/null 2>&1 || return 0
@@ -234,7 +257,7 @@ if [ -n "$UPDATE" ]; then
   command -v curl >/dev/null 2>&1 || fehler "Für das Update wird curl gebraucht."
   ALT=$(wert LADEFALKE_VERSION)
   ZIEL="${UPDATE_ZIEL:-$(neueste)}"
-  [ -n "$ZIEL" ] || fehler "Neuestes Release nicht ermittelbar – Version angeben: sh setup.sh --update 1.8.0"
+  [ -n "$ZIEL" ] || fehler "Neuestes Release nicht ermittelbar – Version angeben: sh setup.sh --update 1.10.0"
   if [ "$ALT" = "$ZIEL" ]; then hinweis "Bereits auf Version $ZIEL – nichts zu tun."; exit 0; fi
   if [ -n "$ALT" ] && kleiner "$ZIEL" "$ALT"; then
     fehler "$ZIEL ist älter als die installierte $ALT – Rückschritt nur mit Sicherung, siehe README „Zurück auf ein älteres Release“."
@@ -269,6 +292,7 @@ Update jetzt durchführen? [J/n]" "j")" in [nN]*) printf 'Abgebrochen.\n'; exit 
   $COMPOSE up -d
   printf '\n'
   if warten; then
+    env_admin_aufraeumen
     printf '\n✓ Update auf %s fertig. Geodaten aktualisiert die App jetzt selbst im Hintergrund.\n' "$ZIEL"
   else
     printf '\n✓ Update auf %s gestartet (Sicherung und Migrationen laufen noch).\n' "$ZIEL"
@@ -346,9 +370,10 @@ else
 fi
 chmod 600 .env
 
-ADMIN_NEU=""
 [ "$(wert POSTGRES_PASSWORD)" = "bitte-aendern" ] && setzen POSTGRES_PASSWORD "$(zufall 32)"
-if [ "$(wert ADMIN_PASSWORD)" = "bitte-aendern" ]; then setzen ADMIN_PASSWORD "$(zufall 16)"; ADMIN_NEU=1; fi
+if [ "$(wert ADMIN_PASSWORD)" = "bitte-aendern" ]; then  # Vorlage früherer Versionen: Admin entsteht jetzt per Befehl
+  tmp=$(mktemp); grep -v -e '^ADMIN_USER=' -e '^ADMIN_PASSWORD=' .env >"$tmp" || true; cat "$tmp" >.env; rm -f "$tmp"
+fi
 [ "$(wert SECRET_KEY)" = "bitte-aendern" ] && setzen SECRET_KEY "$(zufall 64)"
 BACKUP_NEU=""
 if [ -z "$(wert BACKUP_PASSWORT)" ] && [ -n "$NEU" ]; then setzen BACKUP_PASSWORT "$(zufall 24)"; BACKUP_NEU=1; fi
@@ -375,16 +400,10 @@ ADRESSE=$(wert TLS_NAMEN | cut -d ' ' -f 1); ADRESSE=${ADRESSE:-localhost}
 SCHEMA=https; [ "$(wert TLS)" = "aus" ] && SCHEMA=http
 printf '\n✓ Eingerichtet in %s\n\n' "$(pwd)"
 printf '  Adresse:   %s://%s:%s\n' "$SCHEMA" "$ADRESSE" "$PORT"
-if [ -n "$ADMIN_NEU" ]; then
-  printf '  Anmeldung: %s / %s\n' "$(wert ADMIN_USER)" "$(wert ADMIN_PASSWORD)"
-fi
 if [ -n "$BACKUP_NEU" ]; then
   printf '  Backup-Passwort: %s\n' "$(wert BACKUP_PASSWORT)"
-fi
-if [ -n "$ADMIN_NEU$BACKUP_NEU" ]; then
-  printf '\n  Diese Angaben stehen auch in .env. Das Backup-Passwort zusätzlich sicher aufbewahren –\n'
-  printf '  ohne lassen sich Sicherungen nicht wiederherstellen. Das Admin-Passwort nach der ersten\n'
-  printf '  Anmeldung unter „Mein Konto“ ändern.\n'
+  printf '\n  Steht auch in .env – zusätzlich sicher aufbewahren, ohne lassen sich Sicherungen nicht\n'
+  printf '  wiederherstellen.\n'
 fi
 [ "$SCHEMA" = "https" ] && printf '\n  Das Zertifikat ist selbst signiert: Der Browser fragt beim ersten Aufruf einmal nach.\n'
 
@@ -392,13 +411,21 @@ fi
 if [ -n "$OHNE_START" ]; then start="n"; else start=$(frage "
 Jetzt starten? [J/n]" "j"); fi
 case "$start" in
-  [nN]*) printf '\nStarten später mit: %s up -d\n' "$COMPOSE" ;;
+  [nN]*) printf '\nStarten später mit: %s up -d\n' "$COMPOSE"
+    printf 'Den ersten Admin legst du dann beim ersten Aufruf im Browser an.\n' ;;
   *)
     $COMPOSE up -d
     printf '\n'
     if warten; then
+      admin_anlegen
+      env_admin_aufraeumen
       printf '\n✓ Die App läuft: %s://%s:%s\n' "$SCHEMA" "$ADRESSE" "$PORT"
-      printf '  Postleitzahlen für die Karte lädt sie in den nächsten Minuten selbst (Einstellungen → System).\n'
+      if [ -n "$ADMIN_ANMELDUNG" ]; then
+        printf '\n  Anmeldung: %s\n' "$ADMIN_ANMELDUNG"
+        printf '  Wird nur jetzt angezeigt und steht nirgends sonst – notieren und nach der ersten Anmeldung\n'
+        printf '  unter „Mein Konto“ ändern. Vergessen? %s exec app python -m werkzeuge.admin\n' "$COMPOSE"
+      fi
+      printf '\n  Postleitzahlen für die Karte lädt die App in den nächsten Minuten selbst (Einstellungen → System).\n'
     fi
     printf '\nUpdate später – in diesem Ordner: sh setup.sh\n'
     ;;

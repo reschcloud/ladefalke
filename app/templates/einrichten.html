@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_makros.html" as m %}
+{% block titel %}Ersten Admin anlegen{% endblock %}
+{% block inhalt %}
+{# Ersteinrichtung (auth.einrichten): nur solange es keine Benutzer:innen und kein ADMIN_PASSWORD gibt #}
+<article class="login">
+  <div class="login-logo">{{ m.falke() }}</div>
+  <hgroup class="login-titel"><h1>Ladefalke</h1><p>Ersten Admin anlegen</p></hgroup>
+  <p><small>Es gibt noch kein Konto. Mit diesem Konto verwaltest du alles Weitere – auch die übrigen
+    Benutzer:innen. Wer diese Seite zuerst abschickt, wird Admin; deshalb gleich jetzt erledigen.</small></p>
+  <form method="post" action="/einrichten" hx-boost="false" data-ohne-pflichtsperre>
+    <label>Benutzername
+      <input type="text" name="benutzername" value="{{ werte.benutzername }}" autocomplete="username" required maxlength="80"
+             {% if fehler.benutzername %}aria-invalid="true" aria-describedby="f-benutzername"{% endif %}>
+      {% if fehler.benutzername %}<small id="f-benutzername">{{ fehler.benutzername }}</small>{% endif %}
+    </label>
+    <label>Name <small>(Anzeige, optional)</small>
+      <input type="text" name="name" value="{{ werte.name }}" autocomplete="name" maxlength="200"
+             {% if fehler.name %}aria-invalid="true" aria-describedby="f-name"{% endif %}>
+      {% if fehler.name %}<small id="f-name">{{ fehler.name }}</small>{% endif %}
+    </label>
+    <label>Passwort <small>(mindestens {{ mindestlaenge }} Zeichen)</small>
+      <input type="password" name="passwort" autocomplete="new-password" required minlength="{{ mindestlaenge }}" autofocus
+             {% if fehler.passwort %}aria-invalid="true" aria-describedby="f-passwort"{% endif %}>
+      {% if fehler.passwort %}<small id="f-passwort">{{ fehler.passwort }}</small>{% endif %}
+    </label>
+    <label>Passwort wiederholen
+      <input type="password" name="wiederholung" autocomplete="new-password" required minlength="{{ mindestlaenge }}">
+    </label>
+    <button type="submit">Admin anlegen und anmelden</button>
+  </form>
+</article>
+{% endblock %}

@@ -3,6 +3,24 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.9.0 – 24.11.2026
+
+### Geändert
+
+- Ladevorgänge-Liste und Export schneller: die Person je Vorgang wird aus einmal geladenen Zuordnungen bestimmt
+  statt je Vorgang abgefragt (Zeitraum „Jahr“: 54 statt 2.391 Datenbankabfragen, rund sechsmal so schnell). Die
+  Liste selbst wird nicht gecacht – sie merkt sich die Filter für „← Alle …“ und das Blättern.
+- Kein Admin-Passwort mehr in `.env`: `setup.sh` legt den ersten Admin nach dem Start per Befehl an und zeigt das
+  Passwort einmal an. Ohne Konto zeigt die App „Ersten Admin anlegen“ im Browser. Notfall-Zugang (kein Admin mehr,
+  Passwort vergessen): `docker compose exec app python -m werkzeuge.admin [benutzername]`. `ADMIN_USER` und
+  `ADMIN_PASSWORD` sind nur noch optional; stehen sie noch in `.env`, weist Einstellungen → System darauf hin.
+
+### Beim Update beachten
+
+- `sh setup.sh` entfernt `ADMIN_USER`/`ADMIN_PASSWORD` aus `.env`, sobald es Konten gibt, und startet die App einmal
+  neu. Am Konto ändert sich nichts – es gilt das Passwort, das zuletzt in der App gesetzt wurde. Von Hand: die beiden
+  Zeilen löschen und `docker compose up -d`.
+
 ## v1.8.0 – 24.11.2026
 
 ### Geändert

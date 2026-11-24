@@ -31,9 +31,10 @@ curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh 
 
 `setup.sh` installiert bei Bedarf Docker (nach Rückfrage), legt den Ordner `ladefalke` an (im leeren Ordner
 installiert es direkt dort), ermittelt das neueste Release, holt dessen `compose.yaml` und `.env.example`, legt `.env`
-mit **zufällig erzeugten** Passwörtern und Schlüsseln an (Datenbank, erster Admin, `SECRET_KEY`, `BACKUP_PASSWORT`),
-fragt nach dem Namen des Servers für das HTTPS-Zertifikat, legt die Datenordner an, startet die App und wartet, bis
-sie bereit ist. Am Ende zeigt es Adresse, Admin-Zugang und Backup-Passwort an – **das Backup-Passwort sicher
+mit **zufällig erzeugten** Passwörtern und Schlüsseln an (Datenbank, `SECRET_KEY`, `BACKUP_PASSWORT`), fragt nach
+dem Namen des Servers für das HTTPS-Zertifikat, legt die Datenordner an, startet die App, wartet, bis sie bereit ist,
+und legt dann den ersten Admin an. Am Ende zeigt es Adresse, Admin-Zugang und Backup-Passwort an – **das
+Admin-Passwort wird nur dieses eine Mal angezeigt** (es steht nicht in `.env`), **das Backup-Passwort sicher
 aufbewahren**, ohne lassen sich Sicherungen nicht wiederherstellen. Sich selbst legt es als `setup.sh` in den Ordner
 (für Updates). Die Postleitzahlen für die Karte lädt die App danach selbst – sonst ist nichts nachzuladen.
 
@@ -42,13 +43,13 @@ zugehörige `.env` herum, fragt es, ob sie gelöscht werden soll (ihr Passwort w
 nicht, bricht es das Warten gleich ab und zeigt den Grund.
 
 Eine vorhandene `.env` überschreibt es nie; in `.env` steht die installierte Version (`LADEFALKE_VERSION`).
-Bestimmtes Release: `LADEFALKE_VERSION=1.8.0 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
+Bestimmtes Release: `LADEFALKE_VERSION=1.9.0 sh setup.sh`. Ohne Rückfragen: `sh setup.sh --ja` (Servername dann mit
 `TLS_NAMEN=… sh setup.sh --ja`); nur einrichten, nicht starten: `--ohne-start`.
 
 ### Erster Aufruf
 
 Die App läuft unter **https://\<server\>:8000** – mit selbst signiertem Zertifikat, der Browser fragt beim ersten
-Aufruf einmal nach. Mit dem angezeigten Admin-Zugang anmelden, das Passwort unter „Mein Konto“ ändern und unter
+Aufruf einmal nach. Mit dem angezeigten Admin-Zugang anmelden (ohne `setup.sh`: erst „Ersten Admin anlegen“), das Passwort unter „Mein Konto“ ändern und unter
 „Einstellungen“ das Nötige einrichten (z. B. E-Mail für Reports). Weitere Benutzer:innen legt ein Admin unter
 „Benutzer:innen“ an. Den Zustand zeigt `docker compose ps` (app „healthy“ = läuft und erreicht die Datenbank).
 
@@ -91,15 +92,31 @@ ohne Proxy auf `false` setzen.
 
 ## Benutzer:innen und Rollen
 
-Beim ersten Anmeldeversuch wird aus `ADMIN_USER`/`ADMIN_PASSWORD` in `.env` der erste Admin angelegt – danach zählt
-nur die Benutzertabelle (Passwörter als scrypt-Hash). Weitere Benutzer:innen legt ein Admin unter „Benutzer:innen“ (Menü rechts)
-an:
+Konten verwaltet die App selbst (Passwörter als scrypt-Hash); in `.env` steht kein Admin-Passwort. Weitere
+Benutzer:innen legt ein Admin unter „Benutzer:innen“ (Menü rechts) an:
 
 | Rolle | Darf |
 |---|---|
 | Admin | alles, auch Einstellungen ändern und Benutzerverwaltung (rote Leiste oben im Fenster) |
 | Operator | alles außer Einstellungen und MSP ändern sowie Benutzerverwaltung |
 | Viewer | nur lesen (inkl. Exporte und Originaldokumente) |
+
+### Admin-Zugang
+
+- **Erster Admin:** `setup.sh` legt ihn nach dem Start an und zeigt das Passwort einmal an. Ohne `setup.sh` (oder mit
+  `--ohne-start`) zeigt die App beim ersten Aufruf statt der Anmeldung „Ersten Admin anlegen“ – wer die Seite zuerst
+  abschickt, wird Admin, deshalb gleich nach der Installation erledigen. Die Seite ist zu, sobald es ein Konto gibt.
+- **Notfall** (kein Admin mehr, Passwort vergessen) – auf dem Server im Installationsordner:
+
+  ```sh
+  docker compose exec app python -m werkzeuge.admin [benutzername]
+  ```
+
+  legt das Konto als aktiven Admin an bzw. macht ein vorhandenes Konto wieder zum aktiven Admin, mit neuem
+  Zufallspasswort (wird angezeigt; ohne Angabe: „admin“). Im Protokoll steht „System“.
+- **Frühere Installationen** hatten `ADMIN_USER`/`ADMIN_PASSWORD` in `.env` (nur für den allerersten Start
+  gebraucht). `sh setup.sh` entfernt die Zeilen beim nächsten Update, sobald es Konten gibt; bis dahin weist
+  Einstellungen → System darauf hin. Vorgeben lässt sich der erste Admin weiterhin so (danach wieder entfernen).
 
 Passwort und Theme ändert jede:r unter „Mein Konto“. Löschen geht erst nach dem Deaktivieren (nie das eigene
 Konto); der letzte aktive Admin lässt sich weder herabstufen noch deaktivieren.
@@ -267,17 +284,18 @@ auf dem Server braucht es nur `compose.yaml` und `.env`. Von Hand ohne Skript:
 
 ```sh
 mkdir ladefalke && cd ladefalke
-V=v1.8.0                            # gewünschtes Release
+V=v1.9.0                            # gewünschtes Release
 curl -fsSLO https://raw.githubusercontent.com/reschcloud/ladefalke/$V/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/$V/.env.example -o .env
 nano .env                           # jedes „bitte-aendern“ ersetzen, BACKUP_PASSWORT setzen, ggf. TLS=aus
 mkdir -p data/uploads data/backups data/tls data/geo
 docker compose up -d                # lädt das Image und startet
 docker compose ps                   # app „healthy“ = App antwortet und erreicht die Datenbank
+                                    # dann im Browser: „Ersten Admin anlegen“
 ```
 
 **Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
-Release auschecken (`git checkout v1.8.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
+Release auschecken (`git checkout v1.9.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
 
@@ -313,7 +331,7 @@ docker compose up -d
 docker compose logs -f app          # Sicherung/Migration verfolgen, bis die App läuft
 ```
 
-Selbst gebaut: `git fetch --tags && git checkout v1.8.0 && docker compose up -d --build`. Der Footer zeigt danach die
+Selbst gebaut: `git fetch --tags && git checkout v1.9.0 && docker compose up -d --build`. Der Footer zeigt danach die
 neue Version (z. B. „v1.3.0 · 20.01.2027“).
 
 **Datenbank-Migrationen** laufen beim Start automatisch (`start.sh`). Stehen welche an, legt die App **vorher eine

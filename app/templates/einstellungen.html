@@ -528,6 +528,13 @@
   {% set sy = system %}
   <details class="einstellung-gruppe system-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("system", "System", "Daten, die die App selbst aus dem Internet holt, und Updates. Es werden dabei keine Daten gesendet.") }}
+    {% if sy.env_admin %}
+    <p class="meldung meldung-warnung">{{ icon("warnung") }} In <code>.env</code> steht noch <code>ADMIN_PASSWORD</code>.
+      Es wird nicht mehr gebraucht – Konten verwaltet die App selbst – und sollte nicht im Klartext herumliegen:
+      die Zeilen <code>ADMIN_USER</code> und <code>ADMIN_PASSWORD</code> aus <code>.env</code> löschen und die App neu
+      starten (<code>docker compose up -d</code>); <code>sh setup.sh</code> erledigt das beim nächsten Update selbst.
+      Für den Notfall gibt es <code>docker compose exec app python -m werkzeuge.admin</code>.</p>
+    {% endif %}
     <h3>Version</h3>
     <p class="system-version"><small>
       Installiert: <strong>{{ app_version() }}</strong>

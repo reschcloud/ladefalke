@@ -10,7 +10,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.db import get_db
-from app.services import kartenanzeige, protokoll
+from app.services import kartenanzeige, protokoll, zuordnung
 from app.formatierung import datum_lesen
 from app.models import Fahrer, Fahrzeug, Import, Ladeart, Ladekarte, Ladeort, Ladevorgang, Msp, ZuordnungQuelle
 from app.routers.auswertungen import datei_antwort, zeitraum_navigation
@@ -197,6 +197,7 @@ def _abfrage(bedingungen, art: str = "ende", sortierung: str = ""):
 
 
 @router.get("")
+@zuordnung.vorgeladen_fuer_route
 def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Query([]),
           fahrzeug_id: list[str] = Query([]), suche: str = "", nur_geschaetzt: str = "", import_id: str = "",
           ladekarte_id: str = "", unplausibel: str = "", land: list[str] = Query([]),
@@ -294,6 +295,7 @@ def _optionen(db: Session) -> dict[str, list[tuple[str, str]]]:
 
 
 @router.get("/export.{format_}")
+@zuordnung.vorgeladen_fuer_route
 def export(format_: str, von: str = "", bis: str = "", msp_id: list[str] = Query([]),
            fahrzeug_id: list[str] = Query([]), suche: str = "", nur_geschaetzt: str = "", import_id: str = "",
            ladekarte_id: str = "", unplausibel: str = "", land: list[str] = Query([]),

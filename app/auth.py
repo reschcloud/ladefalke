@@ -8,12 +8,13 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Benutzer
 from app.services import benutzer as benutzer_service, protokoll
-from app.web import render, weiter
+from app.web import render, weiter, weiter as weiter_zu_seite  # „weiter“ ist in login_formular ein Parameter
 
 router = APIRouter()
 
@@ -76,8 +77,55 @@ def _sicheres_ziel(ziel: str | None) -> str:
 
 
 @router.get("/login")
-def login_formular(request: Request, weiter: str = "/"):
+def login_formular(request: Request, weiter: str = "/", db: Session = Depends(get_db)):
+    if benutzer_service.ersteinrichtung_offen(db):
+        return weiter_zu_seite("/einrichten")
     return render(request, "login.html", {"weiter": weiter})
+
+
+# ------------------------------------------------------------------ Ersteinrichtung: ersten Admin im Browser anlegen
+# Nur solange es keine Benutzer:innen gibt und kein ADMIN_PASSWORD gesetzt ist (services/benutzer.py). Wer zuerst
+# kommt, legt den Admin an – deshalb gleich nach der Installation erledigen (setup.sh legt ihn selbst an).
+
+def _einrichten_formular(request: Request, werte: dict, fehler: dict | None = None, status_code: int = 200):
+    return render(request, "einrichten.html", {"werte": werte, "fehler": fehler or {},
+                                               "mindestlaenge": benutzer_service.MINDESTLAENGE}, status_code)
+
+
+@router.get("/einrichten")
+def einrichten_formular(request: Request, db: Session = Depends(get_db)):
+    if not benutzer_service.ersteinrichtung_offen(db):
+        return weiter_zu_seite("/login")
+    return _einrichten_formular(request, {"benutzername": "admin", "name": ""})
+
+
+@router.post("/einrichten")
+def einrichten(request: Request, benutzername: str = Form(""), name: str = Form(""), passwort: str = Form(""),
+               wiederholung: str = Form(""), db: Session = Depends(get_db)):
+    db.execute(text("SELECT pg_advisory_xact_lock(4711)"))  # zwei gleichzeitige Versuche: nur einer legt an
+    if not benutzer_service.ersteinrichtung_offen(db):
+        return weiter_zu_seite("/login")
+    werte = {"benutzername": benutzername.strip(), "name": name.strip()}
+    fehler = {}
+    if not werte["benutzername"] or len(werte["benutzername"]) > 80:
+        fehler["benutzername"] = "Bitte einen Benutzernamen angeben (höchstens 80 Zeichen)."
+    if len(werte["name"]) > 200:
+        fehler["name"] = "Höchstens 200 Zeichen."
+    if text_fehler := benutzer_service.passwort_fehler(passwort, wiederholung):
+        fehler["passwort"] = text_fehler
+    if fehler:
+        return _einrichten_formular(request, werte, fehler, 422)
+    b = Benutzer(benutzername=werte["benutzername"], name=werte["name"] or werte["benutzername"], rolle="admin",
+                 passwort_hash=benutzer_service.passwort_hash(passwort))
+    db.add(b)
+    db.flush()
+    protokoll.setzen(db, b)
+    protokoll.eintragen(db, "anmeldung", "anmeldung", f"{b.name} ({b.benutzername})", b.id,
+                        kontext_text=_herkunft(request))
+    db.commit()
+    request.session.clear()
+    request.session["benutzer_id"] = b.id
+    return weiter_zu_seite("/")
 
 
 @router.post("/login")

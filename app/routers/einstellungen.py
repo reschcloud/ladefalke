@@ -16,7 +16,7 @@ from app.config import einstellungen as konfiguration
 from sqlalchemy import select
 
 from app.models import Spritpreis, Steuersatz
-from app.services import aktualisierung, app_einstellungen, backup, geheim, geodaten, kosten, mail, oil_bulletin, syslog
+from app.services import aktualisierung, app_einstellungen, benutzer as benutzer_dienst, backup, geheim, geodaten, kosten, mail, oil_bulletin, syslog
 from app.services.evse import LAENDER
 from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
 from app.web import meldung, render, weiter
@@ -81,7 +81,8 @@ def _formular(request: Request, werte: dict, fehler: dict | None = None, status_
                                                              "laufende": aktualisierung.laufende(),
                                                              "verfuegbar": aktualisierung.verfuegbar(),
                                                              "releases": aktualisierung.RELEASES,
-                                                             "changelog": aktualisierung.CHANGELOG},
+                                                             "changelog": aktualisierung.CHANGELOG,
+                                                             "env_admin": db is not None and benutzer_dienst.env_admin_ueberfluessig(db)},
                                                   "steuersaetze": db.scalars(select(Steuersatz).order_by(
                                                       Steuersatz.land, Steuersatz.gueltig_ab)).all() if db else [],
                                                   "backup": {"liste": backup.liste(), "status": backup.status(),

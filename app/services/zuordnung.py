@@ -70,6 +70,15 @@ def mit_vorgeladenen_zuordnungen(funktion):
     return mit_speicher
 
 
+def vorgeladen_fuer_route(route):
+    """Dekorator für lesende Seiten mit `db` als Argument (z. B. Ladevorgänge-Liste: Person je Vorgang)."""
+    @wraps(route)
+    def mit_speicher(*args, **kwargs):
+        with vorgeladen(kwargs["db"]):
+            return route(*args, **kwargs)
+    return mit_speicher
+
+
 def _gilt(z, stichtag: date) -> bool:
     return z.gueltig_ab <= stichtag and (z.gueltig_bis is None or z.gueltig_bis >= stichtag)
 

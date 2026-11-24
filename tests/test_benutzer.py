@@ -54,9 +54,10 @@ def _alle_routen(routen):
 
 
 def _post_routen():
-    """Alle ändernden Routen der App mit Platzhaltern für Pfadparameter."""
+    """Alle ändernden Routen der App mit Platzhaltern für Pfadparameter (ohne Anmeldung, Abmelden und
+    Ersteinrichtung – die liegen vor der Anmeldung; /einrichten ist zu, sobald es Konten gibt)."""
     for r in _alle_routen(app.routes):
-        if isinstance(r, APIRoute) and "POST" in r.methods and r.path not in ("/login", "/logout") \
+        if isinstance(r, APIRoute) and "POST" in r.methods and r.path not in ("/login", "/logout", "/einrichten") \
                 and not r.path.startswith("/konto/"):
             yield re.sub(r"\{[^}]+\}", "1", r.path)
 

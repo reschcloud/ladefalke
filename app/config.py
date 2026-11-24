@@ -10,8 +10,11 @@ class Einstellungen(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str
+    # Nur für die Erstinstallation, beide optional: gibt es noch keine Benutzer:innen, wird damit beim ersten
+    # Anmeldeversuch der erste Admin angelegt. Ohne Passwort: „Ersten Admin anlegen“ im Browser bzw.
+    # `python -m werkzeuge.admin` (siehe README „Admin-Zugang“). Danach aus .env entfernen (setup.sh tut das).
     admin_user: str = "admin"
-    admin_password: str
+    admin_password: str = ""
     secret_key: str
     tz: str = "Europe/Vienna"
     upload_dir: str = "/data/uploads"
