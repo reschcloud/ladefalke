@@ -11,6 +11,7 @@ from app.models import Benutzer, Fahrer
 from app.routers.auswertungen import zeitraum_navigation
 from app.services import app_einstellungen, mail, reports, versand
 from app.services.auswertung import auswerten, vormonat, zeitraum_aus_parametern
+from app.services import seitencache
 from app.web import art_vorgabe, meldung, render, weiter
 
 router = APIRouter(prefix="/reports")
@@ -21,6 +22,7 @@ def _zeitraum(db: Session, art: str, jahr: str, nr: str, von: str, bis: str):
 
 
 @router.get("")
+@seitencache.gecacht
 def seite(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
           fahrer: str = "", db: Session = Depends(get_db)):
     """`fahrer`: Person hervorheben (Links von der Fahrer:innen-Seite und der Auswertung)."""

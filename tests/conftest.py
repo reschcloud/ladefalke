@@ -44,6 +44,14 @@ def test_datenbank():
     admin.dispose()
 
 
+@pytest.fixture(autouse=True)
+def seitencache_leeren():
+    """Gemerkte Seiten (services/seitencache.py) nicht von einem Test in den nächsten mitnehmen."""
+    from app.services import seitencache
+    seitencache.ungueltig_machen()
+    yield
+
+
 @pytest.fixture
 def db():
     """Session in einer äußeren Transaktion; commit() der App wird zum Savepoint, am Ende Rollback."""

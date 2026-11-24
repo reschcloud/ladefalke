@@ -8,6 +8,7 @@ from app.services import app_einstellungen, kennzahlen
 from app.services.auswertung import auswerten, vergleichen, vormonat, zeitraum_aus_parametern
 from app.services import diagramme, karte, zuordnung
 from app.services.vollstaendigkeit import pruefen as vollstaendigkeit_pruefen
+from app.services import seitencache
 from app.web import art_vorgabe, render
 
 router = APIRouter()
@@ -20,6 +21,7 @@ def _verteilungen(db, a, einst) -> dict:
 
 
 @router.get("/")
+@seitencache.gecacht
 def dashboard(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
               db: Session = Depends(get_db)):
     z = zeitraum_aus_parametern(art, jahr, nr, von, bis, standard=vormonat(), db=db)

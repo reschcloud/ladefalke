@@ -19,7 +19,7 @@ from app.formatierung import geld, zahl
 from app.models import Ladeart, Ladevorgang, Msp
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.aufloesung import stichtag_spalte
-from app.services.auswertung import MONATSNAMEN, Auswertung, Zeitraum, auswerten, zeitbedingung, zeitraum_mit
+from app.services.auswertung import MONATSNAMEN, Auswertung, Monatsteil, Zeitraum, auswerten, zeitbedingung, zeitraum_mit
 
 ANZAHL_FARBEN = 5
 NULL = Decimal(0)
@@ -86,7 +86,11 @@ def monate(z: Zeitraum) -> list[Zeitraum]:
 
 
 def je_monat(db: Session, a: Auswertung, einst: AppEinstellungen) -> list[tuple[Zeitraum, Auswertung]]:
-    """Auswertungen je Monat des Zeitraums; in der Monatsansicht wird `a` wiederverwendet."""
+    """Werte je Monat des Zeitraums (Personen, MSP, CPO); in der Monatsansicht wird `a` wiederverwendet. Hat die
+    Auswertung die Monate schon mitgebucht (`monatsteile`, ganze Monate), ohne weitere Auswertungen; sonst je Monat
+    eine eigene."""
+    if getattr(a, "monatsteile", None) is not None:
+        return [(m, a if m == a.zeitraum else a.monatsteile.get(m.von) or Monatsteil(m)) for m in monate(a.zeitraum)]
     return [(m, a if m == a.zeitraum else auswerten(db, m, einst)) for m in monate(a.zeitraum)]
 
 

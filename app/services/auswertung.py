@@ -450,6 +450,17 @@ class Topliste:
 
 
 @dataclass
+class Monatsteil:
+    """Was die Monatsdiagramme (services/diagramme.je_monat) je Monat brauchen – im selben Durchlauf wie die
+    Gesamtauswertung gebucht, statt je Monat eine eigene Auswertung zu rechnen. Gleiche Werte und Reihenfolgen wie
+    `Auswertung.fahrer`, `.msp` und `.cpo` einer Auswertung nur dieses Monats."""
+    zeitraum: Zeitraum
+    fahrer: list["FahrerZeile"] = field(default_factory=list)
+    msp: list[tuple[str, "Summe"]] = field(default_factory=list)
+    cpo: list[tuple[str | None, "Summe"]] = field(default_factory=list)
+
+
+@dataclass
 class Auswertung:
     zeitraum: Zeitraum
     stichtag: str
@@ -471,6 +482,8 @@ class Auswertung:
     ladeorte: list[tuple[Ladeort, Summe]] = field(default_factory=list)
     cpo_personen: dict[str | None, CpoDetail] = field(default_factory=dict)  # nur öffentlich, siehe Moduldoku
     karten_anzeige: dict = field(default_factory=dict)  # Karten-ID → kartenanzeige.Anzeige (nur mit Personen)
+    # je Monatserstem (nur mit Personen und bei ganzen Monaten, sonst None): Werte für die Monatsdiagramme
+    monatsteile: dict[date, Monatsteil] | None = None
     # grob geschätzte CO₂e-Einsparung gegenüber Verbrennern in kg je kWh (Einstellungen); None = aus
     co2e_je_kwh: Decimal | None = None
 
@@ -610,6 +623,11 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
     cpo_msp: dict[str | None, dict[str, Summe]] = defaultdict(lambda: defaultdict(Summe))
     cpo_msp_art: dict[str | None, dict] = defaultdict(lambda: defaultdict(lambda: defaultdict(Summe)))
     SAMMEL = {"pool": "Poolfahrzeug (Person nicht eindeutig)", "ohne": "ohne Fahrer:in", "gaeste": "Gäste"}
+    # Monatsteile: nur bei ganzen Monaten (sonst zählte ein angeschnittener Monat anders als seine eigene Auswertung)
+    ganze_monate = mit_personen and z.von.day == 1 and (z.bis + timedelta(days=1)).day == 1
+    m_personen: dict[date, dict[int, FahrerZeile]] = defaultdict(dict)
+    m_msp: dict[date, dict[str, Summe]] = defaultdict(lambda: defaultdict(Summe))
+    m_cpo: dict[date, dict[str | None, Summe]] = defaultdict(lambda: defaultdict(Summe))
 
     def cpo_buchen(v: Ladevorgang, werte: tuple, art: str, fahrer: Fahrer | None = None) -> None:
         if v.ladeart != Ladeart.oeffentlich:
@@ -642,6 +660,10 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         msp[v.msp.name].vorgang(*werte)
         laender[v.land].vorgang(*werte)
         cpo[v.betreiber_id].vorgang(*werte)
+        monat = stichtag(v.start, v.ende, einst.stichtag).replace(day=1)
+        if ganze_monate:
+            m_msp[monat][v.msp.name].vorgang(*werte)
+            m_cpo[monat][v.betreiber_id].vorgang(*werte)
         if v.ladeort is not None and v.ladeart == Ladeart.oeffentlich:
             ladeorte.setdefault(v.ladeort.id, (v.ladeort, Summe()))[1].vorgang(*werte)
         if v.ladekarte is not None:
@@ -680,6 +702,8 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         elif fahrer:
             pz = personen.setdefault(fahrer[0].id, FahrerZeile(fahrer[0]))
             pz.summe.vorgang(*werte)
+            if ganze_monate:
+                m_personen[monat].setdefault(fahrer[0].id, FahrerZeile(fahrer[0])).summe.vorgang(*werte)
             if oeffentlich:
                 pz.summe_oeffentlich.vorgang(*werte)
             pz.fahrzeuge[v.fahrzeug.kennzeichen if v.fahrzeug else "ohne Fahrzeug"].vorgang(*werte)
@@ -706,6 +730,8 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         betrag = (erg.kosten, ladeart, erg.geschaetzt_in_kosten)
         if g.import_.msp:
             msp[g.import_.msp.name].gebuehr(*betrag)
+            if ganze_monate:
+                m_msp[tag.replace(day=1)][g.import_.msp.name].gebuehr(*betrag)
         if karte is not None:
             karten_zeile(karte).summe.gebuehr(*betrag)
         if gast:
@@ -788,7 +814,12 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         cpo=sorted(cpo.items(), key=lambda e: (e[0] is None, -e[1].kwh, e[0] or "")),
         ladeorte=sorted(ladeorte.values(), key=lambda e: (-e[1].anzahl, -e[1].kwh, e[0].adresse)),
         cpo_personen=cpo_details,
-        karten_anzeige=karten_anzeige)
+        karten_anzeige=karten_anzeige,
+        monatsteile={m: Monatsteil(zeitraum_mit(m, "monat"),
+                                   sorted(m_personen[m].values(), key=lambda r: r.fahrer.name.lower()),
+                                   sorted(m_msp[m].items(), key=lambda e: e[0].lower()),
+                                   sorted(m_cpo[m].items(), key=lambda e: (e[0] is None, -e[1].kwh, e[0] or "")))
+                     for m in set(m_personen) | set(m_msp) | set(m_cpo)} if ganze_monate else None)
 
 
 # ------------------------------------------------------------------ Vergleich mit Vorperioden (Dashboard)

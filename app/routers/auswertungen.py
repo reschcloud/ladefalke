@@ -15,6 +15,7 @@ from app.services.auswertung import (ARTEN, SPAR_MINDEST_KWH, TEILE, Auswertung,
 from app.services.zuordnung import fahrer_von_fahrzeug_am
 from app.services.evse import cpo_land, landname
 from app.services.export import MEDIENTYPEN, Spalte, Tabelle, inhalt
+from app.services import seitencache
 from app.web import art_vorgabe, render
 
 router = APIRouter(prefix="/auswertungen")
@@ -45,6 +46,7 @@ def navigation(db: Session, a: Auswertung, basis: str) -> dict:
 
 
 @router.get("")
+@seitencache.gecacht
 def uebersicht(request: Request, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
                karten: str = "", ladeorte: str = "", db: Session = Depends(get_db)):
     """`karten=alle`: Ladekarten-Nutzung als vollständige Rangliste statt Top 10; `ladeorte=alle` ebenso."""
@@ -58,6 +60,7 @@ def uebersicht(request: Request, art: str = Depends(art_vorgabe), jahr: str = ""
 
 
 @router.get("/fahrzeug/{fahrzeug_id}")
+@seitencache.gecacht
 def fahrzeug(request: Request, fahrzeug_id: int, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
              bis: str = "", db: Session = Depends(get_db)):
     a = _auswertung(db, art, jahr, nr, von, bis)
@@ -74,6 +77,7 @@ def fahrzeug(request: Request, fahrzeug_id: int, art: str = Depends(art_vorgabe)
 
 
 @router.get("/fahrer/{fahrer_id}")
+@seitencache.gecacht
 def fahrer(request: Request, fahrer_id: int, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "",
            bis: str = "", db: Session = Depends(get_db)):
     a = _auswertung(db, art, jahr, nr, von, bis)
@@ -96,6 +100,7 @@ def cpo_schluessel(code: str) -> str | None:
 
 
 @router.get("/cpo/{code:path}")
+@seitencache.gecacht
 def cpo(request: Request, code: str, art: str = Depends(art_vorgabe), jahr: str = "", nr: str = "", von: str = "", bis: str = "",
         db: Session = Depends(get_db)):
     """Öffentliche Ladungen bei einem CPO: Fahrer:innen nach Kosten mit ihren Ladekarten, dazu MSP im Vergleich."""

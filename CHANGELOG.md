@@ -3,6 +3,23 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.8.0 – 24.11.2026
+
+### Geändert
+
+- Schneller: Die Monatsdiagramme (Dashboard, Zusammenfassung) entstehen im selben Durchlauf wie die Auswertung des
+  Zeitraums statt aus einer eigenen Auswertung je Monat (Dashboard „Jahr“ bei gleichen Werten etwa dreimal so
+  schnell).
+- Seiten-Cache für Dashboard, Auswertungen (Übersicht, Fahrzeug, Fahrer:in, CPO) und Reports: eine berechnete Seite
+  wird je Benutzer:in und Adresse gemerkt und sofort wieder ausgeliefert, bis sich Daten ändern (jede gespeicherte
+  Änderung macht alle gemerkten Seiten ungültig; höchstens 10 Minuten, nur am selben Tag). Seiten mit Meldungen
+  kommen nie aus dem Cache. Von Hand neu rechnen: harter Reload im Browser (Strg+Shift+R bzw. Cmd+Shift+R).
+
+### Beim Update beachten
+
+- nichts. Daten, die von außerhalb der App geändert werden (z. B. Wiederherstellen einer Sicherung per Kommando),
+  erscheinen auf gemerkten Seiten spätestens nach 10 Minuten bzw. nach einem Neustart der App.
+
 ## v1.7.3 – 24.11.2026
 
 ### Behoben
