@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from app.models import CpoStromart, Import, ImportStatus, Ladeart, Ladevorgang, Msp, ZuordnungQuelle
+from app.models import (CpoStromart, Import, ImportStatus, Ladeart, Ladekarte, Ladevorgang, Msp,
+                        ZuordnungQuelle)
 from app.services import app_einstellungen, stromart
 from app.services.importe import bestaetigen, hochladen, vorschau_berechnen
 
@@ -94,7 +95,16 @@ def test_import_mit_cpo_liste(angemeldet, db):
     antwort = angemeldet.post("/import", files={"datei_upload": ("oktober.csv", CSV, "text/csv")})
     assert "laut CPO-Liste" in antwort.text and 'href="/einstellungen#cpo-stromart"' in antwort.text
     assert 'name="stromart_vorgabe"' not in antwort.text  # alle bestimmt: keine Auswahl nötig
+    assert "Daten vollständig" not in antwort.text  # neue Karten: Vorgänge noch ohne Zuordnung
     imp = db.scalar(select(Import).where(Import.dateiname == "oktober.csv"))
+    # Alle Karten bekannt (Gastkarten gelten als zugeordnet), AC/DC laut CPO-Liste: grüner Haken
+    for k in vorschau_berechnen(db, imp).karten:
+        db.add(Ladekarte(msp_id=msp.id, kennung=k.kennung, kennung_typ=k.kennung_typ, ist_gastkarte=True))
+    db.commit()
+    assert "Daten vollständig" not in angemeldet.get(f"/import/{imp.id}").text  # Hinweis: Vorgang mit 0 kWh
+    ohne_null = b"\n".join(z for z in CSV.split(b"\n") if b";0;" not in z)
+    antwort = angemeldet.post("/import", files={"datei_upload": ("ohne-null.csv", ohne_null, "text/csv")})
+    assert "Daten vollständig" in angemeldet.get(antwort.url).text
     bestaetigen(db, imp, {}, "DC")
     arten = {(v.stromart, v.stromart_quelle, v.rohdaten.get("stromart_vorgabe"))
              for v in db.scalars(select(Ladevorgang).where(Ladevorgang.import_id == imp.id))}

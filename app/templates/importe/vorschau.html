@@ -168,6 +168,12 @@
     – das ist kein Fehler. Du kannst sie nach dem Import unter <em>Aufgaben → Ladevorgänge ohne Fahrzeug</em>
     zuordnen; die Auswertungen berücksichtigen sie dann automatisch.</p>
   {% endif %}
+  {# Datenqualität: neue Ladevorgänge vorhanden, keine Hinweise unter 2., alle zugeordnet und AC/DC überall
+     aus der Rechnung oder der CPO-Liste (nicht nur geschätzt aus der Ø-Leistung oder per Vorgabe) #}
+  {% if vs.neue and not vs.warnungen and not spaeter and not nach_leistung and not ohne_stromart %}
+  <p class="datenqualitaet-ok">{{ icon("ok") }} <span><strong>Daten vollständig</strong>
+    <small>keine Auffälligkeiten, alle Ladevorgänge zugeordnet, AC/DC aus Rechnung bzw. CPO-Liste</small></span></p>
+  {% endif %}
   <button type="submit" form="import-bestaetigen" data-erst-speichern="vorschau-einstellungen"
           data-erst-speichern-text="Zuerst unter 1. „Übernehmen und neu berechnen“ – die Vorschau zeigt noch die bisherigen Einstellungen.">Import bestätigen und speichern</button>
 </article>
