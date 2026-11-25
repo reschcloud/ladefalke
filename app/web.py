@@ -107,10 +107,11 @@ def zuordnung_vorbelegung(ab: str, bis: str = "") -> dict | None:
 def meldung(request: Request, text: str, art: str = "info", aktion: dict | None = None) -> None:
     """Meldung für die nächste angezeigte Seite merken (art: info | warnung | fehler).
     `aktion`: optionaler Knopf {"url", "text", "felder": {name: wert}} (POST); solche Meldungen bleiben stehen."""
-    eintrag = {"text": text, "art": art}
+    eintrag = {"text": text if len(text) <= 400 else text[:399] + "…", "art": art}
     if aktion:
         eintrag["aktion"] = aktion
-    request.session.setdefault("meldungen", []).append(eintrag)
+    # Die Sitzung liegt im Cookie (max. ~4 KB, sonst verwirft ihn der Browser): nur die letzten Meldungen behalten
+    request.session["meldungen"] = [*request.session.get("meldungen", []), eintrag][-8:]
 
 
 def _meldungen_holen(request: Request) -> list[dict]:

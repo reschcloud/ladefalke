@@ -19,8 +19,8 @@ from app.models import Gebuehr, Import, ImportStatus, Ladeart, Ladekarte, Ladevo
 from app.parsers import PARSER
 from app.services import parser_verwaltung
 from app.routers import pauschalen
-from app.services.importe import (BereitsImportiert, ImportFehler, KartenEntscheidung, bestaetigen, datei, hochladen, loeschen,
-                                  naechste_vorschau, offene_vorschauen, vorschau_berechnen)
+from app.services.importe import (BereitsImportiert, ImportFehler, KartenEntscheidung, bestaetigen, datei, hochladen,
+                                  loeschen, naechste_vorschau, offene_vorschauen, vorschau_berechnen)
 from app.services import kartenanzeige, stromart
 from app.services.aufloesung import stichtag_art
 from app.services.offen import ohne_fahrzeug_bedingungen
@@ -29,17 +29,30 @@ from app.web import meldung, render, weiter
 router = APIRouter(prefix="/import")
 
 DURCHGANG = "import_durchgang"
-BEKANNT = "import_bekannt"  # beim letzten Hochladen übersprungene, schon importierte Dateien: [{name, id}]
+BEKANNT = "import_bekannt"  # beim letzten Hochladen übersprungene, schon importierte Dateien: [Import-ID]
+# Die Sitzung liegt im Cookie (Browser verwerfen Cookies über ~4 KB stillschweigend): bei Hunderten Dateien nur IDs,
+# Anzahlen und wenige Namen darin ablegen
+NAMEN_MAX = 10  # so viele Namen verworfener Dateien merkt sich ein Durchgang
+EINZELN_MAX = 3  # bis zu so vielen Dateien je Ergebnisart eine Meldung pro Datei, darüber eine Sammelmeldung
 
 
 def _durchgang(request: Request) -> dict:
     """Aktueller Durchgang: erledigte Import-IDs, Namen verworfener Dateien, ob alles abgearbeitet ist."""
     d = request.session.get(DURCHGANG)
-    return d if isinstance(d, dict) else {"erledigt": [], "verworfen": [], "fertig": False}
+    return {"verworfen_n": len(d.get("verworfen", [])), **d} if isinstance(d, dict) else _leer()
+
+
+def _leer() -> dict:
+    """`verworfen`: höchstens NAMEN_MAX Namen, `verworfen_n`: Anzahl aller verworfenen Dateien."""
+    return {"erledigt": [], "verworfen": [], "verworfen_n": 0, "fertig": False}
 
 
 def _durchgang_neu(request: Request) -> None:
-    request.session[DURCHGANG] = {"erledigt": [], "verworfen": [], "fertig": False}
+    request.session[DURCHGANG] = _leer()
+
+
+def _verworfen(d: dict, namen: list[str]) -> dict:
+    return {**d, "verworfen": [*d["verworfen"], *namen][:NAMEN_MAX], "verworfen_n": d["verworfen_n"] + len(namen)}
 
 
 def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int | None = None,
@@ -49,11 +62,11 @@ def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int
     Abschlusskasten."""
     d = _durchgang(request)
     if d["fertig"]:  # nach einem abgeschlossenen Durchgang beginnt mit der nächsten Vorschau ein neuer
-        d = {"erledigt": [], "verworfen": [], "fertig": False}
+        d = _leer()
     if import_id is not None:
         d["erledigt"] = [*d["erledigt"], import_id]
     if verworfen is not None:
-        d["verworfen"] = [*d["verworfen"], verworfen]
+        d = _verworfen(d, [verworfen])
     naechste = naechste_vorschau(db, bezug)
     d["fertig"] = naechste is None
     request.session[DURCHGANG] = d
@@ -66,7 +79,7 @@ def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int
 def _abschluss(request: Request, db: Session) -> dict | None:
     """Daten für den Abschlusskasten nach dem letzten Durchgang (oder None)."""
     d = _durchgang(request)
-    if not d["fertig"] or not (d["erledigt"] or d["verworfen"]):
+    if not d["fertig"] or not (d["erledigt"] or d["verworfen_n"]):
         return None
     importe = db.scalars(select(Import).where(Import.id.in_(d["erledigt"]),
                                               Import.status == ImportStatus.abgeschlossen)
@@ -86,18 +99,17 @@ def _abschluss(request: Request, db: Session) -> dict | None:
         .where(Ladevorgang.import_id.in_(ids), Ladekarte.ist_gastkarte.is_(False),
                ~select(ZuordnungKarte.id).where(ZuordnungKarte.ladekarte_id == Ladekarte.id).exists())
         .group_by(Ladekarte.id).order_by(Ladekarte.kennung)).all() if ids else []
-    return {"importe": importe, "verworfen": d["verworfen"], "anzahl": anzahl, "kwh": Decimal(kwh),
-            "kosten": Decimal(kosten), "gebuehren": Decimal(gebuehren), "spaeter_zuordnen": spaeter,
+    return {"importe": importe, "verworfen": d["verworfen"], "verworfen_n": d["verworfen_n"], "anzahl": anzahl,
+            "kwh": Decimal(kwh), "kosten": Decimal(kosten), "gebuehren": Decimal(gebuehren), "spaeter_zuordnen": spaeter,
             "karten_ohne_zuordnung": ohne_zuordnung}
 
 
-def _bekannt(request: Request, db: Session) -> list[tuple[str, Import]]:
+def _bekannt(request: Request, db: Session) -> list[Import]:
     """Beim letzten Hochladen übersprungene Dateien (bereits importiert) mit dem bestehenden Import – nur einmal."""
-    eintraege = request.session.pop(BEKANNT, None)
-    if not isinstance(eintraege, list) or not eintraege:
+    ids = request.session.pop(BEKANNT, None)
+    if not isinstance(ids, list) or not ids:
         return []
-    importe = {i.id: i for i in db.scalars(select(Import).where(Import.id.in_([e["id"] for e in eintraege])))}
-    return [(e["name"], importe[e["id"]]) for e in eintraege if e["id"] in importe]
+    return db.scalars(select(Import).where(Import.id.in_(ids)).order_by(Import.dateiname)).all()
 
 
 def _laden(db: Session, import_id: int) -> Import:
@@ -155,14 +167,15 @@ async def hochladen_route(request: Request, db: Session = Depends(get_db)):
     request.session.pop(BEKANNT, None)
     schon_offen = set(offene_vorschauen(db))
     ergebnisse = []  # (Dateiname, Import oder None, Fehlermeldung oder None)
-    bekannt = []  # bereits importierte Dateien: werden übersprungen und auf der Import-Seite gesammelt angezeigt
+    bekannt = []  # IDs bereits importierter Dateien: übersprungen, auf der Import-Seite gesammelt angezeigt
     for name, inhalt in dateien:
         try:
             imp = hochladen(db, name, inhalt)
             db.commit()
             ergebnisse.append((name, imp, None))
         except BereitsImportiert as e:
-            bekannt.append({"name": name, "id": e.import_.id})  # ID vor dem Rollback lesen
+            if e.import_.id not in bekannt:
+                bekannt.append(e.import_.id)  # ID vor dem Rollback lesen
             db.rollback()
         except ImportFehler as e:
             db.rollback()
@@ -174,21 +187,36 @@ async def hochladen_route(request: Request, db: Session = Depends(get_db)):
         _, imp, fehler = ergebnisse[0]
         return _liste(request, db, fehler, 422) if fehler else weiter(f"/import/{imp.id}")
 
+    # je Ergebnisart: (Art der Meldung, Text je Datei, Sammeltext mit {n}) → Einzeltexte
+    arten = {"fehler": ("fehler", "{n} Dateien konnten nicht importiert werden ({namen} …)."),
+             "offen": ("warnung", "{n} Dateien lagen bereits als offene Vorschau vor."),
+             "format": ("warnung", "{n} Vorschauen angelegt, deren Format nicht erkannt oder nicht eindeutig ist "
+                                   "– bitte in der Vorschau das Format wählen."),
+             "neu": ("info", "{n} Vorschauen angelegt.")}
+    gruppen = {k: [] for k in arten}  # Art → [(Dateiname, Einzeltext)]
     gesehen = set()
     for name, imp, fehler in ergebnisse:
         if fehler:
-            meldung(request, f"{name}: {fehler}", "fehler")
+            gruppen["fehler"].append((name, f"{name}: {fehler}"))
         elif imp.id in schon_offen or imp.id in gesehen:
-            meldung(request, f"{name}: liegt bereits als offene Vorschau vor.", "warnung")
+            gruppen["offen"].append((name, f"{name}: liegt bereits als offene Vorschau vor."))
         elif imp.parser_key is None:
             passend = parser_verwaltung.passende(db, datei(imp))
             grund = (f"Format nicht eindeutig (passt zu {', '.join(PARSER[k].name for k in passend)})"
                      if len(passend) > 1 else "Format nicht erkannt")
-            meldung(request, f"{name}: Vorschau angelegt – {grund}, bitte Format wählen.", "warnung")
+            gruppen["format"].append((name, f"{name}: Vorschau angelegt – {grund}, bitte Format wählen."))
         else:
-            meldung(request, f"{name}: Vorschau angelegt ({PARSER[imp.parser_key].name}).")
+            gruppen["neu"].append((name, f"{name}: Vorschau angelegt ({PARSER[imp.parser_key].name})."))
         if imp:
             gesehen.add(imp.id)
+    for k, (art, sammel) in arten.items():
+        eintraege = gruppen[k]
+        if len(eintraege) <= EINZELN_MAX:
+            for _, text in eintraege:
+                meldung(request, text, art)
+        else:
+            namen = ", ".join(n[:40] for n, _ in eintraege[:EINZELN_MAX])
+            meldung(request, sammel.format(n=len(eintraege), namen=namen), art)
     return weiter("/import")
 
 
@@ -196,7 +224,7 @@ def _vorschau_seite(request: Request, db: Session, imp: Import, fehler: str | No
     offen = offene_vorschauen(db)
     pos = offen.index(imp.id) if imp.id in offen else 0
     d = _durchgang(request)
-    schon = 0 if d["fertig"] else len(d["erledigt"]) + len(d["verworfen"])  # im Durchgang bereits erledigt
+    schon = 0 if d["fertig"] else len(d["erledigt"]) + d["verworfen_n"]  # im Durchgang bereits erledigt
     navigation = {"nr": schon + pos + 1, "anzahl": schon + len(offen), "offen": len(offen),
                   "zurueck": offen[pos - 1] if pos > 0 else None,
                   "vor": offen[pos + 1] if pos + 1 < len(offen) else None}
@@ -286,8 +314,8 @@ def alle_vorschauen_loeschen(request: Request, db: Session = Depends(get_db)):
             pfad.unlink(missing_ok=True)
     d = _durchgang(request)
     if d["fertig"]:
-        d = {"erledigt": [], "verworfen": [], "fertig": False}
-    request.session[DURCHGANG] = {**d, "verworfen": [*d["verworfen"], *namen], "fertig": True}
+        d = _leer()
+    request.session[DURCHGANG] = {**_verworfen(d, namen), "fertig": True}
     meldung(request, f"{len(namen)} Vorschau{'en' if len(namen) != 1 else ''} verworfen.")
     return weiter("/import#abschluss")
 
@@ -317,3 +345,4 @@ def originaldatei(import_id: int, anzeigen: str = "", db: Session = Depends(get_
     medientyp = mimetypes.guess_type(imp.dateiname)[0] or "application/octet-stream"
     return FileResponse(pfad, filename=imp.dateiname, media_type=medientyp,
                         content_disposition_type="inline" if anzeigen else "attachment")
+

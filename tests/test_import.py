@@ -1,13 +1,14 @@
 """Import-Ablauf: Hochladen, Vorschau, Bestätigen, Duplikate, Fahrzeugauflösung, Löschen."""
-from datetime import date
+import hashlib
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from sqlalchemy import func, select
 
-from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, KennungTyp, Ladekarte, Ladevorgang, Msp,
-                        ZuordnungFahrerFahrzeug, ZuordnungKarte, ZuordnungQuelle)
+from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, KennungTyp, Ladeart, Ladekarte, Ladevorgang,
+                        Msp, ZuordnungFahrerFahrzeug, ZuordnungKarte, ZuordnungQuelle)
 from app.parsers.wien_energie import WienEnergieParser, parsen_text
 from app.services.importe import (ImportFehler, KartenEntscheidung, bestaetigen, datei, hochladen, loeschen,
                                   vorschau_berechnen)
@@ -241,7 +242,7 @@ def test_oberflaeche_ablauf(angemeldet, db):
     antwort = angemeldet.post("/import", files={"datei_upload": ("oktober-nochmal.csv", CSV, "text/csv")})
     assert str(antwort.url).endswith("/import")
     kasten = antwort.text.split('id="bekannt"')[1].split("</article>")[0]
-    assert "1 Datei war bereits bekannt" in kasten and "oktober-nochmal.csv" in kasten
+    assert "1 Datei war bereits bekannt" in kasten and "oktober.csv" in kasten  # Name des bestehenden Imports
     assert f'href="/import/{import_id}"' in kasten
     assert 'id="bekannt"' not in angemeldet.get("/import").text  # nur einmal
 
@@ -380,6 +381,34 @@ def test_mehrfach_upload_mit_bereits_importierter_datei(angemeldet, db):
     assert "november.csv" not in kasten
     assert "november.csv: Vorschau angelegt" in antwort.text
     assert "Offene Vorschauen (1)" in antwort.text
+
+
+def test_sehr_viele_dateien_passen_in_die_sitzung(angemeldet, db):
+    """Die Sitzung liegt im Cookie (Browser verwerfen ihn ab ~4 KB): auch bei Hunderten Dateien muss er klein bleiben,
+    sonst fehlen Hinweiskasten und Meldungen."""
+    for i in range(150):
+        inhalt = f"bekannt-{i}".encode()
+        db.add(Import(dateiname=f"rechnung-mit-recht-langem-dateinamen-{i:03}.pdf", datei_pfad=f"x{i}.pdf",
+                      datei_hash=hashlib.sha256(inhalt).hexdigest(), ladeart=Ladeart.oeffentlich,
+                      status=ImportStatus.abgeschlossen, importiert_am=datetime.now(timezone.utc), warnungen=[]))
+    db.commit()
+    dateien = [("datei_upload", (f"erneut-hochgeladen-{i:03}.pdf", f"bekannt-{i}".encode(), "application/pdf"))
+               for i in range(150)]
+    dateien += [("datei_upload", (f"neue-datei-mit-ebenfalls-langem-namen-{i:03}.txt", f"neu-{i}".encode(),
+                                  "text/plain")) for i in range(60)]
+
+    antwort = angemeldet.post("/import", files=dateien, follow_redirects=False)
+    assert len(antwort.headers["set-cookie"]) < 3500
+    text = angemeldet.get("/import").text
+    kasten = text.split('id="bekannt"')[1].split("</article>")[0]
+    assert "150 Dateien waren bereits bekannt" in kasten and "Alle 150 Dateien anzeigen" in kasten
+    assert kasten.count('<li>') == 150
+    assert "60 Vorschauen angelegt, deren Format nicht erkannt" in text and "Offene Vorschauen (60)" in text
+
+    antwort = angemeldet.post("/import/vorschauen/loeschen", follow_redirects=False)
+    assert len(antwort.headers["set-cookie"]) < 3500
+    abschluss = angemeldet.get("/import").text.split('id="abschluss"')[1].split("</article>")[0]
+    assert "60 verworfen" in abschluss and "und 50 weitere" in abschluss
 
 
 def test_upload_ohne_datei(angemeldet):

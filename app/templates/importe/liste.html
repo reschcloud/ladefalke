@@ -16,7 +16,8 @@
   </header>
   <p>
     {{ a.importe | length }} Datei{{ "en" if a.importe | length != 1 }} übernommen
-    {%- if a.verworfen %}, {{ a.verworfen | length }} verworfen <small>({{ a.verworfen | join(", ") }})</small>{% endif %}.
+    {%- if a.verworfen_n %}, {{ a.verworfen_n }} verworfen <small>({{ a.verworfen | join(", ") }}
+      {%- if a.verworfen_n > a.verworfen | length %} und {{ a.verworfen_n - a.verworfen | length }} weitere{% endif %})</small>{% endif %}.
     {% if a.importe %}<br><strong>{{ a.anzahl }}</strong> Ladevorgänge · <strong>{{ a.kwh | zahl(0) }}</strong> kWh ·
       <strong>{{ a.kosten | geld }}</strong> Ladekosten{% if a.gebuehren %} · {{ a.gebuehren | geld }} Gebühren{% endif %} (netto){% endif %}
   </p>
@@ -48,11 +49,13 @@
       aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg></a>
   </header>
   <p><small>Diese Dateien wurden schon importiert und deshalb nicht erneut als Vorschau angelegt.</small></p>
-  <ul>
-    {% for name, imp in bekannt %}<li>{{ name }} <small>→ <a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a>
-      {%- if imp.msp %} · {{ imp.msp.name }}{% endif %}{% if imp.rechnungsnummer %} · Rechnung {{ imp.rechnungsnummer }}{% endif %}
-      · importiert {{ imp.importiert_am | datum }}</small></li>{% endfor %}
-  </ul>
+  {% set liste %}<ul>
+    {% for imp in bekannt %}<li><a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a>
+      <small>{%- if imp.msp %}{{ imp.msp.name }} · {% endif %}{% if imp.rechnungsnummer %}Rechnung {{ imp.rechnungsnummer }} · {% endif %}
+      importiert {{ imp.importiert_am | datum }}</small></li>{% endfor %}
+  </ul>{% endset %}
+  {% if bekannt | length > 10 %}<details><summary>Alle {{ bekannt | length }} Dateien anzeigen</summary>{{ liste }}</details>
+  {% else %}{{ liste }}{% endif %}
 </article>
 {% endif %}
 {% if vorschauen %}
