@@ -170,6 +170,7 @@ def parsen_text(text: str) -> Ergebnis:
             ergebnis.warnungen.append(f"Rechnung {nr} ({land}): {warnung}")
         ergebnis.vorgaenge += vorgaenge
         ergebnis.gebuehren += gebuehren
+        ergebnis.zeiten_utc |= bool(vorgaenge) and _zeiten_in_utc(teil)
 
     if not nummern or (not ergebnis.vorgaenge and not ergebnis.gebuehren):
         raise ParserFehler("Keine DCS-Rechnung mit Ladevorgängen oder Gebühren gefunden.")

@@ -86,6 +86,13 @@ def test_dcs_kwh_lesen(text, erwartet):
     assert dcs.kwh_lesen(text) == D(erwartet)
 
 
+def test_dcs_zeiten_utc_kennzeichen():
+    """„Datum/Uhrzeit (UTC)“: umgerechnet → Hinweis in der Vorschau; nur „Datum/Uhrzeit“: Ortszeit, kein Hinweis."""
+    text = _text("dcs_beispiel.txt")
+    assert "Datum/Uhrzeit (UTC)" in text and dcs.parsen_text(text).zeiten_utc
+    assert not dcs.parsen_text(text.replace("Datum/Uhrzeit (UTC)", "Datum/Uhrzeit")).zeiten_utc
+
+
 def test_dcs_dauer_eine_zeile_tiefer():
     """Lange Vorgänge (z. B. „11:07 hh:mm“): die Dauer steht unter „(kWh)“, eine Zeile tiefer als sonst."""
     normal = dcs.parsen_text(_text("dcs_beispiel.txt"))

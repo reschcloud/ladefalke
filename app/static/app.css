@@ -1403,3 +1403,7 @@ table.cpo-stromart input { margin: 0; }
 .stromart-wahl select { display: inline-block; width: auto; margin: 0 0 0 .3rem; padding: .1rem 1.6rem .1rem .4rem;
   height: auto; font-size: .8rem; vertical-align: middle; background-position: center right .3rem; }
 .stromart-wahl small { display: block; margin-top: .3rem; line-height: 1.2; color: var(--pico-muted-color); }
+/* Import-Vorschau: Zeitzone der Uhrzeiten (Tooltip an Start/Ende, Info unter „2. Prüfen“) */
+th.mit-zeit-info { cursor: help; text-decoration: underline dotted; text-underline-offset: .2em; }
+.zeiten-utc { margin: .5rem 0 0; color: var(--pico-muted-color); }
+.zeiten-utc svg.symbol { vertical-align: -.15em; }

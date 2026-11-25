@@ -74,7 +74,7 @@ def parsen(pfad: Path) -> Ergebnis:
         raise ParserFehler("Die CSV-Datei enthält keine Ladevorgänge.")
     r = Rechnung()
     warnungen: list[str] = []
-    ergebnis = Ergebnis(rechnung=r, warnungen=warnungen)
+    ergebnis = Ergebnis(rechnung=r, warnungen=warnungen, zeiten_utc=True)
     erste = zeilen[0]
     r.nummer = (erste.get("Account Document Number") or "").strip() or None
     if datum := (erste.get("Account Document Date") or "").strip():

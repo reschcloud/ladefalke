@@ -66,6 +66,9 @@
     {% if r.summe_netto is not none %} · Rechnungssumme netto <strong>{{ r.summe_netto | geld }}</strong>{% endif %}
   </p>
   {% for w in vs.warnungen %}<p class="meldung meldung-warnung">{{ w }}</p>{% endfor %}
+  {# Nur Info, kein Hinweis unter vs.warnungen – sonst fiele der Haken „Daten vollständig“ weg #}
+  {% if vs.ergebnis.zeiten_utc %}<p class="zeiten-utc"><small>{{ icon("info") }} Uhrzeiten stehen in der Rechnung in UTC und
+    sind hier in Wiener Ortszeit umgerechnet (Sommerzeit +2 h, Winterzeit +1 h).</small></p>{% endif %}
 </article>
 <article class="karten-block">
   {% set neu = vs.unbekannte_karten | length %}
@@ -196,7 +199,10 @@
   <summary>Ladevorgänge ({{ vs.vorgaenge | length }})</summary>
   <div class="tabelle">
   <table class="striped">
-    <thead><tr><th>Start</th><th>Ende</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
+    {% set zeit_info = "Wiener Ortszeit – in der Rechnung in UTC, umgerechnet (Sommerzeit +2 h, Winterzeit +1 h)"
+                       if vs.ergebnis.zeiten_utc else "Uhrzeit wie in der Rechnung (Ortszeit)" %}
+    <thead><tr><th class="mit-zeit-info" title="{{ zeit_info }}">Start</th>
+               <th class="mit-zeit-info" title="{{ zeit_info }}">Ende</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
                <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th>
                <th title="Stromart: aus der Rechnung, sonst CPO-Liste oder Ø-Leistung, sonst die Vorgabe unter 4. – hier änderbar">AC/DC</th>
                <th>Fahrzeug <small>· Fahrer:in beim Laden</small></th><th></th></tr></thead>

@@ -24,6 +24,7 @@ def test_csv_parsen():
     assert (r.nummer, r.datum, r.zeitraum_von, r.zeitraum_bis, r.summe_netto) == (
         "60000002", date(2026, 10, 31), date(2026, 10, 1), date(2026, 10, 31), D("33.00"))
     a, b = e.vorgaenge
+    assert e.zeiten_utc
     assert (a.kartenkennung, a.externe_id, a.ladepunkt) == ("K00001", "100000001", "AT*SZG*E000001")
     assert (a.start, a.ende) == (datetime(2026, 10, 3, 11, 37, 44), datetime(2026, 10, 3, 12, 11, 23))  # UTC → Sommerzeit
     assert (a.kwh, a.kosten_netto, a.stromart, a.standort) == (D("28.250"), D("9.89"), "DC", "Teststraße 3, 5000 Testort")
@@ -70,3 +71,10 @@ def test_beispiel_csv():
     summe = sum((v.kosten_netto for v in e.vorgaenge), D(0)) + sum((g.betrag_netto for g in e.gebuehren), D(0))
     assert summe == e.rechnung.summe_netto
     assert all(v.kartenkennung and v.externe_id and v.ende >= v.start for v in e.vorgaenge)
+
+
+def test_vorschau_zeigt_utc_hinweis(angemeldet):
+    antwort = angemeldet.post("/import", files={"datei_upload": ("Stromladen_Beleg_60000002.csv", CSV.read_bytes(),
+                                                                 "text/csv")})
+    assert "Uhrzeiten stehen in der Rechnung in UTC" in antwort.text
+    assert 'title="Wiener Ortszeit – in der Rechnung in UTC' in antwort.text  # Tooltip an Start/Ende

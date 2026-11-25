@@ -134,6 +134,8 @@ class Ergebnis:
     vorgaenge: list[Vorgang] = field(default_factory=list)
     gebuehren: list[Gebuehr] = field(default_factory=list)
     warnungen: list[str] = field(default_factory=list)
+    # Uhrzeiten standen in der Datei in UTC und wurden in Wiener Ortszeit umgerechnet (Hinweis in der Vorschau)
+    zeiten_utc: bool = False
 
 
 class Parser(ABC):
