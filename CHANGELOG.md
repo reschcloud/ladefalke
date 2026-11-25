@@ -3,6 +3,19 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.14.0 – 25.11.2026
+
+### Neu
+
+- Import-Vorschau: Stehen die Uhrzeiten in der Rechnung in UTC (DCS / BMW Charging mit Spalte
+  „Datum/Uhrzeit (UTC)“, Salzburg-AG-CSV), weist eine Info unter „2. Prüfen“ auf die Umrechnung in Wiener
+  Ortszeit hin (Sommerzeit +2 h, Winterzeit +1 h). Die Spaltenköpfe „Start“ und „Ende“ erklären die Zeitzone
+  im Tooltip.
+
+### Beim Update beachten
+
+- nichts
+
 ## v1.13.1 – 25.11.2026
 
 ### Behoben
