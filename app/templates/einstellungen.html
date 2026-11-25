@@ -571,7 +571,10 @@
     <p class="meldung meldung-warnung">{{ icon("warnung") }} In <code>.env</code> steht noch <code>ADMIN_PASSWORD</code>.
       Es wird nicht mehr gebraucht – Konten verwaltet die App selbst – und sollte nicht im Klartext herumliegen:
       die Zeilen <code>ADMIN_USER</code> und <code>ADMIN_PASSWORD</code> aus <code>.env</code> löschen und die App neu
-      starten (<code>docker compose up -d</code>); <code>sh setup.sh</code> erledigt das beim nächsten Update selbst.
+      starten (<code>docker compose up -d</code>). Oder im Installationsordner zuerst das aktuelle Skript holen –
+      <code>curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh</code> – und
+      dann <code>sh setup.sh</code> aufrufen; es entfernt die Zeilen selbst (ältere Fassungen von <code>setup.sh</code>
+      können das noch nicht).
       Für den Notfall gibt es <code>docker compose exec app python -m werkzeuge.admin</code>.</p>
     {% endif %}
     <h3>Version</h3>

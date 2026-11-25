@@ -249,6 +249,15 @@ neueste() {  # höchster Tag vX.Y.Z laut GitHub, dessen Image schon veröffentli
     if image_da "$v" "$token"; then echo "$v"; return 0; fi
   done
 }
+# Beim Update auch dieses Skript aus dem Ziel-Release erneuern – sonst bliebe im Installationsordner für immer die
+# Fassung vom Einrichten liegen (ohne spätere Verbesserungen, z. B. das Aufräumen von ADMIN_PASSWORD). Erst in eine
+# neue Datei laden und prüfen, dann per mv ersetzen: das laufende sh liest die alte Datei weiter (anderer Inode).
+skript_erneuern() {  # $1: Basisadresse des Release (raw.githubusercontent.com/…/vX.Y.Z)
+  curl -fsSL "$1/setup.sh" -o setup.sh.neu 2>/dev/null && sh -n setup.sh.neu 2>/dev/null \
+    && grep -q '^skript_erneuern()' setup.sh.neu || { rm -f setup.sh.neu; return 1; }
+  if [ -f setup.sh ] && cmp -s setup.sh setup.sh.neu; then rm -f setup.sh.neu; return 0; fi
+  mv setup.sh.neu setup.sh && hinweis "setup.sh auf den Stand des Release erneuert."
+}
 # ---------------------------------------------------------------- Update einer bestehenden Installation
 # Ohne --update: bestehende Release-Installation (nicht selbst gebaut) und neueres Release → Update anbieten
 if [ -z "$UPDATE" ] && [ -f .env ] && [ -z "${LADEFALKE_VERSION:-}" ] && ! wert COMPOSE_FILE | grep -q dev; then
@@ -289,6 +298,7 @@ Update jetzt durchführen? [J/n]" "j")" in [nN]*) printf 'Abgebrochen.\n'; exit 
   curl -fsSL "$QUELLE/compose.yaml" -o compose.yaml.neu || fehler "Konnte compose.yaml $ZIEL nicht laden."
   mv compose.yaml.neu compose.yaml
   curl -fsSL "$QUELLE/.env.example" -o .env.example || fehler "Konnte .env.example $ZIEL nicht laden."
+  skript_erneuern "$QUELLE" || hinweis "setup.sh $ZIEL nicht geladen – das bisherige Skript bleibt (Update läuft weiter)."
   ergaenzt=""
   for schluessel in $(sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' .env.example); do
     if ! grep -q "^$schluessel=" .env; then

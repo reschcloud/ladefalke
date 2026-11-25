@@ -313,7 +313,9 @@ Skript zeigt die Hinweise „Beim Update beachten“ aller übersprungenen Versi
 ist; die Geodaten aktualisiert die App danach selbst. Ältere Versionen lehnt es ab
 (siehe [Zurück auf ein älteres Release](#zurück-auf-ein-älteres-release)). Das Skript ist dasselbe wie bei der
 Installation; fehlt es, im Installationsordner
-`curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh`.
+`curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh`. Beim Update erneuert es sich
+selbst aus dem neuen Release (ab v1.12.2). Wer noch eine ältere Fassung im Ordner hat, holt einmal das aktuelle Skript:
+`curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh`.
 
 Ob es ein neues Release gibt, sieht die App einmal täglich auf GitHub nach (Einstellungen → System, abschaltbar;
 „Jetzt nachsehen“ sofort). Ein Release zählt erst, wenn sein Image fertig gebaut ist – direkt nach dem Taggen
