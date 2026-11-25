@@ -2,10 +2,14 @@
 „update_pruefen“, Standard an; es werden keine Daten gesendet). Ist ein neueres Release als das laufende da, zeigt
 die Oberfläche neben der Version „Update verfügbar“ und unter Einstellungen → System, wie man aktualisiert
 (`sh setup.sh` im Installationsordner). Selbst gebaute Stände ohne Release-Version bekommen keinen Hinweis.
+
+Als Release zählt ein Tag erst, wenn die Release-Pipeline das Image auf ghcr.io veröffentlicht hat (direkt nach
+dem Taggen laufen noch die Tests) – sonst gäbe es den Hinweis, bevor `setup.sh` das Image laden kann.
 """
 import json
 import logging
 import re
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
 
@@ -18,6 +22,12 @@ log = logging.getLogger(__name__)
 
 REPO = "reschcloud/ladefalke"
 URL = f"https://api.github.com/repos/{REPO}/tags?per_page=100"
+REGISTRY = "https://ghcr.io"
+IMAGE = "reschcloud/ladefalke"  # ghcr.io/reschcloud/ladefalke (compose.yaml)
+MANIFEST_TYPEN = ", ".join([  # Image-Index (mehrere Plattformen) oder einzelnes Manifest, OCI bzw. Docker
+    "application/vnd.oci.image.index.v1+json", "application/vnd.docker.distribution.manifest.list.v2+json",
+    "application/vnd.oci.image.manifest.v1+json", "application/vnd.docker.distribution.manifest.v2+json"])
+HOECHSTENS_PRUEFEN = 3  # so viele der neuesten Tags auf ein Image prüfen
 RELEASES = f"https://github.com/{REPO}/releases"
 CHANGELOG = f"https://github.com/{REPO}/blob/main/CHANGELOG.md"
 STATUS = "update_status"
@@ -34,16 +44,49 @@ def laufende() -> str | None:
     return treffer.group(1) if treffer else None
 
 
+def versionen_aus(tags: list[dict]) -> list[str]:
+    """Release-Versionen aus den Tags, neueste zuerst."""
+    versionen = {t["name"][1:] for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t.get("name", ""))}
+    return sorted(versionen, key=_schluessel, reverse=True)
+
+
 def neueste_aus(tags: list[dict]) -> str | None:
-    versionen = [t["name"][1:] for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t.get("name", ""))]
-    return max(versionen, key=_schluessel) if versionen else None
+    versionen = versionen_aus(tags)
+    return versionen[0] if versionen else None
+
+
+def _holen(url: str, kopf: dict | None = None, methode: str = "GET"):
+    anfrage = urllib.request.Request(url, method=methode, headers={"User-Agent": "Ladefalke (Update-Pruefung)",
+                                                                   **(kopf or {})})
+    return urllib.request.urlopen(anfrage, timeout=30)  # noqa: S310 – feste https-Adressen
+
+
+def image_vorhanden(version: str, token: str) -> bool:
+    """Gibt es ghcr.io/…/ladefalke:<version>? 404 = (noch) nicht gebaut; andere Fehler gehen nach oben."""
+    try:
+        with _holen(f"{REGISTRY}/v2/{IMAGE}/manifests/{version}",
+                    {"Authorization": f"Bearer {token}", "Accept": MANIFEST_TYPEN}, "HEAD"):
+            return True
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+
+
+def _token() -> str:
+    """Anonymes Lese-Token der Registry (öffentliches Image)."""
+    with _holen(f"{REGISTRY}/token?scope=repository:{IMAGE}:pull") as antwort:
+        return json.loads(antwort.read(64 * 1024))["token"]
 
 
 def abfragen() -> str | None:
-    anfrage = urllib.request.Request(URL, headers={"User-Agent": "Ladefalke (Update-Pruefung)",
-                                                   "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(anfrage, timeout=30) as antwort:  # noqa: S310 – feste https-Adresse
-        return neueste_aus(json.loads(antwort.read(2 * 1024 * 1024)))
+    """Neuestes Release mit fertigem Image (höchstens die drei neuesten Tags werden geprüft)."""
+    with _holen(URL, {"Accept": "application/vnd.github+json"}) as antwort:
+        versionen = versionen_aus(json.loads(antwort.read(2 * 1024 * 1024)))
+    if not versionen:
+        return None
+    token = _token()
+    return next((v for v in versionen[:HOECHSTENS_PRUEFEN] if image_vorhanden(v, token)), None)
 
 
 def status(db: Session) -> dict:

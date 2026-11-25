@@ -315,7 +315,9 @@ ist; die Geodaten aktualisiert die App danach selbst. Ältere Versionen lehnt es
 Installation; fehlt es, im Installationsordner
 `curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh`.
 
-Ob es ein neues Release gibt, sieht die App einmal täglich auf GitHub nach (Einstellungen → System, abschaltbar).
+Ob es ein neues Release gibt, sieht die App einmal täglich auf GitHub nach (Einstellungen → System, abschaltbar;
+„Jetzt nachsehen“ sofort). Ein Release zählt erst, wenn sein Image fertig gebaut ist – direkt nach dem Taggen
+laufen noch Tests und Build (einige Minuten).
 
 **Von Hand:**
 

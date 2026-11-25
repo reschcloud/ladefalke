@@ -232,10 +232,22 @@ env_admin_aufraeumen() {
 }
 
 # ---------------------------------------------------------------- Version: vorgegeben, sonst neuestes Release
-neueste() {  # höchster Tag vX.Y.Z laut GitHub
+image_da() {  # gibt es ghcr.io/$REPO:$1 schon? (Release-Pipeline fertig) – $2: anonymes Lese-Token
+  code=$(curl -s -o /dev/null -w '%{http_code}' -I -H "Authorization: Bearer $2" \
+    -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+    "https://ghcr.io/v2/$REPO/manifests/$1" 2>/dev/null) || code=""
+  [ "$code" = 200 ]
+}
+neueste() {  # höchster Tag vX.Y.Z laut GitHub, dessen Image schon veröffentlicht ist (von den drei neuesten)
   command -v curl >/dev/null 2>&1 || return 0
-  curl -fsSL "https://api.github.com/repos/$REPO/tags?per_page=100" 2>/dev/null \
-    | sed -n 's/.*"name": *"v\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1
+  tags=$(curl -fsSL "https://api.github.com/repos/$REPO/tags?per_page=100" 2>/dev/null \
+    | sed -n 's/.*"name": *"v\([0-9]*\.[0-9]*\.[0-9]*\)".*/\1/p' | sort -u -t. -k1,1nr -k2,2nr -k3,3nr | head -n 3)
+  [ -n "$tags" ] || return 0
+  token=$(curl -fsSL "https://ghcr.io/token?scope=repository:$REPO:pull" 2>/dev/null \
+    | sed -n 's/.*"token": *"\([^"]*\)".*/\1/p')
+  for v in $tags; do
+    if image_da "$v" "$token"; then echo "$v"; return 0; fi
+  done
 }
 # ---------------------------------------------------------------- Update einer bestehenden Installation
 # Ohne --update: bestehende Release-Installation (nicht selbst gebaut) und neueres Release → Update anbieten

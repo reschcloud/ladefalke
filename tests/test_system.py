@@ -1,6 +1,7 @@
 """Einstellungen → System: Geodaten selbst laden (services/geodaten.py) und Hinweis auf neue Releases
 (services/aktualisierung.py). Ohne Netz: Download und GitHub-Abfrage werden ersetzt; Geodaten erfunden
 (tests/fixtures/geonames_beispiel.txt)."""
+import json
 import shutil
 import zipfile
 from datetime import datetime, timedelta
@@ -99,6 +100,36 @@ def test_neueste_aus_tags():
     tags = [{"name": "v1.6.1"}, {"name": "v1.10.0"}, {"name": "v1.9.3"}, {"name": "test"}, {"name": "v2.0.0-rc1"}]
     assert aktualisierung.neueste_aus(tags) == "1.10.0"
     assert aktualisierung.neueste_aus([]) is None
+
+
+def test_abfragen_nur_releases_mit_image(monkeypatch):
+    """Ein frisch getaggtes Release zählt erst, wenn die Pipeline das Image veröffentlicht hat."""
+    import io
+    import urllib.error
+    tags = [{"name": "v1.12.0"}, {"name": "v1.11.0"}, {"name": "v1.10.0"}, {"name": "v1.9.0"}]
+    images = {"1.11.0", "1.10.0"}  # 1.12.0: Pipeline läuft noch
+    gefragt = []
+
+    def holen(url, kopf=None, methode="GET"):
+        if url == aktualisierung.URL:
+            return io.BytesIO(json.dumps(tags).encode())
+        if "/token?" in url:
+            return io.BytesIO(b'{"token": "anonym"}')
+        version = url.rsplit("/", 1)[1]
+        gefragt.append(version)
+        assert methode == "HEAD" and kopf["Authorization"] == "Bearer anonym"
+        if version in images:
+            return io.BytesIO(b"")
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(aktualisierung, "_holen", holen)
+    assert aktualisierung.abfragen() == "1.11.0"
+    images.add("1.12.0")
+    assert aktualisierung.abfragen() == "1.12.0"
+    images.clear()
+    gefragt.clear()
+    assert aktualisierung.abfragen() is None  # keins der neuesten drei gebaut
+    assert gefragt == ["1.12.0", "1.11.0", "1.10.0"]
 
 
 def test_verfuegbar(monkeypatch):
