@@ -51,6 +51,23 @@ def test_kontrollen_warnen():
     assert any("unbekannt" in x for x in w)
 
 
+def test_neueres_format_mit_uhrzeit():
+    """Ab etwa 2026: Datumszeile mit Uhrzeit des Ladebeginns, Monat österreichisch („Jänner“)."""
+    text = (FIXTURE.read_text(encoding="utf-8").replace("August 2026", "Jänner 2026")
+            .replace("12.08.2026", "12.01.2026, 06:58:29").replace("13.08.2026\nProbe", "13.01.2026, 13:11:30\nProbe")
+            .replace("13.08.2026", "13.01.2026, 9:05:00"))
+    e = parsen_text(text)
+    assert e.warnungen == []
+    assert (e.rechnung.zeitraum_von, e.rechnung.zeitraum_bis) == (date(2026, 1, 1), date(2026, 1, 31))
+    a, at, b = e.vorgaenge
+    assert (a.start, a.ende) == (datetime(2026, 1, 12, 6, 58, 29), datetime(2026, 1, 12, 7, 29, 36))
+    assert at.start == datetime(2026, 1, 13, 13, 11, 30) and b.start == datetime(2026, 1, 13, 9, 5)
+    assert not a.rohdaten["uhrzeit_unbekannt"]
+    # Übersicht rundet die kWh-Summe auf 2 Stellen: 114,611 ↔ „114.61“ ist keine Abweichung
+    assert parsen_text(text.replace("52,246", "52,247")).warnungen == []
+    assert sum(v.kosten_netto for v in e.vorgaenge) == e.rechnung.summe_netto == D("72.77")
+
+
 @pytest.mark.parametrize("text, erwartet", [("36,05", "36.05"), ("86.82", "86.82"), ("1.234,5", "1234.5"),
                                             ("52,246", "52.246")])
 def test_zahl_flexibel(text, erwartet):

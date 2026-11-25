@@ -2,7 +2,9 @@
 
 - Text über PDFium: pdfplumber verliert bei diesem PDF alle Texte in normaler Schrift.
 - Je Ladevorgang: Datum, Betreiber, Adresse, Ladepunkt-ID, Dauer, kWh, Bruttopreis.
-  Keine Uhrzeit im Dokument → Start = Datum 00:00, Ende = Start + Dauer (Ladeende stimmt; der Ladebeginn ist nur der Tag).
+  Seit etwa Anfang 2026 mit Uhrzeit des Ladebeginns („27.01.2026, 06:58:29“) → Start = Datum und Uhrzeit.
+  Ältere Übersichten nur mit Datum → Start = Datum 00:00, Ende = Start + Dauer (nur der Tag stimmt).
+- Monat im Kopf auch österreichisch („Jänner 2026“).
 - Karte = Name des Kontoinhabers (das Dokument enthält keine Kartennummer).
 - Netto: Bruttopreis je Vorgang mit dem USt-Satz seines Landes (aus der Ladepunkt-ID), centgenau
   abgestimmt auf Summe − ausgewiesene Mehrwertsteuer. Die Beschriftung „EUR(19%)“ im Dokument ist
@@ -27,13 +29,13 @@ from app.parsers.basis import (Ergebnis, Gebuehr, Parser, ParserFehler, Rechnung
                                ist_pdf, kwh_runden, pdf_text_pdfium, zahl_flexibel)
 
 MONATE = {m: i for i, m in enumerate(["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
-                                      "September", "Oktober", "November", "Dezember"], 1)}
+                                      "September", "Oktober", "November", "Dezember"], 1)} | {"Jänner": 1}
 # USt-Sätze für Ladungen im Ausland (Prozent); fehlt ein Land, gilt der Satz laut Dokument (mit Warnung)
 UST_JE_LAND = {"AT": 20, "DE": 19, "IT": 22, "SI": 22, "HU": 27, "CZ": 21, "SK": 23, "HR": 25, "CH": Decimal("8.1"),
                "FR": 20, "NL": 21, "BE": 21, "LU": 17, "DK": 25, "PL": 23, "ES": 21}
 
 ZAHL = r"-?\d[\d.,]*"
-RE_DATUM = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
+RE_DATUM = re.compile(r"^(\d{2}\.\d{2}\.\d{4})(?:,\s*(\d{1,2}:\d{2}:\d{2}))?$")  # Uhrzeit nur im neueren Format
 RE_WERTE = re.compile(rf"^(\d{{1,2}}):(\d{{2}}):(\d{{2}})\s+({ZAHL})\s+({ZAHL})\s+([A-Z]{{3}})$")
 RE_LADEPUNKT = re.compile(r"^([A-Z]{2})\*[A-Z0-9]{3}\*\S+$")
 RE_MWST = re.compile(rf"EUR\((\d+(?:[.,]\d+)?)%\)\s+({ZAHL})\s*EUR")
@@ -89,8 +91,8 @@ def parsen_text(text: str) -> Ergebnis:
     rohe = []
     block = None
     for z in zeilen:
-        if RE_DATUM.match(z):
-            block = {"datum": z, "zeilen": []}
+        if m := RE_DATUM.match(z):
+            block = {"datum": m.group(1), "uhrzeit": m.group(2), "zeilen": []}
             continue
         if block is None:
             continue
@@ -118,7 +120,8 @@ def parsen_text(text: str) -> Ergebnis:
                              f"{satz_dokument} % laut Dokument verwendet.")
             satz = satz_dokument
         brutto = zahl_flexibel(m.group(5))
-        start = datetime.strptime(b["datum"], "%d.%m.%Y")
+        start = (datetime.strptime(f"{b['datum']} {b['uhrzeit']}", "%d.%m.%Y %H:%M:%S") if b["uhrzeit"]
+                 else datetime.strptime(b["datum"], "%d.%m.%Y"))
         dauer = timedelta(hours=int(m.group(1)), minutes=int(m.group(2)), seconds=int(m.group(3)))
         roh_netto.append(brutto / (1 + Decimal(satz) / 100))
         ergebnis.vorgaenge.append(Vorgang(
@@ -128,7 +131,7 @@ def parsen_text(text: str) -> Ergebnis:
             kartenbezeichnung=f"Elli {inhaber}".strip(),
             rohdaten={"datum": b["datum"], "betreiber": betreiber, "adresse": adresse, "land": land,
                       "ust_satz": str(satz), "brutto": str(brutto), "dauer": f"{m.group(1)}:{m.group(2)}:{m.group(3)}",
-                      "uhrzeit_unbekannt": True}))
+                      "uhrzeit_unbekannt": b["uhrzeit"] is None}))
 
     if not ergebnis.vorgaenge:
         raise ParserFehler("Keine Ladevorgänge gefunden – ist das eine Elli-Übersicht?")
@@ -153,7 +156,8 @@ def parsen_text(text: str) -> Ergebnis:
         if int(m.group(1)) != len(ergebnis.vorgaenge):
             warnungen.append(f"{len(ergebnis.vorgaenge)} Ladevorgänge gelesen, laut Übersicht {m.group(1)}.")
     if m := re.search(rf"Geladene Energie\s+insgesamt\s+({ZAHL})\s*kWh", text):
-        if kwh_runden(zahl_flexibel(m.group(1))) != sum((v.kwh for v in ergebnis.vorgaenge), Decimal(0)):
+        # Übersicht auf 2 Stellen gerundet („51.54“), Vorgänge mit 3 (Summe 51,541)
+        if not _gleich_gerundet(m.group(1), sum((v.kwh for v in ergebnis.vorgaenge), Decimal(0))):
             warnungen.append(f"Summe der kWh passt nicht zur Übersicht ({m.group(1)} kWh).")
     return ergebnis
 
