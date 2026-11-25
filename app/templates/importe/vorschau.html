@@ -41,8 +41,8 @@
 {# Miniatur der ersten Seite; Klick klappt darunter die ganze PDF auf (Browser-PDF-Ansicht, lädt erst dann) #}
 <button type="button" class="pdf-miniatur" aria-expanded="false" aria-controls="pdf-ansicht"
         title="Rechnung anzeigen" data-pdf-umschalten>
-  <img src="/import/{{ imp.id }}/vorschaubild" alt="Erste Seite der Rechnung" loading="lazy"
-       onerror="this.closest('.pdf-miniatur').classList.add('ohne-bild')">
+  <span class="pdf-miniatur-bild"><img src="/import/{{ imp.id }}/vorschaubild" alt="Erste Seite der Rechnung" loading="lazy"
+       onerror="this.closest('.pdf-miniatur').classList.add('ohne-bild')"></span>
   <span class="pdf-miniatur-text">Rechnung anzeigen</span>
 </button>
 {% endif %}
