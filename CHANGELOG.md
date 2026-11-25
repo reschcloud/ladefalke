@@ -3,6 +3,19 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.13.1 – 25.11.2026
+
+### Behoben
+
+- DCS / BMW Charging: Bei langen Ladevorgängen (z. B. „11:07 hh:mm“) steht die Ladedauer in der Rechnung eine
+  Zeile tiefer. Sie wurde nicht erkannt (Ende = Start, Warnung „Ladedauer nicht gefunden“), und der Ort enthielt
+  zusätzlich „(kWh)“ und einen Betrag. Bereits importierte Vorgänge bleiben unverändert – bei Bedarf die
+  Rechnung neu importieren oder das Ende von Hand korrigieren.
+
+### Beim Update beachten
+
+- nichts
+
 ## v1.13.0 – 25.11.2026
 
 ### Neu
