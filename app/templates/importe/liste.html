@@ -17,7 +17,8 @@
   <p>
     {{ a.importe | length }} Datei{{ "en" if a.importe | length != 1 }} übernommen
     {%- if a.verworfen_n %}, {{ a.verworfen_n }} verworfen <small>({{ a.verworfen | join(", ") }}
-      {%- if a.verworfen_n > a.verworfen | length %} und {{ a.verworfen_n - a.verworfen | length }} weitere{% endif %})</small>{% endif %}.
+      {%- if a.verworfen_n > a.verworfen | length %} und {{ a.verworfen_n - a.verworfen | length }} weitere{% endif %})</small>{% endif %}
+    {%- if a.zurueckgestellt_n %}, <a href="#zurueckgestellt">{{ a.zurueckgestellt_n }} zurückgestellt</a>{% endif %}.
     {% if a.importe %}<br><strong>{{ a.anzahl }}</strong> Ladevorgänge · <strong>{{ a.kwh | zahl(0) }}</strong> kWh ·
       <strong>{{ a.kosten | geld }}</strong> Ladekosten{% if a.gebuehren %} · {{ a.gebuehren | geld }} Gebühren{% endif %} (netto){% endif %}
   </p>
@@ -52,7 +53,8 @@
   {% set liste %}<ul>
     {% for imp in bekannt %}<li><a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a>
       <small>{%- if imp.msp %}{{ imp.msp.name }} · {% endif %}{% if imp.rechnungsnummer %}Rechnung {{ imp.rechnungsnummer }} · {% endif %}
-      importiert {{ imp.importiert_am | datum }}</small></li>{% endfor %}
+      {% if imp.status.value == "zurueckgestellt" %}<a href="#zurueckgestellt">zurückgestellt</a> {{ imp.zurueckgestellt_am | datum }}
+      {%- else %}importiert {{ imp.importiert_am | datum }}{% endif %}</small></li>{% endfor %}
   </ul>{% endset %}
   {% if bekannt | length > 10 %}<details><summary>Alle {{ bekannt | length }} Dateien anzeigen</summary>{{ liste }}</details>
   {% else %}{{ liste }}{% endif %}
@@ -75,6 +77,27 @@
   <footer>
     {{ m.loeschen_knopf("/import/vorschauen/loeschen", "Alle %d offenen Vorschauen verwerfen und die hochgeladenen Dateien löschen?" % (vorschauen | length), "Alle verwerfen") }}
   </footer>
+</article>
+{% endif %}{% if zurueckgestellt %}
+<article id="zurueckgestellt" class="import-zurueckgestellt">
+  <header class="kopf">
+    <strong>Zurückgestellt ({{ zurueckgestellt | length }})</strong>
+    <a href="/import/pauschalen/neu" role="button" data-schreiben class="outline klein">Neue Pauschale</a>
+  </header>
+  <p><small>Dateien, die sich nicht importieren ließen und noch von Hand zu erfassen sind (z. B. als Pauschale).
+    „Erledigt“ löscht die Datei.</small></p>
+  <ul>
+  {% for imp in zurueckgestellt %}
+    <li><a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false">{{ imp.dateiname }} ↗</a>
+      <small>{% if imp.notiz %}<strong>{{ imp.notiz }}</strong> · {% endif %}{{ imp.msp.name ~ " · " if imp.msp }}zurückgestellt
+        {{ imp.zurueckgestellt_am | datum }}</small>
+      <span class="zurueck-aktionen">
+        <form method="post" action="/import/{{ imp.id }}/wieder-pruefen" class="inline">
+          <button type="submit" class="outline secondary klein" title="Wieder als offene Vorschau prüfen">Wieder prüfen</button></form>
+        {{ m.loeschen_knopf("/import/%d/loeschen" % imp.id, "„%s“ als erledigt von der Liste nehmen und die Datei löschen?" % imp.dateiname, "Erledigt") }}
+      </span></li>
+  {% endfor %}
+  </ul>
 </article>
 {% endif %}
 
@@ -156,6 +179,7 @@
       <td class="rechts">{% if kosten is not none or gebuehren is not none %}{{ ((kosten or 0) + (gebuehren or 0)) | geld }}{% endif %}</td>
       <td>
         {% if imp.status.value == "vorschau" %}<span class="marker inaktiv">Vorschau</span>
+        {% elif imp.status.value == "zurueckgestellt" %}<a href="#zurueckgestellt" class="marker warnung">zurückgestellt</a>
         {% else %}<span class="marker">importiert</span> <small>{{ imp.importiert_am | datum }}</small>{% endif %}
         {% if imp.warnungen %}<span title="{{ imp.warnungen | join(' · ') }}">{{ icon("warnung") }}</span>{% endif %}
       </td>

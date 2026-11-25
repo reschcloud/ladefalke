@@ -66,6 +66,9 @@ def hochladen(db: Session, dateiname: str, inhalt: bytes) -> Import:
                                                 Import.status == ImportStatus.abgeschlossen)):
         raise BereitsImportiert(f"Diese Datei wurde bereits importiert ({fertig.bezeichnung} "
                                 f"vom {datum(fertig.importiert_am)}).", fertig)
+    if zurueck := db.scalar(select(Import).where(Import.datei_hash == datei_hash,
+                                                 Import.status == ImportStatus.zurueckgestellt)):
+        raise BereitsImportiert(f"Diese Datei ist zurückgestellt (seit {datum(zurueck.zurueckgestellt_am)}).", zurueck)
     if offen := db.scalar(select(Import).where(Import.datei_hash == datei_hash,
                                                Import.status == ImportStatus.vorschau)):
         return offen  # gleiche Datei erneut hochgeladen – bestehende Vorschau weiterverwenden
@@ -435,6 +438,25 @@ def loeschen(db: Session, imp: Import) -> Path | None:
     if db.scalar(select(Import.id).where(Import.datei_pfad == pfad).limit(1)) is None:
         return upload_verzeichnis() / pfad
     return None
+
+
+# ------------------------------------------------------------------ Zurückstellen
+
+def zurueckstellen(imp: Import, notiz: str = "") -> None:
+    """Offene Vorschau auf die Merkliste „Zurückgestellt“ setzen (Datei bleibt, nichts wird übernommen)."""
+    if imp.status != ImportStatus.vorschau:
+        raise ImportFehler("Nur offene Vorschauen lassen sich zurückstellen.")
+    imp.status = ImportStatus.zurueckgestellt
+    imp.notiz = notiz.strip()[:300] or None
+    imp.zurueckgestellt_am = datetime.now(timezone.utc)
+
+
+def wieder_pruefen(imp: Import) -> None:
+    """Zurückgestellte Datei wieder als offene Vorschau (z. B. weil es inzwischen einen Parser gibt)."""
+    if imp.status != ImportStatus.zurueckgestellt:
+        raise ImportFehler("Die Datei ist nicht zurückgestellt.")
+    imp.status = ImportStatus.vorschau
+    imp.notiz = imp.zurueckgestellt_am = None
 
 
 # ------------------------------------------------------------------ Offene Vorschauen der Reihe nach abarbeiten

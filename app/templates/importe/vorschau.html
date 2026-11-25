@@ -22,6 +22,12 @@
   <header class="block-kopf"><strong>1. Format und Ladeart</strong>
     {% if parser_name and imp.msp_id %}<span class="block-status ok">{{ icon("ok") }} {{ parser_name }}</span>
     {% else %}<span class="block-status offen">bitte Format wählen</span>{% endif %}</header>
+  {# Automatisch erkannt und ohne Fehler: nur eine Zeile mit den Einstellungen, die Felder erst über „Ändern“ #}
+  {% set erkannt = parser_name and imp.msp_id and not vs.fehler and not fehler %}
+  <details class="vorschau-einstellungen"{% if not erkannt %} open{% endif %}>
+  <summary>{% if erkannt %}<span>{{ MSP }} {{ imp.msp.name }} · {{ imp.ladeart.label }}
+    {%- if imp.strompreis_netto_kwh is not none %} · Strompreis {{ imp.strompreis_netto_kwh | zahl(4) }} €/kWh{% endif %}</span>
+    <span class="aendern">Ändern</span>{% else %}Einstellungen{% endif %}</summary>
   <form method="post" action="/import/{{ imp.id }}/einstellungen" id="vorschau-einstellungen" class="kompakt" data-verfolgen>
     <div class="filterzeile">
       {{ m.auswahl("parser_key", "Format", parser, {"parser_key": imp.parser_key}, {}, pflicht=true) }}
@@ -38,6 +44,7 @@
       Geändert, aber noch nicht übernommen – die Vorschau unten zeigt noch die bisherigen Einstellungen.
       Bitte „Übernehmen und neu berechnen“ klicken.</p>
   </form>
+  </details>
 </article>
 {% if vs.fehler %}
   <p class="meldung meldung-fehler" role="alert">{{ vs.fehler }}</p>
@@ -242,5 +249,14 @@
 </form>
 {% endif %}
 
-{{ m.loeschen_knopf("/import/%d/loeschen" % imp.id, "Vorschau verwerfen und hochgeladene Datei löschen?", "Vorschau verwerfen") }}
+<div class="vorschau-aktionen">
+  {{ m.loeschen_knopf("/import/%d/loeschen" % imp.id, "Vorschau verwerfen und hochgeladene Datei löschen?", "Vorschau verwerfen") }}
+  {# Merkliste für Dateien, die sich nicht (richtig) lesen lassen – später von Hand erfassen, z. B. als Pauschale #}
+  <form method="post" action="/import/{{ imp.id }}/zurueckstellen" class="zurueckstellen">
+    <input type="text" name="notiz" maxlength="300" placeholder="Notiz, z. B. als Pauschale eintragen"
+           aria-label="Notiz zum Zurückstellen">
+    <button type="submit" class="outline secondary klein"
+            title="Nichts übernehmen, Datei auf die Liste „Zurückgestellt“ der Import-Seite setzen">Zurückstellen</button>
+  </form>
+</div>
 {% endblock %}

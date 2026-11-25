@@ -237,6 +237,7 @@ class ZuordnungFahrerFahrzeug(Base):
 class ImportStatus(str, enum.Enum):
     vorschau = "vorschau"
     abgeschlossen = "abgeschlossen"
+    zurueckgestellt = "zurueckgestellt"  # nicht lesbar o. Ä.: auf der Merkliste, später von Hand erfassen
 
 
 class ZuordnungQuelle(str, enum.Enum):
@@ -270,6 +271,8 @@ class Import(Base):
     importiert_am: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[ImportStatus] = mapped_column(_enum(ImportStatus, "import_status"))
     warnungen: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
+    notiz: Mapped[str | None] = mapped_column(String(300))  # beim Zurückstellen, z. B. „als Pauschale eintragen“
+    zurueckgestellt_am: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     msp: Mapped[Msp | None] = relationship()
 

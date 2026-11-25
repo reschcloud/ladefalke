@@ -92,6 +92,16 @@ article.offene-vorschauen header.kopf a[role=button] { padding: .3rem .9rem; }
 article.offene-vorschauen ul { margin-bottom: .5rem; }
 article.import-bekannt { border-left: .3rem solid var(--pico-primary); }
 article.import-bekannt ul { margin-bottom: 0; }
+article.import-zurueckgestellt { border-left: .3rem solid var(--pico-muted-border-color); }
+article.import-zurueckgestellt ul { margin-bottom: 0; }
+article.import-zurueckgestellt li { margin-bottom: .35rem; }
+.zurueck-aktionen { display: inline-flex; gap: .4rem; margin-left: .5rem; vertical-align: middle; }
+.zurueck-aktionen button { margin: 0; }
+.vorschau-aktionen { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; }
+.vorschau-aktionen form.zurueckstellen { display: flex; gap: .5rem; align-items: center; margin: 0; }
+.vorschau-aktionen form.zurueckstellen input { margin: 0; width: 20rem; max-width: 60vw;
+  --pico-form-element-spacing-vertical: .3rem; font-size: .85rem; }
+.vorschau-aktionen form.zurueckstellen button { margin: 0; white-space: nowrap; }
 
 /* Upload-Feld als gut erkennbare Ablagefläche (Dateien lassen sich auch hineinziehen) */
 form.upload input[type=file] { width: 100%; height: auto; padding: 1.75rem 1rem; margin-bottom: .5rem; cursor: pointer;
@@ -1198,10 +1208,10 @@ fieldset.versand-block legend, fieldset.maut legend {
 :root { --rahmen-innen: color-mix(in srgb, var(--pico-primary) 35%, var(--pico-muted-border-color));
         --flaeche-innen: color-mix(in srgb, var(--pico-primary) 4%, var(--pico-card-background-color)); }
 main :is(.abschnitt-karte, article, .einstellung-gruppe, form.formular, .detail-daten)
-  details:not(.dropdown):not(.mehrfach):not(td details) {
+  details:not(.dropdown):not(.mehrfach):not(td details):not(.vorschau-einstellungen) {
   border: 1px solid var(--rahmen-innen); background: var(--flaeche-innen); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
 main :is(.abschnitt-karte, article, .einstellung-gruppe, form.formular, .detail-daten)
-  details:not(.dropdown):not(.mehrfach):not(td details) > summary { color: var(--pico-primary); }
+  details:not(.dropdown):not(.mehrfach):not(td details):not(.vorschau-einstellungen) > summary { color: var(--pico-primary); }
 /* Meldung mit Aktionsknopf (z. B. Pool-Hinweis → „Bisherige austragen“) */
 .meldung form.meldung-aktion { display: inline; margin-left: .5rem; }
 .meldung form.meldung-aktion button { margin: 0; width: auto; }
@@ -1348,6 +1358,15 @@ form.formular > fieldset.versand-block { margin-bottom: 1rem; }
 .vorschau-oben:not(:has(.pdf-miniatur)) { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1400px) { .vorschau-oben:not(:has(.pdf-miniatur)) { grid-template-columns: minmax(0, 1fr) 24rem; } }
 .kompakt .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
+/* Abschnitt 1 der Vorschau: erkannt → nur Zusammenfassung, Felder per „Ändern“; sonst offen ohne Zeile */
+details.vorschau-einstellungen { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+details.vorschau-einstellungen > summary { font-size: .9rem; font-weight: normal; color: var(--pico-muted-color);
+  padding: 0; line-height: 1.5; }
+details.vorschau-einstellungen > summary::after { display: none; }
+details.vorschau-einstellungen[open] > summary { margin-bottom: .6rem; }
+details.vorschau-einstellungen:not(:has(.aendern))[open] > summary { display: none; }
+details.vorschau-einstellungen .aendern { margin-left: .6rem; color: var(--pico-primary); text-decoration: underline; }
+details.vorschau-einstellungen[open] .aendern { display: none; }
 .kompakt label.strompreis input { display: block; width: 8rem; }
 .kompakt .filterzeile > button[type=submit] { margin-bottom: 0; }
 .pdf-miniatur { width: 100%; margin: 0; padding: .35rem; display: flex; flex-direction: column;

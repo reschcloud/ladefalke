@@ -21,7 +21,8 @@ from app.parsers import PARSER
 from app.services import parser_verwaltung
 from app.routers import pauschalen
 from app.services.importe import (BereitsImportiert, ImportFehler, KartenEntscheidung, bestaetigen, datei, hochladen,
-                                  loeschen, naechste_vorschau, offene_vorschauen, vorschau_berechnen)
+                                  loeschen, naechste_vorschau, offene_vorschauen, vorschau_berechnen, wieder_pruefen,
+                                  zurueckstellen)
 from app.services import kartenanzeige, stromart
 from app.services.aufloesung import stichtag_art
 from app.services.offen import ohne_fahrzeug_bedingungen
@@ -40,12 +41,12 @@ EINZELN_MAX = 3  # bis zu so vielen Dateien je Ergebnisart eine Meldung pro Date
 def _durchgang(request: Request) -> dict:
     """Aktueller Durchgang: erledigte Import-IDs, Namen verworfener Dateien, ob alles abgearbeitet ist."""
     d = request.session.get(DURCHGANG)
-    return {"verworfen_n": len(d.get("verworfen", [])), **d} if isinstance(d, dict) else _leer()
+    return {"verworfen_n": len(d.get("verworfen", [])), "zurueckgestellt_n": 0, **d} if isinstance(d, dict) else _leer()
 
 
 def _leer() -> dict:
     """`verworfen`: höchstens NAMEN_MAX Namen, `verworfen_n`: Anzahl aller verworfenen Dateien."""
-    return {"erledigt": [], "verworfen": [], "verworfen_n": 0, "fertig": False}
+    return {"erledigt": [], "verworfen": [], "verworfen_n": 0, "zurueckgestellt_n": 0, "fertig": False}
 
 
 def _durchgang_neu(request: Request) -> None:
@@ -57,8 +58,8 @@ def _verworfen(d: dict, namen: list[str]) -> dict:
 
 
 def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int | None = None,
-                       verworfen: str | None = None):
-    """Vorschau bestätigt (`import_id`) oder verworfen (`verworfen` = Dateiname): weiter zur nächsten offenen Vorschau
+                       verworfen: str | None = None, zurueckgestellt: bool = False):
+    """Vorschau bestätigt (`import_id`), verworfen (`verworfen` = Dateiname) oder zurückgestellt: weiter zur nächsten offenen Vorschau
     (nach `bezug`, der ID der erledigten Vorschau) oder – war es die letzte – zurück auf die Import-Seite mit
     Abschlusskasten."""
     d = _durchgang(request)
@@ -68,6 +69,8 @@ def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int
         d["erledigt"] = [*d["erledigt"], import_id]
     if verworfen is not None:
         d = _verworfen(d, [verworfen])
+    if zurueckgestellt:
+        d["zurueckgestellt_n"] += 1
     naechste = naechste_vorschau(db, bezug)
     d["fertig"] = naechste is None
     request.session[DURCHGANG] = d
@@ -80,7 +83,7 @@ def _vorschau_erledigt(request: Request, db: Session, bezug: int, import_id: int
 def _abschluss(request: Request, db: Session) -> dict | None:
     """Daten für den Abschlusskasten nach dem letzten Durchgang (oder None)."""
     d = _durchgang(request)
-    if not d["fertig"] or not (d["erledigt"] or d["verworfen_n"]):
+    if not d["fertig"] or not (d["erledigt"] or d["verworfen_n"] or d["zurueckgestellt_n"]):
         return None
     importe = db.scalars(select(Import).where(Import.id.in_(d["erledigt"]),
                                               Import.status == ImportStatus.abgeschlossen)
@@ -100,7 +103,8 @@ def _abschluss(request: Request, db: Session) -> dict | None:
         .where(Ladevorgang.import_id.in_(ids), Ladekarte.ist_gastkarte.is_(False),
                ~select(ZuordnungKarte.id).where(ZuordnungKarte.ladekarte_id == Ladekarte.id).exists())
         .group_by(Ladekarte.id).order_by(Ladekarte.kennung)).all() if ids else []
-    return {"importe": importe, "verworfen": d["verworfen"], "verworfen_n": d["verworfen_n"], "anzahl": anzahl,
+    return {"importe": importe, "verworfen": d["verworfen"], "verworfen_n": d["verworfen_n"],
+            "zurueckgestellt_n": d["zurueckgestellt_n"], "anzahl": anzahl,
             "kwh": Decimal(kwh), "kosten": Decimal(kosten), "gebuehren": Decimal(gebuehren), "spaeter_zuordnen": spaeter,
             "karten_ohne_zuordnung": ohne_zuordnung}
 
@@ -134,12 +138,14 @@ def _liste(request: Request, db: Session, fehler: str | None = None, status_code
         .order_by(Import.id.desc())).all()
     vorschauen = [imp for imp, *_ in zeilen if imp.status == ImportStatus.vorschau]
     vorschauen.sort(key=lambda imp: imp.id)
+    zurueckgestellt = sorted((imp for imp, *_ in zeilen if imp.status == ImportStatus.zurueckgestellt),
+                             key=lambda imp: imp.zurueckgestellt_am or imp.hochgeladen_am)
     abschluss = None if vorschauen else _abschluss(request, db)
     if abschluss:  # nur einmal zeigen – beim Neuladen ist er weg
         request.session.pop(DURCHGANG, None)
     schritt = 2 if vorschauen else 3 if abschluss else 1
     return render(request, "importe/liste.html", {
-        "zeilen": zeilen, "fehler": fehler, "vorschauen": vorschauen, "abschluss": abschluss, "schritt": schritt,
+        "zeilen": zeilen, "fehler": fehler, "vorschauen": vorschauen, "zurueckgestellt": zurueckgestellt, "abschluss": abschluss, "schritt": schritt,
         "bekannt": _bekannt(request, db),
         "formate": parser_verwaltung.formate(db),  # aus den installierten Parsern – die Oberfläche kennt keine Anbieter
         "neu_importiert": {i.id for i in abschluss["importe"]} if abschluss else set(),
@@ -225,7 +231,7 @@ def _vorschau_seite(request: Request, db: Session, imp: Import, fehler: str | No
     offen = offene_vorschauen(db)
     pos = offen.index(imp.id) if imp.id in offen else 0
     d = _durchgang(request)
-    schon = 0 if d["fertig"] else len(d["erledigt"]) + d["verworfen_n"]  # im Durchgang bereits erledigt
+    schon = 0 if d["fertig"] else len(d["erledigt"]) + d["verworfen_n"] + d["zurueckgestellt_n"]  # bereits erledigt
     navigation = {"nr": schon + pos + 1, "anzahl": schon + len(offen), "offen": len(offen),
                   "zurueck": offen[pos - 1] if pos > 0 else None,
                   "vor": offen[pos + 1] if pos + 1 < len(offen) else None}
@@ -241,6 +247,8 @@ def anzeigen(request: Request, import_id: int, db: Session = Depends(get_db)):
     imp = _laden(db, import_id)
     if imp.status == ImportStatus.vorschau:
         return _vorschau_seite(request, db, imp)
+    if imp.status == ImportStatus.zurueckgestellt:  # nichts übernommen – die Merkliste steht auf der Import-Seite
+        return RedirectResponse("/import#zurueckgestellt", status_code=303)
     vorgaenge = db.scalars(select(Ladevorgang).where(Ladevorgang.import_id == imp.id)
                            .order_by(Ladevorgang.ende)).all()
     gebuehren = db.scalars(select(Gebuehr).where(Gebuehr.import_id == imp.id).order_by(Gebuehr.id)).all()
@@ -303,6 +311,33 @@ async def bestaetigen_route(request: Request, import_id: int, db: Session = Depe
     return _vorschau_erledigt(request, db, imp.id, import_id=imp.id)
 
 
+@router.post("/{import_id}/zurueckstellen")
+def zurueckstellen_route(request: Request, import_id: int, notiz: str = Form(""), db: Session = Depends(get_db)):
+    """Vorschau auf die Merkliste „Zurückgestellt“ (z. B. nicht lesbar, später als Pauschale erfassen); weiter mit
+    der nächsten Datei wie beim Bestätigen."""
+    imp = _laden(db, import_id)
+    try:
+        zurueckstellen(imp, notiz)
+    except ImportFehler as e:
+        meldung(request, str(e), "fehler")
+        return weiter("/import")
+    db.commit()
+    meldung(request, f"{imp.dateiname} zurückgestellt – steht auf der Import-Seite unter „Zurückgestellt“.")
+    return _vorschau_erledigt(request, db, imp.id, zurueckgestellt=True)
+
+
+@router.post("/{import_id}/wieder-pruefen")
+def wieder_pruefen_route(request: Request, import_id: int, db: Session = Depends(get_db)):
+    imp = _laden(db, import_id)
+    try:
+        wieder_pruefen(imp)
+    except ImportFehler as e:
+        meldung(request, str(e), "fehler")
+        return weiter("/import")
+    db.commit()
+    return weiter(f"/import/{imp.id}")
+
+
 @router.post("/vorschauen/loeschen")
 def alle_vorschauen_loeschen(request: Request, db: Session = Depends(get_db)):
     """Alle offenen Vorschauen auf einmal verwerfen (samt hochgeladener Dateien) und den Durchgang abschließen."""
@@ -327,11 +362,15 @@ def alle_vorschauen_loeschen(request: Request, db: Session = Depends(get_db)):
 @router.post("/{import_id}/loeschen")
 def loeschen_route(request: Request, import_id: int, db: Session = Depends(get_db)):
     imp = _laden(db, import_id)
-    war_vorschau, import_id, dateiname = imp.status == ImportStatus.vorschau, imp.id, imp.dateiname
+    status, import_id, dateiname = imp.status, imp.id, imp.dateiname
+    war_vorschau = status == ImportStatus.vorschau
     pfad = loeschen(db, imp)
     db.commit()
     if pfad is not None:
         pfad.unlink(missing_ok=True)
+    if status == ImportStatus.zurueckgestellt:
+        meldung(request, f"{dateiname} erledigt – von der Liste genommen und gelöscht.")
+        return weiter("/import#zurueckgestellt")
     if not war_vorschau:
         meldung(request, "Import gelöscht – zugehörige Ladevorgänge und Gebühren wurden entfernt.")
         return weiter("/import")
