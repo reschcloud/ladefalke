@@ -3,6 +3,25 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.12.0 – 25.11.2026
+
+### Neu
+
+- **Rechnungen zurückstellen:** Lässt sich eine Datei nicht importieren, kann sie in der Vorschau mit optionaler
+  Notiz (z. B. „als Pauschale eintragen“) zurückgestellt werden. Es wird nichts übernommen, weiter geht es mit der
+  nächsten Datei. Die Import-Seite listet zurückgestellte Dateien im Kasten „Zurückgestellt“ – mit Link aufs
+  Original, „Wieder prüfen“, „Erledigt“ (löscht die Datei) und „Neue Pauschale“. Erneut hochgeladen gilt die Datei
+  als bekannt.
+
+### Geändert
+
+- Import-Vorschau: Wurde die Rechnung automatisch erkannt, steht unter „1. Format und Ladeart“ nur noch eine Zeile
+  (MSP, Ladeart, Strompreis); die Felder öffnet „Ändern“.
+
+### Beim Update beachten
+
+- nichts (Migration 0038 läuft beim Start; vorher legt die App eine Sicherung an).
+
 ## v1.11.0 – 25.11.2026
 
 ### Neu
