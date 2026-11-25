@@ -86,6 +86,22 @@ def test_dcs_kwh_lesen(text, erwartet):
     assert dcs.kwh_lesen(text) == D(erwartet)
 
 
+def test_dcs_dauer_eine_zeile_tiefer():
+    """Lange Vorgänge (z. B. „11:07 hh:mm“): die Dauer steht unter „(kWh)“, eine Zeile tiefer als sonst."""
+    normal = dcs.parsen_text(_text("dcs_beispiel.txt"))
+    text = _text("dcs_beispiel.txt").replace(
+        "AT * MER * E000002 * 02 Salzburg 1:05 hh:mm (kWh) 0,0000 EUR\nTest Betreiber\n",
+        "AT * MER * E000002 * 02 Salzburg (kWh) 0,0000 EUR\nTest Betreiber 11:07 hh:mm\nGmbH & Co KG\n")
+    e = dcs.parsen_text(text)
+    assert not any("Ladedauer" in w for w in e.warnungen)
+    v, vorher = e.vorgaenge[1], normal.vorgaenge[1]
+    assert v.ende - v.start == timedelta(hours=11, minutes=7)
+    assert (v.ladepunkt, v.standort) == (vorher.ladepunkt, vorher.standort)  # Ort ohne „(kWh) 0,0000 EUR“
+    # Ohne Dauer: nicht die des nächsten Vorgangs lesen, sondern warnen
+    ohne = _text("dcs_beispiel.txt").replace("Salzburg 1:05 hh:mm (kWh)", "Salzburg (kWh)")
+    assert any("Ladedauer nicht gefunden" in w for w in dcs.parsen_text(ohne).warnungen)
+
+
 def test_dcs_unlesbarer_vorgang_warnt():
     """Ein nicht lesbarer Ladevorgang darf nicht stillschweigend fehlen."""
     text = _text("dcs_gutschein_de.txt").replace("15.757 kWh DC 6,4882", "15.757 kWhDC 6,4882")

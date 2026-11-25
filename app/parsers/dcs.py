@@ -36,6 +36,7 @@ KWH = r"\d+(?:[.,]\d+)*"  # „12,340“ (AT) oder „15.757“ (DE-Teilrechnung
 RE_VORGANG = re.compile(rf"^(\d{{2}}\.\d{{2}}\.\d{{4}}) (\d{{2}}:\d{{2}})h (.*?)\s*({KWH}) kWh (\S+)\s*(.*)$")
 RE_VORGANG_ANFANG = re.compile(r"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}h ")
 RE_DAUER = re.compile(r"(\d+):(\d{2}) hh:mm")
+RE_ORT_ENDE = re.compile(r"\d+:\d{2} hh:mm|\(kWh\)")  # Ort endet vor der Dauer bzw. der Einheit des Produkts
 RE_ID = re.compile(r"[A-Z0-9]+")
 
 
@@ -93,9 +94,20 @@ def _seiten_je_rechnung(text: str) -> list[tuple[str, str]]:
     return [(nr, "\n".join(seiten)) for nr, seiten in rechnungen.items()]
 
 
+def _dauer(folgezeilen: list[str]) -> re.Match | None:
+    """Ladedauer „11:07 hh:mm“: meist in Zeile 2 des Vorgangs, bei langen Vorgängen auch eine Zeile tiefer (unter
+    „(kWh)“). Nur bis zum nächsten Vorgang suchen, damit nicht dessen Dauer gelesen wird."""
+    for z in folgezeilen:
+        if RE_VORGANG_ANFANG.match(z):
+            return None
+        if m := RE_DAUER.search(z):
+            return m
+    return None
+
+
 def _ladepunkt_und_ort(zeile: str, folgezeile: str | None) -> tuple[str, str]:
     """Zeile 2 eines Vorgangs, z. B. „AT * MER * E000001 * 02 Musterort 0:06 hh:mm …“ → (EVSE, Ort)."""
-    tokens = RE_DAUER.split(zeile, maxsplit=1)[0].split()
+    tokens = RE_ORT_ENDE.split(zeile, maxsplit=1)[0].split()
     teile, i = [], 0
     if tokens and RE_ID.fullmatch(tokens[0]):
         teile, i = [tokens[0]], 1
@@ -238,7 +250,7 @@ def _teilrechnung(teil: str, nr: str, land: str, zeitraum):
                 warnungen.append(f"Rechnung {nr}: Ladevorgang ohne Vertrag übersprungen: {z}")
                 continue
             folge = zeilen[i + 1] if i + 1 < len(zeilen) else ""
-            dauer = RE_DAUER.search(folge)
+            dauer = _dauer(zeilen[i + 1:i + 4])
             evse, ort = _ladepunkt_und_ort(folge, zeilen[i + 2] if i + 2 < len(zeilen) else None)
             start = _utc_nach_wien(m.group(1), m.group(2)) if in_utc else _zeitpunkt(m.group(1), m.group(2))
             if _uhrzeit_ungueltig(m.group(2)):
