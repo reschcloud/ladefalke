@@ -3,6 +3,18 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.12.1 – 25.11.2026
+
+### Behoben
+
+- Update-Hinweis erst, wenn das neue Release wirklich installierbar ist: App und `setup.sh` zählen ein Release erst,
+  wenn sein Image veröffentlicht ist. Bisher konnte der Hinweis direkt nach dem Taggen erscheinen, während Tests und
+  Build noch liefen – ein Update scheiterte dann am fehlenden Image.
+
+### Beim Update beachten
+
+- nichts.
+
 ## v1.12.0 – 25.11.2026
 
 ### Neu
