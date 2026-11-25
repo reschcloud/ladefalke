@@ -31,6 +31,14 @@ class ImportFehler(ValueError):
     pass
 
 
+class BereitsImportiert(ImportFehler):
+    """Die hochgeladene Datei (gleicher Inhalt) wurde schon importiert; `import_` ist der bestehende Import."""
+
+    def __init__(self, text: str, import_: "Import"):
+        super().__init__(text)
+        self.import_ = import_
+
+
 def upload_verzeichnis() -> Path:
     return Path(einstellungen().upload_dir)
 
@@ -56,8 +64,8 @@ def hochladen(db: Session, dateiname: str, inhalt: bytes) -> Import:
     datei_hash = hashlib.sha256(inhalt).hexdigest()
     if fertig := db.scalar(select(Import).where(Import.datei_hash == datei_hash,
                                                 Import.status == ImportStatus.abgeschlossen)):
-        raise ImportFehler(f"Diese Datei wurde bereits importiert ({fertig.bezeichnung} "
-                           f"vom {datum(fertig.importiert_am)}).")
+        raise BereitsImportiert(f"Diese Datei wurde bereits importiert ({fertig.bezeichnung} "
+                                f"vom {datum(fertig.importiert_am)}).", fertig)
     if offen := db.scalar(select(Import).where(Import.datei_hash == datei_hash,
                                                Import.status == ImportStatus.vorschau)):
         return offen  # gleiche Datei erneut hochgeladen – bestehende Vorschau weiterverwenden

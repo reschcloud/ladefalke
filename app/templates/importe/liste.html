@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "importe/_schritte.html" as s %}
+{% import "_makros.html" as m %}
 {% block titel %}Import{% endblock %}
 {% block inhalt %}
 <h1>Import</h1>
@@ -39,6 +40,21 @@
   {% endif %}
 </article>
 {% endif %}
+{% if bekannt %}
+<article id="bekannt" class="import-bekannt" role="status">
+  <header class="kopf">
+    <strong>{{ icon("info") }} {{ bekannt | length }} {{ "Datei war" if bekannt | length == 1 else "Dateien waren" }} bereits bekannt</strong>
+    <a href="/import" class="filter-weg" title="Ausblenden" aria-label="Hinweis ausblenden"><svg viewBox="0 0 10 10"
+      aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg></a>
+  </header>
+  <p><small>Diese Dateien wurden schon importiert und deshalb nicht erneut als Vorschau angelegt.</small></p>
+  <ul>
+    {% for name, imp in bekannt %}<li>{{ name }} <small>→ <a href="/import/{{ imp.id }}">{{ imp.dateiname }}</a>
+      {%- if imp.msp %} · {{ imp.msp.name }}{% endif %}{% if imp.rechnungsnummer %} · Rechnung {{ imp.rechnungsnummer }}{% endif %}
+      · importiert {{ imp.importiert_am | datum }}</small></li>{% endfor %}
+  </ul>
+</article>
+{% endif %}
 {% if vorschauen %}
 <article class="offene-vorschauen">
   <header class="kopf">
@@ -53,6 +69,9 @@
   </ul>
   <small>Nach dem Bestätigen oder Verwerfen geht es automatisch mit der nächsten Datei weiter; nach der letzten
     zurück hierher.</small>
+  <footer>
+    {{ m.loeschen_knopf("/import/vorschauen/loeschen", "Alle %d offenen Vorschauen verwerfen und die hochgeladenen Dateien löschen?" % (vorschauen | length), "Alle verwerfen") }}
+  </footer>
 </article>
 {% endif %}
 

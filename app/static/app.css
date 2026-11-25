@@ -90,6 +90,8 @@ nav a .punkt { display: inline-block; width: .5rem; height: .5rem; margin-left: 
 article.offene-vorschauen { border-left: .3rem solid #c98a00; }
 article.offene-vorschauen header.kopf a[role=button] { padding: .3rem .9rem; }
 article.offene-vorschauen ul { margin-bottom: .5rem; }
+article.import-bekannt { border-left: .3rem solid var(--pico-primary); }
+article.import-bekannt ul { margin-bottom: 0; }
 
 /* Upload-Feld als gut erkennbare Ablagefläche (Dateien lassen sich auch hineinziehen) */
 form.upload input[type=file] { width: 100%; height: auto; padding: 1.75rem 1rem; margin-bottom: .5rem; cursor: pointer;

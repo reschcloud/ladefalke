@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import func, select
 
-from app.models import (Fahrer, Fahrzeug, Gebuehr, ImportStatus, KennungTyp, Ladekarte, Ladevorgang, Msp,
+from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, KennungTyp, Ladekarte, Ladevorgang, Msp,
                         ZuordnungFahrerFahrzeug, ZuordnungKarte, ZuordnungQuelle)
 from app.parsers.wien_energie import WienEnergieParser, parsen_text
 from app.services.importe import (ImportFehler, KartenEntscheidung, bestaetigen, datei, hochladen, loeschen,
@@ -238,9 +238,12 @@ def test_oberflaeche_ablauf(angemeldet, db):
     antwort = angemeldet.get(f"/import/{import_id}/datei?anzeigen=1")  # im Browser öffnen statt herunterladen
     assert antwort.content == CSV and antwort.headers["content-disposition"].startswith("inline")
 
-    antwort = angemeldet.post("/import", files={"datei_upload": ("oktober.csv", CSV, "text/csv")})
-    assert antwort.status_code == 422
-    assert "bereits importiert" in antwort.text
+    antwort = angemeldet.post("/import", files={"datei_upload": ("oktober-nochmal.csv", CSV, "text/csv")})
+    assert str(antwort.url).endswith("/import")
+    kasten = antwort.text.split('id="bekannt"')[1].split("</article>")[0]
+    assert "1 Datei war bereits bekannt" in kasten and "oktober-nochmal.csv" in kasten
+    assert f'href="/import/{import_id}"' in kasten
+    assert 'id="bekannt"' not in angemeldet.get("/import").text  # nur einmal
 
     antwort = angemeldet.post(f"/import/{import_id}/loeschen")
     assert "Import gelöscht" in antwort.text
@@ -341,13 +344,42 @@ def test_mehrfach_upload_und_der_reihe_nach(angemeldet, db):
     assert 'class="punkt"' not in antwort.text and 'class="menue-anzahl offen"' in antwort.text  # nur noch „Aufgaben“
 
 
+def test_alle_vorschauen_verwerfen(angemeldet, db):
+    bestaetigen(db, hochladen(db, "oktober.csv", CSV), {})
+    db.commit()
+    angemeldet.post("/import", files=[
+        ("datei_upload", ("november.csv", _zweite_csv(), "text/csv")),
+        ("datei_upload", ("notiz.txt", b"irgendwas", "text/plain"))])
+    pfade = [datei(imp) for imp in db.scalars(select(Import).where(Import.status == ImportStatus.vorschau))]
+    assert len(pfade) == 2 and all(p.exists() for p in pfade)
+
+    antwort = angemeldet.get("/import")
+    assert 'action="/import/vorschauen/loeschen"' in antwort.text and "Alle verwerfen" in antwort.text
+
+    antwort = angemeldet.post("/import/vorschauen/loeschen")
+    assert str(antwort.url).endswith("/import#abschluss")
+    assert "2 Vorschauen verworfen." in antwort.text and "Offene Vorschauen" not in antwort.text
+    assert "2 verworfen" in antwort.text.split('id="abschluss"')[1].split("</article>")[0]
+    db.expire_all()
+    assert db.scalar(select(func.count()).select_from(Import).where(Import.status == ImportStatus.vorschau)) == 0
+    assert db.scalar(select(func.count()).select_from(Import)) == 1  # bestätigter Import bleibt
+    assert not any(p.exists() for p in pfade)
+
+    antwort = angemeldet.post("/import/vorschauen/loeschen")
+    assert "Keine offenen Vorschauen vorhanden." in antwort.text
+
+
 def test_mehrfach_upload_mit_bereits_importierter_datei(angemeldet, db):
     bestaetigen(db, hochladen(db, "oktober.csv", CSV), {})
+    db.commit()
     antwort = angemeldet.post("/import", files=[
         ("datei_upload", ("oktober.csv", CSV, "text/csv")),
         ("datei_upload", ("november.csv", _zweite_csv(), "text/csv"))])
-    assert "oktober.csv: Diese Datei wurde bereits importiert" in antwort.text
+    kasten = antwort.text.split('id="bekannt"')[1].split("</article>")[0]
+    assert "1 Datei war bereits bekannt" in kasten and "oktober.csv" in kasten
+    assert "november.csv" not in kasten
     assert "november.csv: Vorschau angelegt" in antwort.text
+    assert "Offene Vorschauen (1)" in antwort.text
 
 
 def test_upload_ohne_datei(angemeldet):
