@@ -3,6 +3,19 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.13.0 – 25.11.2026
+
+### Neu
+
+- Import-Vorschau: Über „Import bestätigen und speichern“ erscheint ein grüner Haken „Daten vollständig“, wenn die
+  Rechnung neue Ladevorgänge enthält, keine Auffälligkeiten gemeldet werden, alle Vorgänge zugeordnet sind
+  (Fahrzeug oder Gastkarte) und AC/DC überall aus der Rechnung oder der CPO-Liste stammt – dann lässt sich die
+  Datei guten Gewissens übernehmen.
+
+### Beim Update beachten
+
+- nichts
+
 ## v1.12.2 – 25.11.2026
 
 ### Behoben
