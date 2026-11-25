@@ -22,7 +22,7 @@ from sqlalchemy import Text, cast, delete, event, func, insert, or_, select
 from sqlalchemy.orm import Session, attributes, object_session
 
 from app import formatierung
-from app.models import (Aenderung, Benutzer, Einstellung, Fahrer, Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort,
+from app.models import (Aenderung, Benutzer, CpoStromart, Einstellung, Fahrer, Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort,
                         FahrerOhneFahrzeug, FahrzeugOhneFahrer, Ladevorgang, Msp, Pauschale, ZuordnungFahrerFahrzeug,
                         ZuordnungKarte)
 
@@ -41,6 +41,7 @@ TYPEN = {
     Ladeort: ("ladeort", "Ladeort", "Ladeorte"), Pauschale: ("pauschale", "Pauschale", "Pauschalen"),
     Benutzer: ("benutzer", "Benutzer:in", "Benutzer:innen"), Einstellung: ("einstellung", "Einstellungen", "Einstellungen"),
     Ladevorgang: ("ladevorgang", "Ladevorgang", "Ladevorgänge"), Gebuehr: ("gebuehr", "Gebühr", "Gebühren"),
+    CpoStromart: ("cpo_stromart", "CPO-Liste AC/DC", "CPO-Liste AC/DC"),
 }
 # weitere Objektarten nur aus ausdrücklichen Einträgen
 TYP_NAMEN = {schluessel: name for schluessel, name, _ in TYPEN.values()} | {
@@ -73,7 +74,7 @@ FELDNAMEN = {
     "CPO-Quelle", "evse_id": "EVSE-ID", "adresse": "Adresse", "plz": "PLZ", "ort": "Ort", "plz_manuell": "PLZ (manuell)",
     "ort_manuell": "Ort (manuell)", "lat": "Breite", "lon": "Länge", "genauigkeit": "Verortung", "monat": "Monat",
     "ladeart": "Ladeart", "start": "Start", "ende": "Ende", "standort": "Standort", "ladepunkt": "Ladepunkt",
-    "zeitraum_von": "Zeitraum von", "zeitraum_bis": "Zeitraum bis", "roh_kartenkennung": "Kartenkennung (Datei)",
+    "kennungen": "Kennungen", "zeitraum_von": "Zeitraum von", "zeitraum_bis": "Zeitraum bis", "roh_kartenkennung": "Kartenkennung (Datei)",
 }
 VERWEISE = {"msp_id": Msp, "fahrer_id": Fahrer, "fahrzeug_id": Fahrzeug, "ladekarte_id": Ladekarte, "ladeort_id": Ladeort}
 
@@ -140,6 +141,8 @@ def _text(wert) -> str | None:
         return formatierung.datum(wert)
     if isinstance(wert, Decimal):
         return format(wert.normalize(), "f").replace(".", ",")
+    if isinstance(wert, list):
+        return ", ".join(str(w) for w in wert)[:500] or None
     return str(wert)[:500]
 
 
@@ -192,6 +195,8 @@ def bezeichnung(obj) -> str:
                 return f"{obj.bezeichnung}, {formatierung.geld(obj.betrag_netto)}"
             case Import():
                 return obj.dateiname
+            case CpoStromart():
+                return f"{obj.name} = {obj.stromart}"
     except Exception:  # noqa: BLE001 – z. B. Verweis schon gelöscht
         pass
     return "–"

@@ -48,9 +48,8 @@ class Profil:
 
 def leistung(v: Ladevorgang) -> Decimal | None:
     """Theoretische Ladeleistung in kW (kWh / angesteckte Dauer); None ohne gemessene kWh oder Dauer."""
-    if v.kwh_geschaetzt or not v.kwh or v.kwh <= 0 or v.ende <= v.start:
-        return None
-    return Decimal(v.kwh) / (Decimal((v.ende - v.start).total_seconds()) / 3600)
+    from app.services.stromart import leistung_kw
+    return leistung_kw(v.kwh, v.kwh_geschaetzt, v.start, v.ende)
 
 
 def unplausibel_grund(v: Ladevorgang, e: AppEinstellungen) -> str | None:

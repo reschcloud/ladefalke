@@ -324,7 +324,8 @@ class Ladevorgang(Base):
     ladeort_id: Mapped[int | None] = mapped_column(ForeignKey("ladeort.id", ondelete="SET NULL"), index=True)
     ladeart: Mapped[Ladeart] = mapped_column(_enum(Ladeart, "ladeart"))
     stromart: Mapped[str | None] = mapped_column(String(2))  # "AC"/"DC" oder unbekannt
-    stromart_quelle: Mapped[str | None] = mapped_column(String(10))  # rechnung | vorgabe | manuell (services/stromart)
+    # rechnung | manuell | cpo (CPO-Liste) | leistung (aus Ø-Leistung) | vorgabe (des MSP) – services/stromart.py
+    stromart_quelle: Mapped[str | None] = mapped_column(String(10))
     profil_ausgenommen: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     fahrzeug_id: Mapped[int | None] = mapped_column(ForeignKey("fahrzeug.id", ondelete="RESTRICT"), index=True)
     zuordnung_quelle: Mapped[ZuordnungQuelle] = mapped_column(_enum(ZuordnungQuelle, "zuordnung_quelle"))
@@ -419,6 +420,20 @@ class Steuersatz(Base):
     land: Mapped[str] = mapped_column(String(2))  # ISO 3166-1 alpha-2
     gueltig_ab: Mapped[date] = mapped_column(Date)
     satz: Mapped[Decimal] = mapped_column(Numeric(5, 2))  # Prozent
+
+
+class CpoStromart(Base):
+    """CPO-Liste (Einstellungen → Import und Ladevorgänge): Betreiber, der immer nur AC oder nur DC anbietet (z. B. Ionity
+    = DC). Gilt für Vorgänge ohne AC/DC-Angabe der Rechnung (services/stromart.py). Trifft über eine der Kennungen
+    („AT*IOY“, „DE*ION“) oder – bei Betreibern ohne Kennung – über den Namen."""
+    __tablename__ = "cpo_stromart"
+    __table_args__ = (UniqueConstraint("name", name="uq_cpo_stromart_name"),
+                      CheckConstraint("stromart IN ('AC', 'DC')", name="ck_cpo_stromart_stromart"))
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(60))
+    kennungen: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")  # normiert, z. B. ["AT*IOY"]
+    stromart: Mapped[str] = mapped_column(String(2))  # AC | DC
 
 
 class Spritpreis(Base):

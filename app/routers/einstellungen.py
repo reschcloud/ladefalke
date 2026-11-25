@@ -13,9 +13,10 @@ from app import auth
 from app.db import get_db
 from app.formatierung import datum, decimal_lesen, email_lesen, zahl
 from app.config import einstellungen as konfiguration
-from sqlalchemy import select
+from sqlalchemy import func, select
 
-from app.models import Spritpreis, Steuersatz
+from app.models import CpoStromart, Ladevorgang, Spritpreis, Steuersatz
+from app.services import protokoll, stromart
 from app.services import aktualisierung, app_einstellungen, benutzer as benutzer_dienst, backup, geheim, geodaten, kosten, mail, oil_bulletin, syslog
 from app.services.evse import LAENDER
 from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
@@ -85,6 +86,7 @@ def _formular(request: Request, werte: dict, fehler: dict | None = None, status_
                                                              "env_admin": db is not None and benutzer_dienst.env_admin_ueberfluessig(db)},
                                                   "steuersaetze": db.scalars(select(Steuersatz).order_by(
                                                       Steuersatz.land, Steuersatz.gueltig_ab)).all() if db else [],
+                                                  "cpo_liste": _cpo_liste(db) if db else {},
                                                   "backup": {"liste": backup.liste(), "status": backup.status(),
                                                              "passwort": bool(konfiguration().backup_passwort),
                                                              "zeitplaene": BACKUP_ZEITPLAENE, "wochentage": WOCHENTAGE},
@@ -329,6 +331,11 @@ def speichern(request: Request, topliste_m: str = Form(""),
     if (alt.firmenland, alt.vorsteuer_standard) != (daten["firmenland"], Decimal(daten["vorsteuer_standard"])):
         kosten.neu_berechnen(db)  # tatsächliche Kosten hängen von Land und Vorsteuerabzug ab
     text = "Einstellungen gespeichert."
+    if (alt.plausibel_ac_max_kw, alt.plausibel_dc_min_kw) != (Decimal(daten["plausibel_ac_max_kw"]),
+                                                              Decimal(daten["plausibel_dc_min_kw"])):
+        db.flush()  # AC/DC aus der Ø-Leistung hängt an diesen Grenzen
+        if n := _stromart_neu(db):
+            text += f" AC/DC von {n} Ladevorgängen neu bestimmt."
     db.commit()
     syslog.laden(db)
     meldung(request, text)
@@ -463,6 +470,89 @@ def steuersatz_loeschen(request: Request, satz_id: int, db: Session = Depends(ge
     db.commit()
     meldung(request, "Steuersatz entfernt.")
     return weiter("/einstellungen#steuersaetze")
+
+
+# ------------------------------------------------------------------ CPO-Liste für AC/DC (nur Admin)
+
+def _cpo_liste(db: Session) -> dict:
+    """Einträge mit der Zahl der Vorgänge, die sie bestimmen, und Vorschläge: häufige CPO ohne AC/DC der Rechnung."""
+    eintraege = db.scalars(select(CpoStromart).order_by(CpoStromart.name)).all()
+    regeln = stromart.cpo_regeln(db)
+    treffer: dict[int, int] = {}
+    vorschlaege = []
+    for betreiber, quelle, anzahl in db.execute(
+            select(Ladevorgang.betreiber_id, Ladevorgang.stromart_quelle, func.count())
+            .where(Ladevorgang.betreiber_id.is_not(None),
+                   Ladevorgang.stromart_quelle.is_distinct_from("rechnung"))
+            .group_by(Ladevorgang.betreiber_id, Ladevorgang.stromart_quelle)):
+        eintrag = stromart.cpo_eintrag(regeln, betreiber)
+        if quelle == "cpo" and eintrag:
+            treffer[eintrag.id] = treffer.get(eintrag.id, 0) + anzahl
+        vorschlaege.append((betreiber, anzahl, eintrag is not None))
+    zusammen: dict[str, list] = {}
+    for betreiber, anzahl, bekannt in vorschlaege:
+        z = zusammen.setdefault(betreiber, [betreiber, 0, bekannt])
+        z[1] += anzahl
+    return {"eintraege": eintraege, "treffer": treffer, "betroffen": stromart.betroffen(db),
+            "vorschlaege": sorted(zusammen.values(), key=lambda z: (-z[1], z[0]))[:15]}
+
+
+def _stromart_neu(db: Session) -> int:
+    with protokoll.kontext(db, "AC/DC neu bestimmt (CPO-Liste, Ø-Leistung)"):
+        return stromart.neu_bestimmen(db)
+
+
+@router.post("/cpo-stromart", dependencies=[Depends(auth.admin_erforderlich)])
+def cpo_stromart_speichern(request: Request, name: str = Form(""), kennungen: str = Form(""), art: str = Form(""),
+                           db: Session = Depends(get_db)):
+    """Eintrag anlegen – oder ändern, wenn es den Namen schon gibt."""
+    name = " ".join(name.split())[:60]
+    liste = []
+    for teil in re.split(r"[,;\s]+", kennungen):
+        if (k := stromart.kennung_normieren(teil)) and k not in liste:
+            liste.append(k)
+    if not name or stromart.wert(art) is None:
+        meldung(request, "CPO nicht gespeichert: bitte einen Namen und AC oder DC angeben.", "fehler")
+        return weiter("/einstellungen#cpo-stromart")
+    alle = db.scalars(select(CpoStromart)).all()
+    eintrag = next((e for e in alle if e.name.casefold() == name.casefold()), None)
+    for anderer in alle:
+        doppelt = [k for k in liste if anderer is not eintrag and k.casefold() in
+                   {x.casefold() for x in [*anderer.kennungen, anderer.name]}]
+        if doppelt:
+            meldung(request, f"CPO nicht gespeichert: {', '.join(doppelt)} gehört schon zu „{anderer.name}“.", "fehler")
+            return weiter("/einstellungen#cpo-stromart")
+    if eintrag is None:
+        eintrag = CpoStromart(name=name)
+        db.add(eintrag)
+    eintrag.name, eintrag.kennungen, eintrag.stromart = name, liste, art
+    db.flush()
+    n = _stromart_neu(db)
+    db.commit()
+    meldung(request, f"CPO „{name}“ = immer {art} gespeichert" + (f" – AC/DC von {n} Ladevorgängen neu bestimmt." if n else "."))
+    return weiter("/einstellungen#cpo-stromart")
+
+
+@router.post("/cpo-stromart/{eintrag_id}/loeschen", dependencies=[Depends(auth.admin_erforderlich)])
+def cpo_stromart_loeschen(request: Request, eintrag_id: int, db: Session = Depends(get_db)):
+    eintrag = db.get(CpoStromart, eintrag_id)
+    if eintrag is None:
+        raise HTTPException(404, "Eintrag nicht gefunden")
+    name = eintrag.name
+    db.delete(eintrag)
+    db.flush()
+    n = _stromart_neu(db)
+    db.commit()
+    meldung(request, f"CPO „{name}“ entfernt" + (f" – AC/DC von {n} Ladevorgängen neu bestimmt." if n else "."))
+    return weiter("/einstellungen#cpo-stromart")
+
+
+@router.post("/stromart-neu-bestimmen", dependencies=[Depends(auth.admin_erforderlich)])
+def stromart_neu_bestimmen(request: Request, db: Session = Depends(get_db)):
+    n = _stromart_neu(db)
+    db.commit()
+    meldung(request, f"AC/DC von {n} Ladevorgängen neu bestimmt." if n else "AC/DC geprüft – keine Änderungen.")
+    return weiter("/einstellungen#cpo-stromart")
 
 
 @router.post("/ust-nachtragen", dependencies=[Depends(auth.admin_erforderlich)])

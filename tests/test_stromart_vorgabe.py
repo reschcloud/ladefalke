@@ -22,7 +22,13 @@ def _arten(db, *bedingungen):
                   for v in db.scalars(select(Ladevorgang).where(*bedingungen)))
 
 
+def _ohne_leistungsregel(db):
+    """Grenzen so weit, dass die Ø-Leistung nie entscheidet – dann gilt die Vorgabe des MSP."""
+    app_einstellungen.speichern(db, {"plausibel_ac_max_kw": "999", "plausibel_dc_min_kw": "0"})
+
+
 def test_vorgabe_beim_import(db):
+    _ohne_leistungsregel(db)
     msp = _msp(db, "hastobe_csv")
     msp.stromart_standard = "AC"
     imp = hochladen(db, "oktober.csv", CSV)
@@ -32,6 +38,7 @@ def test_vorgabe_beim_import(db):
 
 
 def test_ohne_vorgabe_wird_aufgabe_und_nachtraeglich_setzbar(angemeldet, db):
+    _ohne_leistungsregel(db)
     msp = _msp(db, "hastobe_csv")
     imp = hochladen(db, "oktober.csv", CSV)
     bestaetigen(db, imp, {})

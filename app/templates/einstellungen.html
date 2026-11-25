@@ -75,6 +75,45 @@
         {{ einstellung("plausibel_dc_min_kw", "DC unplausibel unter", "kW") }}
         {{ einstellung("plausibel_dc_max_kw", "DC unplausibel ab", "kW") }}
       </div>
+      <small class="versand-hinweis">Dieselben Grenzen bestimmen AC/DC, wenn die Rechnung nichts angibt und der CPO nicht
+        in der Liste unten steht: ab „AC unplausibel ab“ DC, unter „DC unplausibel unter“ AC, dazwischen keine Angabe.</small>
+    </fieldset>
+    {% set c = cpo_liste %}
+    <fieldset class="versand-block" id="cpo-stromart">
+    <legend>CPO-Liste für AC/DC</legend>
+    <small class="versand-hinweis">Betreiber, die nur AC oder nur DC anbieten (z. B. Ionity = DC). Gilt für Ladevorgänge,
+      deren Rechnung kein AC/DC angibt – vor der Ø-Leistung und vor der Vorgabe des {{ MSP }}; Rechnungsangaben und
+      manuelle Entscheidungen bleiben immer. Ein Eintrag trifft über seine Kennungen – mit Land (AT*IOY) oder ohne Land
+      für alle Länder (IOY) – oder bei Betreibern ohne Kennung über den Namen. Gleicher Name ändert den Eintrag. Änderungen gelten sofort, auch
+      rückwirkend.</small>
+    <div class="tabelle spritpreis-liste"><table class="cpo-stromart">
+      <thead><tr><th>CPO</th><th>Kennungen</th><th>Stromart</th><th class="rechts">Ladevorgänge</th><th></th></tr></thead>
+      <tbody>
+      {% for e in c.eintraege %}
+        <tr><td>{{ e.name }}</td><td>{{ e.kennungen | join(", ") or "–" }}</td><td>{{ m.stromart(e.stromart) }}</td>
+          <td class="rechts">{{ c.treffer.get(e.id, 0) }}</td>
+          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="cpo-stromart-loeschen-{{ e.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+      {% endfor %}
+      {% if not nur_lesen %}
+        <tr><td><input type="text" name="name" form="cpo-stromart-neu" aria-label="Name des CPO" placeholder="z. B. Ionity" maxlength="60" required></td>
+          <td><input type="text" name="kennungen" form="cpo-stromart-neu" aria-label="Kennungen, durch Komma getrennt"
+                     placeholder="IOY, AT*ION" list="cpo-vorschlaege" autocomplete="off"></td>
+          <td><select name="art" form="cpo-stromart-neu" aria-label="Stromart"><option value="DC">DC</option><option value="AC">AC</option></select></td>
+          <td></td>
+          <td class="rechts"><button type="submit" form="cpo-stromart-neu" class="klein">Speichern</button></td></tr>
+      {% elif not c.eintraege %}
+        <tr><td colspan="5">Noch keine Einträge.</td></tr>
+      {% endif %}
+      </tbody>
+    </table></div>
+    <datalist id="cpo-vorschlaege">{% for k, n, bekannt in c.vorschlaege if not bekannt %}<option value="{{ k }}">{{ n }} Ladevorgänge</option>{% endfor %}</datalist>
+    {% if c.vorschlaege %}
+    <p class="gruppe-text"><small>Häufige CPO ohne AC/DC-Angabe der Rechnung:
+      {% for k, n, bekannt in c.vorschlaege %}{{ k }} ({{ n }}){% if bekannt %} ✓{% endif %}{{ ", " if not loop.last }}{% endfor %}</small></p>
+    {% endif %}
+    <p class="gruppe-text"><small>Automatisch bestimmt wird für {{ c.betroffen }} Ladevorgänge ohne AC/DC der Rechnung
+      (beim Import und nach jeder Änderung hier oder an den Grenzen oben).</small>
+      {% if not nur_lesen %}<button type="submit" form="stromart-neu-bestimmen" class="outline secondary klein">AC/DC jetzt neu bestimmen</button>{% endif %}</p>
     </fieldset>
     <fieldset class="versand-block">
       <legend>kWh-Schätzung – Ersatzwerte</legend>
@@ -593,6 +632,9 @@
 {# Backup-Aktionen: eigene Formulare (Formulare lassen sich nicht schachteln), Knöpfe oben über das form-Attribut #}
 <form method="post" action="/einstellungen/backup/erstellen" id="backup-erstellen" hidden></form>
 <form method="post" action="/einstellungen/steuersatz" id="steuersatz-neu" hidden></form>
+<form method="post" action="/einstellungen/cpo-stromart" id="cpo-stromart-neu" hidden></form>
+<form method="post" action="/einstellungen/stromart-neu-bestimmen" id="stromart-neu-bestimmen" hidden></form>
+{% for e in cpo_liste.eintraege %}<form method="post" action="/einstellungen/cpo-stromart/{{ e.id }}/loeschen" id="cpo-stromart-loeschen-{{ e.id }}" hidden></form>{% endfor %}
 <form method="post" action="/einstellungen/spritpreis" id="spritpreis-neu" hidden></form>
 <form method="post" action="/einstellungen/oil-bulletin/laden" id="oil-laden" hidden></form>
 <form method="post" action="/einstellungen/geodaten/laden" id="geodaten-laden" hidden></form>

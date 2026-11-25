@@ -141,6 +141,7 @@
   <table class="striped">
     <thead><tr><th>Start</th><th>Ende</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
                <th class="rechts">Kosten</th><th class="rechts">Ø €/kWh</th>
+               <th title="Stromart: aus der Rechnung, sonst CPO-Liste oder Ø-Leistung, sonst die Vorgabe unter 4. – hier änderbar">AC/DC</th>
                <th>Fahrzeug <small>· Fahrer:in beim Laden</small></th><th></th></tr></thead>
     <tbody>
     {% for x in vs.vorgaenge %}
@@ -152,6 +153,16 @@
         <td class="rechts">{% if x.v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ x.kwh | zahl(3) }}</td>
         <td class="rechts">{{ x.kosten | geld }}</td>
         <td class="rechts">{{ x.preis | zahl(2) if x.preis is not none else "–" }}</td>
+        {% set a = x.stromart_auto %}
+        {% set art = x.v.stromart or (a[0] if a else none) %}
+        {% set herkunft = "Rechnung" if x.v.stromart else {"cpo": "CPO-Liste", "leistung": "Ø-Leistung"}[a[1]] if a else "Vorgabe (4.)" %}
+        <td class="stromart-wahl" title="{{ 'laut Rechnung' if x.v.stromart else a[2] if a else 'keine Regel – es gilt die Vorgabe unter 4.' }}">
+          {%- if x.duplikat %}{{ m.stromart(art, ohne="Vorgabe unter 4.") }}
+          {%- else %}<span data-stromart-marker data-art="{{ art or '' }}">{{ m.stromart(art, ohne="Vorgabe unter 4.") }}</span>
+          <select name="stromart_{{ loop.index0 }}" data-stromart-wahl aria-label="AC/DC für diesen Ladevorgang">
+            <option value="">so lassen</option><option value="AC">AC</option><option value="DC">DC</option>
+            <option value="keine">keine Angabe</option></select>
+          <small>{{ herkunft }}</small>{% endif %}</td>
         <td>{% if x.fahrzeug %}{{ fahrzeug_link(x.fahrzeug) }}{% endif %}
           {%- if x.fahrer %} <small>({{ x.fahrer | join(", ") }})</small>{% endif %}</td>
         <td>{% if x.duplikat %}<small>bereits importiert</small>{% endif %}</td>
@@ -190,10 +201,19 @@
   <header class="block-kopf"><strong>4. Übernehmen</strong>
     {% if navigation.offen > 1 %}<span class="block-status">danach weiter mit der nächsten Datei</span>
     {% else %}<span class="block-status">letzte Datei – danach ist der Import abgeschlossen</span>{% endif %}</header>
-  {% set ohne_stromart = vs.neue | selectattr("v.stromart", "none") | list | length %}
+  {% set ohne_rechnung = vs.neue | selectattr("v.stromart", "none") | list %}
+  {% set nach_cpo = ohne_rechnung | selectattr("stromart_auto") | selectattr("stromart_auto.1", "equalto", "cpo") | list | length %}
+  {% set nach_leistung = ohne_rechnung | selectattr("stromart_auto") | selectattr("stromart_auto.1", "equalto", "leistung") | list | length %}
+  {% set ohne_stromart = ohne_rechnung | rejectattr("stromart_auto") | list | length %}
   {% set standard = imp.msp.stromart_standard if imp.msp else none %}
+  {% if nach_cpo or nach_leistung %}
+  <p class="stromart-automatisch"><small>AC/DC ohne Angabe der Rechnung automatisch bestimmt:
+    {% if nach_cpo %}<strong>{{ nach_cpo }}</strong> laut CPO-Liste{% endif %}{% if nach_cpo and nach_leistung %}, {% endif %}
+    {% if nach_leistung %}<strong>{{ nach_leistung }}</strong> aus der Ø-Leistung{% endif %}
+    <a href="/einstellungen#cpo-stromart">CPO-Liste</a></small></p>
+  {% endif %}
   {% if ohne_stromart %}
-  <label class="stromart-vorgabe">AC/DC für {{ ohne_stromart }} Ladevorgänge, deren Rechnung keine Stromart angibt
+  <label class="stromart-vorgabe">AC/DC für {{ ohne_stromart }} Ladevorgänge, für die weder Rechnung noch CPO-Liste noch Ø-Leistung etwas ergeben
     <select name="stromart_vorgabe">
       {% for wert, text in [("", "keine Angabe"), ("AC", "AC"), ("DC", "DC")] %}
         <option value="{{ wert }}" {% if (standard or "") == wert %}selected{% endif %}>{{ text }}</option>

@@ -8,6 +8,8 @@
 
 {# Die wichtigsten Werte als kleine Kacheln (wie im Dashboard); was hier steht, steht nicht noch einmal in der Liste #}
 {% set stromart_quelle = {"manuell": "manuell gesetzt (Rechnung: " ~ (v.rohdaten.get("stromart_rechnung") or "keine Angabe") ~ ")",
+                          "cpo": "laut CPO-Liste" ~ (" (" ~ cpo_eintrag.name ~ ")" if cpo_eintrag else "") ~ " – die Rechnung nennt keine Stromart",
+                          "leistung": "aus der Ø-Leistung – die Rechnung nennt keine Stromart",
                           "vorgabe": "Vorgabe des MSP – die Rechnung nennt keine Stromart",
                           "rechnung": "laut Rechnung"}.get(v.stromart_quelle or "", "keine Angabe") %}
 <div class="kacheln kacheln-klein">

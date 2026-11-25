@@ -18,7 +18,7 @@ from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, Kennung
                         Msp, ZuordnungQuelle)
 from app.parsers import PARSER
 from app.parsers import basis
-from app.services import app_einstellungen, protokoll
+from app.services import app_einstellungen, protokoll, stromart
 from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art
 from app.services import evse
 from app.services.geokodierung import geokodieren
@@ -120,6 +120,8 @@ class VorgangVorschau:
     fahrzeug: Fahrzeug | None
     duplikat: bool
     fahrer: list[str] = field(default_factory=list)  # Fahrer:in(nen) am Stichtag des Ladevorgangs
+    # ohne AC/DC der Rechnung: (Stromart, Quelle „cpo“/„leistung“, Begründung) aus CPO-Liste bzw. Ø-Leistung
+    stromart_auto: tuple[str, str, str] | None = None
 
     @property
     def preis(self) -> Decimal | None:
@@ -218,6 +220,9 @@ def vorschau_berechnen(db: Session, imp: Import) -> Vorschau:
     gesehen: set[str] = set()
     ohne_preis = 0
     grundlage = schaetzgrundlage(db)
+    regeln, einst = stromart.cpo_regeln(db), app_einstellungen.laden(db)
+    msp = db.get(Msp, imp.msp_id) if imp.msp_id else None
+    cpo_vorgabe = msp.cpo_standard if msp else None
 
     for v in ergebnis.vorgaenge:
         info = None
@@ -251,8 +256,13 @@ def vorschau_berechnen(db: Session, imp: Import) -> Vorschau:
         duplikat = duplikat or _ist_duplikat(db, imp.msp_id, v, karte)
         if v.externe_id:
             gesehen.add(v.externe_id)
+        auto = None
+        if not v.stromart:  # Rechnung ohne AC/DC: CPO-Liste, dann Ø-Leistung
+            betreiber = evse.ermitteln(imp.parser_key, v.ladepunkt, v.rohdaten).betreiber_id or cpo_vorgabe
+            auto = stromart.bestimmen(betreiber, stromart.leistung_kw(v.kwh, v.kwh_geschaetzt, v.start, v.ende),
+                                      regeln, einst)
         vs.vorgaenge.append(VorgangVorschau(v=v, kwh=kwh, kosten=kosten, karte=karte, fahrzeug=fahrzeug,
-                                            duplikat=duplikat, fahrer=fahrer))
+                                            duplikat=duplikat, fahrer=fahrer, stromart_auto=auto))
         if info and not duplikat:
             info.anzahl += 1
             info.kwh += kwh
@@ -304,11 +314,11 @@ class KartenEntscheidung:
 
 
 def bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntscheidung],
-                stromart_vorgabe: str | None = None) -> Vorschau:
+                stromart_vorgabe: str | None = None, stromart_je_vorgang: dict[int, str] | None = None) -> Vorschau:
     """Wie `_bestaetigen`; im Änderungsprotokoll ein Sammeleintrag für den Import (neue Ladekarten einzeln, mit dem
     Import als Zusammenhang; neue Ladeorte nur gezählt)."""
     with protokoll.kontext(db, f"Import {imp.dateiname}"), protokoll.still(db, Ladeort):
-        vs = _bestaetigen(db, imp, entscheidungen, stromart_vorgabe)
+        vs = _bestaetigen(db, imp, entscheidungen, stromart_vorgabe, stromart_je_vorgang)
     msp = db.get(Msp, imp.msp_id)
     felder = {"MSP": [None, msp.name if msp else None], "Ladevorgänge": [None, str(len(vs.neue))],
               "Gebühren": [None, str(len(vs.neue_gebuehren))]}
@@ -321,9 +331,11 @@ def bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsch
 
 
 def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntscheidung],
-                 stromart_vorgabe: str | None = None) -> Vorschau:
+                 stromart_vorgabe: str | None = None, stromart_je_vorgang: dict[int, str] | None = None) -> Vorschau:
     """Schreibt den Import. `entscheidungen`: je unbekannter Kartenkennung anlegen oder ignorieren.
-    `stromart_vorgabe`: AC/DC für Vorgänge, deren Rechnung keine Stromart angibt (vorbelegt mit der Vorgabe des MSP)."""
+    `stromart_vorgabe`: AC/DC für Vorgänge, deren Rechnung keine Stromart angibt und für die weder CPO-Liste noch
+    Ø-Leistung etwas ergeben (vorbelegt mit der Vorgabe des MSP; services/stromart.py). `stromart_je_vorgang`: in der
+    Vorschau je Vorgang gewählt (Index in `vs.vorgaenge` → AC | DC | keine); weicht die Wahl ab, gilt sie als manuell."""
     if imp.status != ImportStatus.vorschau:
         raise ImportFehler("Dieser Import ist bereits abgeschlossen.")
     if imp.msp_id is None:
@@ -353,12 +365,26 @@ def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsc
     msp = db.get(Msp, imp.msp_id)
     cpo_vorgabe = msp.cpo_standard if msp else None  # für Vorgänge, deren Datei keinen CPO liefert
 
-    for x in vs.neue:
+    for i, x in enumerate(vs.vorgaenge):
+        if x.duplikat:
+            continue
         v = x.v
         karte = karten.get(v.kartenkennung) if v.kartenkennung else None
         fahrzeug = fahrzeug_fuer_karte(db, karte, stichtag(v.start, v.ende, art))
         kwh = kwh_schaetzen(v.schaetzbasis, grundlage.fuer(fahrzeug.id if fahrzeug else None)) if v.schaetzbasis else v.kwh
         ort = evse.ermitteln(imp.parser_key, v.ladepunkt, v.rohdaten)
+        rohdaten = v.rohdaten
+        if v.stromart:
+            art, quelle = v.stromart, "rechnung"
+        elif x.stromart_auto:
+            art, quelle = x.stromart_auto[:2]
+            if stromart_vorgabe:  # gewählte Vorgabe merken: gilt, falls die Regel später nicht mehr greift
+                rohdaten = {**(rohdaten or {}), "stromart_vorgabe": stromart_vorgabe}
+        else:
+            art, quelle = stromart_vorgabe, "vorgabe" if stromart_vorgabe else None
+        if (wahl := (stromart_je_vorgang or {}).get(i)) and (neu := stromart.wert(wahl)) != art:
+            art, quelle = neu, "manuell"  # in der Vorschau geändert; die Angabe der Rechnung bleibt in den Rohdaten
+            rohdaten = {**(rohdaten or {}), "stromart_rechnung": v.stromart}
         db.add(Ladevorgang(
             import_id=imp.id, msp_id=imp.msp_id, externe_id=v.externe_id,
             ladekarte_id=karte.id if karte else None, roh_kartenkennung=v.kartenkennung,
@@ -367,11 +393,10 @@ def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsc
             evse_id=ort.evse_id, betreiber_id=ort.betreiber_id or cpo_vorgabe, land=ort.land,
             betreiber_quelle="rechnung" if ort.betreiber_id else "vorgabe" if cpo_vorgabe else None,
             ladeort=ladeort_fuer(db, v.standort, ort.land, ladeorte),
-            ladeart=imp.ladeart, stromart=v.stromart or stromart_vorgabe,
-            stromart_quelle="rechnung" if v.stromart else "vorgabe" if stromart_vorgabe else None,
+            ladeart=imp.ladeart, stromart=art, stromart_quelle=quelle,
             fahrzeug_id=fahrzeug.id if fahrzeug else None,
             zuordnung_quelle=ZuordnungQuelle.automatisch if fahrzeug else ZuordnungQuelle.keine,
-            rohdaten=v.rohdaten, ust_betrag=v.ust_betrag, ust_satz=v.ust_satz, ust_land=v.ust_land))
+            rohdaten=rohdaten, ust_betrag=v.ust_betrag, ust_satz=v.ust_satz, ust_land=v.ust_land))
     for x in vs.neue_gebuehren:
         g = x.g
         karte = x.karte or (karten.get(g.kartenkennung) if g.kartenkennung else None)

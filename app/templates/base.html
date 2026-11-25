@@ -285,6 +285,16 @@
       feld.value = knopf.dataset.leasingUebernehmen === "beginn" ? beginn : ende;
       feld.dispatchEvent(new Event("change", { bubbles: true }));
     });
+    // Import-Vorschau: AC/DC je Ladevorgang geändert → Marker daneben zeigt die gewählte Stromart („so lassen“: wie vorher)
+    document.addEventListener("change", (e) => {
+      const wahl = e.target.closest?.("[data-stromart-wahl]");
+      const marker = wahl?.parentElement.querySelector("[data-stromart-marker] .marker");
+      if (!marker) return;
+      const art = wahl.value === "" ? wahl.parentElement.querySelector("[data-stromart-marker]").dataset.art
+        : wahl.value === "keine" ? "" : wahl.value;
+      marker.className = `marker stromart-${art ? art.toLowerCase() : "ohne"}`;
+      marker.textContent = art || "?";
+    });
     // Import-Vorschau: Miniatur bzw. „Schließen“ klappt die PDF-Rechnung auf/zu; die PDF lädt erst beim ersten Öffnen
     document.addEventListener("click", (e) => {
       if (!e.target.closest?.("[data-pdf-umschalten]")) return;

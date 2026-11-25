@@ -349,6 +349,8 @@ def detail(request: Request, vorgang_id: int, db: Session = Depends(get_db)):
         "v": v, "fahrzeuge": fahrzeuge, "leistung": leistung(v), "personen": personen_beim_laden(db, [v])[v.id],
         "laender": sorted(LAENDER.items(), key=lambda e: e[1]),
         "grund": unplausibel_grund(v, app_einstellungen.laden(db)),
+        "cpo_eintrag": stromart_dienst.cpo_eintrag(stromart_dienst.cpo_regeln(db), v.betreiber_id)
+        if v.stromart_quelle == "cpo" and v.betreiber_id else None,
         "kosten_info": kosten_dienst.fuer_vorgang(kosten_dienst.kontext(db), v, db),
         "firmenland": app_einstellungen.laden(db).firmenland,
         "rohdaten": json.dumps(v.rohdaten, ensure_ascii=False, indent=2),

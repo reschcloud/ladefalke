@@ -5,6 +5,7 @@ bestätigen („Datei x von y“) → ③ abgeschlossen. Ein Durchgang (Sitzung,
 verworfenen Vorschauen seit dem letzten Hochladen; nach der letzten offenen Vorschau geht es zurück auf die
 Import-Seite mit einem Abschlusskasten (Summen, Ladevorgänge zum späteren Zuordnen, Links)."""
 import mimetypes
+import re
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -287,8 +288,11 @@ async def bestaetigen_route(request: Request, import_id: int, db: Session = Depe
                 anlegen=formular.get(f"karte_{n}_aktion") != "ignorieren",
                 bezeichnung=str(formular.get(f"karte_{n}_bezeichnung", "")).strip() or None,
                 gast=formular.get(f"karte_{n}_gast") is not None)
+    # AC/DC je Ladevorgang geändert: stromart_<Index in der Vorschau> = AC | DC | keine („so lassen“ = leer)
+    je_vorgang = {int(k[len("stromart_"):]): str(w) for k, w in formular.items()
+                  if re.fullmatch(r"stromart_\d+", k) and w in ("AC", "DC", "keine")}
     try:
-        vs = bestaetigen(db, imp, entscheidungen, stromart.wert(str(formular.get("stromart_vorgabe", ""))))
+        vs = bestaetigen(db, imp, entscheidungen, stromart.wert(str(formular.get("stromart_vorgabe", ""))), je_vorgang)
     except ImportFehler as e:
         db.rollback()
         return _vorschau_seite(request, db, imp, str(e), 422)
