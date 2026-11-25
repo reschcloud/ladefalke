@@ -12,6 +12,8 @@
   <small>(neuer Tab)</small></p>
 {% if fehler %}<p class="meldung meldung-fehler" role="alert">{{ fehler }}</p>{% endif %}
 
+{% set ist_pdf = imp.dateiname.lower().endswith(".pdf") %}
+<div class="vorschau-oben{% if ist_pdf %} mit-pdf{% endif %}">
 <article>
   {% set parser_name = (parser | selectattr(0, "equalto", imp.parser_key) | map(attribute=1) | first) if imp.parser_key else none %}
   <header class="block-kopf"><strong>1. Format und Ladeart</strong>
@@ -35,6 +37,24 @@
       Bitte „Übernehmen und neu berechnen“ klicken.</p>
   </form>
 </article>
+{% if ist_pdf %}
+{# Miniatur der ersten Seite; Klick klappt darunter die ganze PDF auf (Browser-PDF-Ansicht, lädt erst dann) #}
+<button type="button" class="pdf-miniatur" aria-expanded="false" aria-controls="pdf-ansicht"
+        title="Rechnung anzeigen" data-pdf-umschalten>
+  <img src="/import/{{ imp.id }}/vorschaubild" alt="Erste Seite der Rechnung" loading="lazy"
+       onerror="this.closest('.pdf-miniatur').classList.add('ohne-bild')">
+  <span class="pdf-miniatur-text">Rechnung anzeigen</span>
+</button>
+{% endif %}
+</div>
+{% if ist_pdf %}
+<section id="pdf-ansicht" class="pdf-ansicht" hidden>
+  <header class="kopf"><strong>{{ imp.dateiname }}</strong>
+    <span><a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false">In neuem Tab ↗</a>
+    <button type="button" class="outline secondary klein" data-pdf-umschalten>Schließen</button></span></header>
+  <iframe title="Rechnung {{ imp.dateiname }}" data-src="/import/{{ imp.id }}/datei?anzeigen=1"></iframe>
+</section>
+{% endif %}
 
 {% if vs.fehler %}
   <p class="meldung meldung-fehler" role="alert">{{ vs.fehler }}</p>

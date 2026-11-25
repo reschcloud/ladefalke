@@ -8,7 +8,7 @@ import mimetypes
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile as StarletteUploadFile
@@ -346,3 +346,20 @@ def originaldatei(import_id: int, anzeigen: str = "", db: Session = Depends(get_
     return FileResponse(pfad, filename=imp.dateiname, media_type=medientyp,
                         content_disposition_type="inline" if anzeigen else "attachment")
 
+
+@router.get("/{import_id}/vorschaubild")
+def vorschaubild(import_id: int, db: Session = Depends(get_db)):
+    """Erste Seite einer PDF-Rechnung als kleines JPG (Miniatur in der Vorschau)."""
+    from app.services.reports import als_jpg
+    imp = _laden(db, import_id)
+    pfad = datei(imp)
+    if not imp.dateiname.lower().endswith(".pdf") or not pfad.exists():
+        raise HTTPException(404, "Keine PDF-Datei")
+    try:
+        bild = als_jpg(pfad.read_bytes(), 1, breite_px=360)
+    except HTTPException:
+        raise
+    except Exception:  # beschädigte oder verschlüsselte PDF: dann eben ohne Miniatur
+        raise HTTPException(404, "PDF nicht lesbar")
+    # Inhalt hängt nur an der Datei (Name = Hash) – darf der Browser lange behalten
+    return Response(bild, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})

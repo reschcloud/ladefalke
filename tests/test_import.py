@@ -411,6 +411,23 @@ def test_sehr_viele_dateien_passen_in_die_sitzung(angemeldet, db):
     assert "60 verworfen" in abschluss and "und 50 weitere" in abschluss
 
 
+def test_vorschau_zeigt_pdf_miniatur(angemeldet):
+    from weasyprint import HTML
+    pdf = HTML(string="<h1>Rechnung 4711</h1><p>Erfundene Testrechnung</p>").write_pdf()
+    antwort = angemeldet.post("/import", files={"datei_upload": ("rechnung.pdf", pdf, "application/pdf")})
+    import_id = _id_aus(antwort)
+    assert f'src="/import/{import_id}/vorschaubild"' in antwort.text and "data-pdf-umschalten" in antwort.text
+    assert f'data-src="/import/{import_id}/datei?anzeigen=1"' in antwort.text  # PDF lädt erst beim Aufklappen
+    bild = angemeldet.get(f"/import/{import_id}/vorschaubild")
+    assert bild.status_code == 200 and bild.headers["content-type"] == "image/jpeg"
+    assert bild.content.startswith(b"\xff\xd8")
+
+    antwort = angemeldet.post("/import", files={"datei_upload": ("oktober.csv", CSV, "text/csv")})
+    csv_id = _id_aus(antwort)
+    assert "vorschaubild" not in antwort.text  # nur bei PDF
+    assert angemeldet.get(f"/import/{csv_id}/vorschaubild").status_code == 404
+
+
 def test_upload_ohne_datei(angemeldet):
     antwort = angemeldet.post("/import", files=[("datei_upload", ("", b"", "application/octet-stream"))])
     assert antwort.status_code == 422 and "mindestens eine Datei" in antwort.text

@@ -1326,3 +1326,24 @@ fieldset.abo-gruppe form.abo label.haken { margin-bottom: .15rem; }
 /* Kästen (versand-block) außerhalb des Versands: Theme-/Zeitraum-Wahl ohne Extra-Abstand, Formulare der Stammdaten */
 fieldset.versand-block .theme-wahl { margin-bottom: .4rem; }
 form.formular > fieldset.versand-block { margin-bottom: 1rem; }
+
+/* Vorschau: Miniatur der PDF-Rechnung rechts neben „1. Format und Ladeart“, Klick klappt die ganze PDF auf */
+.vorschau-oben.mit-pdf { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: var(--pico-block-spacing-vertical); }
+.vorschau-oben > article { flex: 1; min-width: 0; margin-bottom: 0; }
+.vorschau-oben.mit-pdf > article { margin-bottom: 0; }
+.pdf-miniatur { flex: 0 0 9.5rem; width: 9.5rem; margin: 0; padding: .35rem; display: flex; flex-direction: column;
+  gap: .3rem; align-items: center; background: var(--pico-card-background-color); color: var(--pico-color);
+  border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); cursor: zoom-in; }
+.pdf-miniatur:hover, .pdf-miniatur[aria-expanded="true"] { border-color: var(--pico-primary); }
+.pdf-miniatur img { display: block; width: 100%; aspect-ratio: 1 / 1.414; object-fit: cover; object-position: top;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.pdf-miniatur.ohne-bild img { display: none; }
+.pdf-miniatur-text { font-size: .75rem; color: var(--pico-muted-color); }
+.pdf-ansicht { margin-bottom: var(--pico-block-spacing-vertical); }
+.pdf-ansicht header.kopf { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  flex-wrap: wrap; margin-bottom: .5rem; }
+.pdf-ansicht header.kopf span { display: flex; align-items: center; gap: 1rem; }
+.pdf-ansicht header.kopf button { margin: 0; width: auto; }
+.pdf-ansicht iframe { display: block; width: 100%; height: 85vh; border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius); background: #fff; }
+@media (max-width: 576px) { .pdf-miniatur { display: none; } }

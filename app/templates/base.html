@@ -285,6 +285,16 @@
       feld.value = knopf.dataset.leasingUebernehmen === "beginn" ? beginn : ende;
       feld.dispatchEvent(new Event("change", { bubbles: true }));
     });
+    // Import-Vorschau: Miniatur bzw. „Schließen“ klappt die PDF-Rechnung auf/zu; die PDF lädt erst beim ersten Öffnen
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest?.("[data-pdf-umschalten]")) return;
+      const ansicht = document.getElementById("pdf-ansicht");
+      const rahmen = ansicht.querySelector("iframe");
+      if (!rahmen.getAttribute("src")) rahmen.src = rahmen.dataset.src;
+      ansicht.hidden = !ansicht.hidden;
+      document.querySelector(".pdf-miniatur")?.setAttribute("aria-expanded", String(!ansicht.hidden));
+      if (!ansicht.hidden) ansicht.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     // Formulare mit Pflichtfeldern (required): Absendeknöpfe ausgegraut, bis alles ausgefüllt ist. Ausgenommen die
     // Anmeldung (der Browser füllt gespeicherte Passwörter oft ohne Ereignis ein) und die Einstellungen (eigene Logik).
     const feldName = (f) => (f.dataset.feldname || f.closest("label")?.firstChild?.textContent
