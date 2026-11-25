@@ -3,6 +3,22 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.12.2 – 25.11.2026
+
+### Behoben
+
+- `setup.sh` erneuert sich beim Update selbst aus dem neuen Release. Bisher blieb im Installationsordner die
+  Fassung vom Einrichten liegen – ohne spätere Verbesserungen wie das Aufräumen von `ADMIN_PASSWORD` in `.env`
+  oder die Image-Prüfung aus v1.12.1.
+- Einstellungen → System: Der Hinweis zu `ADMIN_PASSWORD` in `.env` versprach, `sh setup.sh` räume das beim
+  nächsten Update selbst auf – mit älteren Fassungen des Skripts stimmte das nicht. Er nennt jetzt beide Wege.
+
+### Beim Update beachten
+
+- Einmalig das aktuelle Skript holen, damit schon dieses Update es nutzt – im Installationsordner:
+  `curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh -o setup.sh`, dann
+  `sh setup.sh`. Ab dann erneuert es sich selbst.
+
 ## v1.12.1 – 25.11.2026
 
 ### Behoben
