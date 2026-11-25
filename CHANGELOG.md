@@ -3,6 +3,36 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## v1.11.0 – 25.11.2026
+
+### Neu
+
+- **AC/DC automatisch:** Nennt die Rechnung keine Stromart, wird sie beim Import zuerst aus einer pflegbaren
+  **CPO-Liste** bestimmt (Einstellungen → Datenqualität; z. B. Ionity = immer DC; Kennungen mit Land wie `AT*ION`
+  oder ohne Land wie `ION` für alle Länder), sonst aus der **Ø-Leistung** (Grenzen unter Plausibilität). Erst danach
+  gilt die Vorgabe des MSP. Bestehende Ladevorgänge ohne Angabe oder mit MSP-Vorgabe lassen sich mit „AC/DC jetzt neu
+  bestimmen“ nachziehen; geänderte Leistungsgrenzen tun das automatisch. Angaben der Rechnung und manuelle bleiben.
+- Import-Vorschau: Stromart je Ladevorgang mit Herkunft (Rechnung, CPO-Liste, Ø-Leistung, Vorgabe) sichtbar und
+  änderbar.
+- Import-Vorschau: Miniatur der PDF-Rechnung, per Klick die ganze Rechnung aufklappbar.
+- Import: nach dem Hochladen steht, welche Dateien schon bekannt waren; „Alle verwerfen“ für offene Vorschauen.
+
+### Geändert
+
+- Import-Vorschau auf breiten Bildschirmen zweispaltig: links Format (kompakt), Prüfen und Ladekarten, rechts die
+  große Rechnungs-Miniatur und darunter „Übernehmen“. Ladevorgänge und Gebühren sind aufgeklappt.
+- Parser Elli: neueres Rechnungsformat mit Uhrzeit und „Jänner“.
+
+### Behoben
+
+- Hochladen von Hunderten Dateien auf einmal: Hinweise und die Liste der bekannten Dateien gingen verloren
+  (Sitzungs-Cookie zu groß).
+- Datumsfeld (Safari): Kalender am Feld ausgerichtet, Trennzeichen robuster.
+
+### Beim Update beachten
+
+- nichts (Migration 0037 läuft beim Start; vorher legt die App eine Sicherung an).
+
 ## v1.10.0 – 24.11.2026
 
 ### Neu
