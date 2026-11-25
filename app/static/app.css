@@ -715,21 +715,21 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
   svg:is(.symbol-warnung, .symbol-ok, .symbol-haken) { color: inherit; }
 /* ---------------------------------------------------------------- Kompakte Filter (Ladevorgänge, Listen) */
 /* Niedrigere Felder und Auswahllisten, kleine graue Beschriftungen – spart Höhe über Karte und Tabelle */
-:is(.filter-formular, .filterleiste) { --pico-form-element-spacing-vertical: .32rem;
+:is(.filter-formular, .filterleiste, .kompakt) { --pico-form-element-spacing-vertical: .32rem;
   --pico-form-element-spacing-horizontal: .6rem; }
-:is(.filter-formular, .filterleiste) :is(input:not([type=checkbox]):not([type=radio]), select, details.mehrfach > summary) {
+:is(.filter-formular, .filterleiste, .kompakt) :is(input:not([type=checkbox]):not([type=radio]), select, details.mehrfach > summary) {
   font-size: .9rem; }
-:is(.filter-formular, .filterleiste) .filterzeile > label, :is(.filter-formular, .filterleiste) .mehrfach-feld > span {
+:is(.filter-formular, .filterleiste, .kompakt) .filterzeile > label, :is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld > span {
   font-size: .78rem; color: var(--pico-muted-color); }
-:is(.filter-formular, .filterleiste) .mehrfach-feld > span { margin-bottom: .2rem; }
-:is(.filter-formular, .filterleiste) .filterzeile > label > input { margin-top: .2rem; }
-:is(.filter-formular, .filterleiste) details.mehrfach > summary { height: auto; min-width: 7.5rem; }
+:is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld > span { margin-bottom: .2rem; }
+:is(.filter-formular, .filterleiste, .kompakt) .filterzeile > label > input { margin-top: .2rem; }
+:is(.filter-formular, .filterleiste, .kompakt) details.mehrfach > summary { height: auto; min-width: 7.5rem; }
 .filter-formular .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
 .filter-formular .filterzeile:has(label.suche) { margin-top: .5rem; }
 .filter-formular input[type=date] { display: block; width: 9.5rem; }
 .filter-formular label.suche input { height: auto; }
 /* gesetzte Filter: Beschriftung bleibt blau */
-:is(.filter-formular, .filterleiste) .mehrfach-feld.gesetzt > span { color: var(--pico-primary); }
+:is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld.gesetzt > span { color: var(--pico-primary); }
 /* Mini-Zeitleiste: Beschriftung der Enden und der Leasing-Markierungen unter dem Band */
 .mini-zl-enden { position: relative; height: 1.1rem; margin-top: .15rem; font-size: .7rem; color: var(--pico-muted-color);
   white-space: nowrap; }
@@ -1329,15 +1329,33 @@ form.formular > fieldset.versand-block { margin-bottom: 1rem; }
 
 /* Vorschau: Miniatur der PDF-Rechnung rechts neben „1. Format und Ladeart“, Klick klappt die ganze PDF auf */
 /* Miniatur so hoch wie der Kasten daneben: das Bild liegt absolut im Rahmen, bestimmt also die Zeilenhöhe nicht mit */
-.vorschau-oben.mit-pdf { display: flex; gap: 1rem; align-items: stretch; margin-bottom: var(--pico-block-spacing-vertical); }
-.vorschau-oben > article { flex: 1; min-width: 0; margin-bottom: 0; }
-.vorschau-oben.mit-pdf > article { margin-bottom: 0; }
-.pdf-miniatur { flex: 0 0 12rem; width: 12rem; margin: 0; padding: .35rem; display: flex; flex-direction: column;
+.vorschau-oben { display: grid; grid-template-columns: minmax(0, 1fr) clamp(14rem, 30%, 24rem); gap: 1rem;
+  align-items: start; margin-bottom: var(--pico-block-spacing-vertical); }
+.vorschau-links, .vorschau-rechts { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.vorschau-oben article, .vorschau-oben .meldung { margin-bottom: 0; }
+.vorschau-rechts .bestaetigen-block button[type=submit] { width: 100%; margin-bottom: 0; }
+.vorschau-rechts label.stromart-vorgabe select { max-width: none; }
+/* Mittlere Breite: Miniatur nur neben 1. und 2., Ladekarten und Übernehmen wieder über die volle Breite */
+@media (max-width: 1399px) {
+  .vorschau-links, .vorschau-rechts { display: contents; }
+  .vorschau-oben { grid-template-columns: minmax(0, 1fr) 13rem; }
+  .vorschau-oben > * > * { grid-column: 1; }
+  .vorschau-oben .pdf-miniatur { grid-column: 2; grid-row: 1 / span 2; }
+  .vorschau-oben :is(.karten-block, .bestaetigen-block) { grid-column: 1 / -1; }
+  .vorschau-rechts .bestaetigen-block button[type=submit] { width: auto; }
+}
+@media (max-width: 576px) { .vorschau-oben { grid-template-columns: minmax(0, 1fr); } }
+.vorschau-oben:not(:has(.pdf-miniatur)) { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1400px) { .vorschau-oben:not(:has(.pdf-miniatur)) { grid-template-columns: minmax(0, 1fr) 24rem; } }
+.kompakt .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
+.kompakt label.strompreis input { display: block; width: 8rem; }
+.kompakt .filterzeile > button[type=submit] { margin-bottom: 0; }
+.pdf-miniatur { width: 100%; margin: 0; padding: .35rem; display: flex; flex-direction: column;
   gap: .3rem; align-items: center; background: var(--pico-card-background-color); color: var(--pico-color);
   border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); cursor: zoom-in; }
 .pdf-miniatur:hover, .pdf-miniatur[aria-expanded="true"] { border-color: var(--pico-primary); }
-.pdf-miniatur-bild { position: relative; flex: 1 1 auto; align-self: stretch; min-height: 6rem; }
-.pdf-miniatur-bild img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+.pdf-miniatur-bild { align-self: stretch; aspect-ratio: 1 / 1.414; }
+.pdf-miniatur-bild img { display: block; width: 100%; height: 100%; object-fit: cover;
   object-position: top center; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
 .pdf-miniatur.ohne-bild .pdf-miniatur-bild { display: none; }
 .pdf-miniatur-text { font-size: .75rem; color: var(--pico-muted-color); }

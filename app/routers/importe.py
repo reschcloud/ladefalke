@@ -360,7 +360,7 @@ def vorschaubild(import_id: int, db: Session = Depends(get_db)):
     if not imp.dateiname.lower().endswith(".pdf") or not pfad.exists():
         raise HTTPException(404, "Keine PDF-Datei")
     try:
-        bild = als_jpg(pfad.read_bytes(), 1, breite_px=360)
+        bild = als_jpg(pfad.read_bytes(), 1, breite_px=900)  # scharf auch groß und auf HiDPI
     except HTTPException:
         raise
     except Exception:  # beschädigte oder verschlüsselte PDF: dann eben ohne Miniatur
