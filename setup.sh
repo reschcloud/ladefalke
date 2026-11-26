@@ -19,7 +19,7 @@
 # Vor anstehenden Datenbank-Migrationen legt die App selbst eine Sicherung an.
 set -eu
 
-RUECKFALL="1.15.0"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
+RUECKFALL="1.16.0"  # nur ohne Zugriff auf die GitHub-API; bei jedem Release mitziehen (README „Release erstellen“)
 REPO="reschcloud/ladefalke"
 ROH="https://raw.githubusercontent.com/$REPO"
 ARGUMENTE="$*"  # für einen Neustart mit sudo (Optionen enthalten keine Leerzeichen)
@@ -278,7 +278,7 @@ if [ -n "$UPDATE" ]; then
   command -v curl >/dev/null 2>&1 || fehler "Für das Update wird curl gebraucht."
   ALT=$(wert LADEFALKE_VERSION)
   ZIEL="${UPDATE_ZIEL:-$(neueste)}"
-  [ -n "$ZIEL" ] || fehler "Neuestes Release nicht ermittelbar – Version angeben: sh setup.sh --update 1.15.0"
+  [ -n "$ZIEL" ] || fehler "Neuestes Release nicht ermittelbar – Version angeben: sh setup.sh --update 1.16.0"
   if [ "$ALT" = "$ZIEL" ]; then hinweis "Bereits auf Version $ZIEL – nichts zu tun."; exit 0; fi
   if [ -n "$ALT" ] && kleiner "$ZIEL" "$ALT"; then
     fehler "$ZIEL ist älter als die installierte $ALT – Rückschritt nur mit Sicherung, siehe README „Zurück auf ein älteres Release“."
