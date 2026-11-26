@@ -52,6 +52,7 @@
       {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
     </div>
     {{ m.leasing_knoepfe(leasing_daten(fahrzeug_liste, "fahrzeug:"), "ziel") }}
+    {{ m.ladung_knoepfe(erster, letzter, request.state.stichtag) }}
     {{ m.neu_zuordnen_haken(zuordnung_werte) }}
     <p class="zuordnung-hinweis"><small>Eine offene bisherige Zuordnung wird automatisch zum Vortag beendet.</small></p>
     <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>

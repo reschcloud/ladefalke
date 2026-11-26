@@ -7,6 +7,9 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Neu
 
+- Karten-Zuordnung (neu und bearbeiten): Unter den Leasing-Knöpfen setzen „„Gültig ab“ = erste Ladung“ und
+  „„Gültig bis“ = letzte Ladung“ den Tag des ersten bzw. letzten Ladevorgangs der Karte (Datum steht im Knopf).
+
 - Fertiges Image auch für ARM-64 (arm64, z. B. Raspberry Pi 4/5 mit 64-Bit-System, ARM-Server). Docker lädt
   automatisch das passende Image; Selbstbauen ist auf solchen Rechnern nicht mehr nötig.
 

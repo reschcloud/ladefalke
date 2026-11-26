@@ -72,6 +72,36 @@ def test_ladekarte_zuordnung_leasing_und_vorauswahl(angemeldet, db):
     assert 'name="neu_zuordnen" checked' in seite  # Vorauswahl: bereits importierte neu zuordnen
 
 
+def test_ladekarte_zuordnung_erste_und_letzte_ladung(angemeldet, db):
+    """Karten-Zuordnung: „Gültig ab/bis = erste/letzte Ladung“ der Karte (Stichtag Ladebeginn), ohne Ladung ausgegraut."""
+    from app.models import KennungTyp, Ladekarte, ZuordnungKarte
+    msp = db.scalar(select(Msp).where(Msp.parser_key == "dcs"))
+    imp = Import(dateiname="el.pdf", datei_pfad="el.pdf", datei_hash="e" * 64, msp_id=msp.id,
+                 ladeart=Ladeart.oeffentlich, status=ImportStatus.abgeschlossen)
+    anna = Fahrer(name="Anna Erstladung")
+    k = Ladekarte(msp_id=msp.id, kennung="EL-K", kennung_typ=KennungTyp.kartennummer)
+    leer = Ladekarte(msp_id=msp.id, kennung="EL-LEER", kennung_typ=KennungTyp.kartennummer)
+    db.add_all([imp, anna, k, leer])
+    db.flush()
+    z = ZuordnungKarte(ladekarte_id=k.id, fahrer_id=anna.id, gueltig_ab=D(2026, 1, 4))
+    # über Mitternacht: zählt nach Ladebeginn zum 31.03.
+    db.add_all([z] + [Ladevorgang(import_id=imp.id, msp_id=msp.id, ladekarte_id=k.id, start=s, ende=e, kwh=Decimal(10),
+                                  kosten_netto=Decimal(5), ladeart=Ladeart.oeffentlich,
+                                  zuordnung_quelle=ZuordnungQuelle.keine)
+                      for s, e in [(datetime(2026, 1, 5, 8), datetime(2026, 1, 5, 9)),
+                                   (datetime(2026, 3, 31, 23), datetime(2026, 4, 1, 1)),
+                                   (datetime(2026, 2, 10, 8), datetime(2026, 2, 10, 9))]])
+    db.flush()
+    for adresse in (f"/stammdaten/zuordnungen/karte/{z.id}", f"/stammdaten/ladekarten/{k.id}"):
+        seite = angemeldet.get(adresse).text
+        assert 'data-datum-uebernehmen="ab" data-datum="2026-01-05"' in seite, adresse
+        assert 'data-datum-uebernehmen="bis" data-datum="2026-03-31"' in seite, adresse
+        assert "„Gültig bis“ = letzte Ladung (31.03.2026)" in seite, adresse
+    seite = angemeldet.get(f"/stammdaten/ladekarten/{leer.id}").text
+    assert 'ausgegraut" data-datum-uebernehmen="ab" aria-disabled="true"' in seite
+    assert "Mit dieser Karte gibt es noch keine Ladevorgänge" in seite
+
+
 def test_luecken_bis_leasing_ende_auch_kuenftig(db):
     """Mit Leasing-Ende wird der ganze Leasingzeitraum geprüft – auch künftige Zeiträume ohne Fahrer:in."""
     from app.services import mini_zeitleiste

@@ -285,6 +285,14 @@
       feld.value = knopf.dataset.leasingUebernehmen === "beginn" ? beginn : ende;
       feld.dispatchEvent(new Event("change", { bubbles: true }));
     });
+    // Karten-Zuordnung: „Gültig ab/bis“ = erste/letzte Ladung (_makros.ladung_knoepfe) – Datum steht am Knopf
+    document.addEventListener("click", (e) => {
+      const knopf = e.target.closest?.("[data-datum-uebernehmen][data-datum]");
+      const feld = knopf?.form?.querySelector(`[name="${knopf.dataset.datumUebernehmen}"]`);
+      if (!feld) return;
+      feld.value = knopf.dataset.datum;
+      feld.dispatchEvent(new Event("change", { bubbles: true }));
+    });
     // Import-Vorschau: AC/DC je Ladevorgang geändert → Marker daneben zeigt die gewählte Stromart („so lassen“: wie vorher)
     document.addEventListener("change", (e) => {
       const wahl = e.target.closest?.("[data-stromart-wahl]");

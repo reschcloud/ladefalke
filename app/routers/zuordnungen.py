@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from app.config import heute
 from app.db import get_db
 from app.formatierung import datum_lesen
-from app.models import (FahrerOhneFahrzeug, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, ZuordnungFahrerFahrzeug,
-                        ZuordnungKarte)
+from app.models import (FahrerOhneFahrzeug, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, Ladevorgang,
+                        ZuordnungFahrerFahrzeug, ZuordnungKarte)
 from app.routers.ladekarten import ziel_lesen, ziele
+from app.services import kennzahlen
 from app.services import zeitleiste as zeitleiste_service
 from app.services.aufloesung import neu_zuordnen_fahrer, neu_zuordnen_karte, zeitraum_vereinigen
 from app.services.zuordnung import (ZuordnungsFehler, fahrer_fahrzeug_aendern, gueltig_am, ohne_dienstwagen_aendern,
@@ -82,7 +83,11 @@ def _karten_formular(request, db, z, werte, fehler=None, status_code=200):
                          .order_by(ZuordnungKarte.gueltig_ab.desc())).all()
     return render(request, "stammdaten/zuordnung_karte_formular.html",
                   {"z": z, "werte": werte, "fehler": fehler, "zurueck": _zurueck(request, "/stammdaten/zuordnungen"),
-                   "weitere": weitere, **ziele(db, z.fahrer_id, z.fahrzeug_id)}, status_code)
+                   "weitere": weitere, **ziele(db, z.fahrer_id, z.fahrzeug_id),
+                   # Knöpfe „Gültig ab/bis = erste/letzte Ladung“ der Karte
+                   **dict(zip(("erster", "letzter"),
+                              kennzahlen.erster_und_letzter(db, Ladevorgang.ladekarte_id == z.ladekarte_id)))},
+                  status_code)
 
 
 @router.get("/karte/{zuordnung_id}")

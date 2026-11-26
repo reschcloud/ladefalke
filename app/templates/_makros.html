@@ -232,6 +232,21 @@
 </p>
 {% endmacro %}
 
+{# Karten-Zuordnung: „Gültig ab = erste Ladung“ / „Gültig bis = letzte Ladung“ der Karte (Skript in base.html) –
+   Tag des ersten bzw. letzten Ladevorgangs nach Stichtag (kennzahlen.erster_und_letzter). Ohne Ladevorgang
+   ausgegraut. #}
+{% macro ladung_knoepfe(erster, letzter, art) %}
+<p class="ladung-uebernehmen">
+{%- for vorgang, feld, text in [(erster, "ab", "„Gültig ab“ = erste Ladung"), (letzter, "bis", "„Gültig bis“ = letzte Ladung")] %}
+  {% set tag = ((vorgang.start if art == "beginn" else vorgang.ende).date()) if vorgang else none %}
+  <button type="button" class="outline secondary klein{{ ' ausgegraut' if not tag }}" data-datum-uebernehmen="{{ feld }}"
+    {%- if tag %} data-datum="{{ tag.isoformat() }}" title="Tag des {{ 'ersten' if feld == 'ab' else 'letzten' }} Ladevorgangs dieser Karte"
+    {%- else %} aria-disabled="true" title="Mit dieser Karte gibt es noch keine Ladevorgänge"{% endif %}>
+    {{- text }}{% if tag %} ({{ tag | datum }}){% endif %}</button>
+{%- endfor %}
+</p>
+{% endmacro %}
+
 {# Kleine Symbole: Material Design Icons (app/icons.py, Namen dort in SYMBOLE), Farbe je Art aus app.css.
    In Auswahllisten (option) gehen keine Grafiken – dort 🚗 / 👤 (siehe stammdaten/_ziel_auswahl.html). #}
 {% macro symbol(name, titel="") -%}{{ icon(name, titel) }}{%- endmacro %}
