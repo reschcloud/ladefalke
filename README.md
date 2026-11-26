@@ -1,7 +1,7 @@
 # Ladefalke – Der elektrische Fuhrpark im Blick
 
 Webanwendung zur Erfassung und Auswertung der Ladevorgänge der Firmenflotte.
-Spezifikation: [SPEC.md](SPEC.md).
+Spezifikation: [SPEC.md](SPEC.md). Entscheidungen mit Begründung: [docs/adr/](docs/adr/README.md).
 
 ## Installation
 
