@@ -36,6 +36,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   überdeckt die Farblegende nicht mehr.
 - Aufgeräumt: ungenutzter Code und doppelte CSS-Regeln entfernt; Reste des früher wählbaren Stichtags (Ladeende)
   entfernt – es gilt überall fest der Ladebeginn, am Verhalten ändert sich nichts.
+- Einheitlichere Optik: Status-Farben (grün, gelb, rot), Schriftgrößen und Knopfgrößen kommen aus wenigen zentralen
+  Werten; im Dunkelmodus passen sich alle grünen und gelben Texte und Rahmen an.
 
 ### Behoben
 

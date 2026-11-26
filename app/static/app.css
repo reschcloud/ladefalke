@@ -1,5 +1,17 @@
 /* Ergänzungen zu Pico.css */
 :root { --pico-font-size: 95%; }
+/* Statusfarben: Text, Rahmen und Symbole (im Dunkelmodus heller) – Flächen mit weißer Schrift nehmen die
+   festen *-flaeche (sonst wäre die Schrift im Dunkelmodus auf dem hellen Ton unlesbar) */
+:root { --ok: #1a7f5a; --warnung: #c98a00; --warnung-text: #9a6a00; --gefahr: var(--pico-del-color);
+  --ok-flaeche: #1a7f5a; --warnung-flaeche: #9a6a00; --gefahr-flaeche: #c92a2a; --punkt-rot: #e53935;
+  --toenung: 12%;  /* Anteil der Statusfarbe in getönten Flächen */
+  /* Schriftgrößen unter der Grundschrift (noch kleiner nur Beschriftungen in Karte, Zeitleiste und Logo);
+     Knöpfe in zwei Größen */
+  --schrift-xs: .72rem; --schrift-s: .8rem; --schrift-m: .85rem; --schrift-l: .9rem;
+  --knopf-klein: .2rem .7rem; --knopf-mittel: .35rem 1rem; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --ok: #3ccf8e; --warnung: #f0b429; --warnung-text: #f0b429; } }
+:root[data-theme="dark"] { --ok: #3ccf8e; --warnung: #f0b429; --warnung-text: #f0b429; }
 
 nav .marke { text-decoration: none; }
 .kopf { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
@@ -7,7 +19,7 @@ nav .marke { text-decoration: none; }
 .kopf + * { margin-top: 1.5rem; }
 
 form.inline { display: inline; margin: 0; }
-button.klein, a[role=button].klein { padding: .2rem .7rem; font-size: .85em; width: auto; margin: 0; line-height: 1.4; }
+button.klein, a[role=button].klein { padding: var(--knopf-klein); font-size: var(--schrift-m); width: auto; margin: 0; line-height: 1.4; }
 /* Befehle als kleine Knöpfe (Links mit role="button"); mehrere nebeneinander mit etwas Abstand */
 a[role=button].klein + a[role=button].klein { margin-left: .35rem; }
 small a[role=button].klein { font-size: .9em; }
@@ -39,9 +51,9 @@ fieldset { min-width: 0; }
 .marker.inaktiv { background: var(--pico-muted-color); }
 .marker.gast { background: var(--pico-primary-background); color: var(--pico-primary-inverse); }
 
-.meldung { padding: .6rem 1rem; border-radius: var(--pico-border-radius); border-left: .3rem solid; }
+.meldung { padding: .6rem 1rem; border-radius: var(--pico-border-radius); border-left: 4px solid; }
 .meldung-info { border-color: var(--pico-ins-color); background: color-mix(in srgb, var(--pico-ins-color) 12%, transparent); }
-.meldung-warnung { border-color: #c98a00; background: color-mix(in srgb, #c98a00 14%, transparent); }
+.meldung-warnung { border-color: var(--warnung); background: color-mix(in srgb, var(--warnung) var(--toenung), transparent); }
 .meldung-fehler { border-color: var(--pico-del-color); background: color-mix(in srgb, var(--pico-del-color) 12%, transparent); }
 
 .kacheln { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); grid-auto-rows: 1fr; gap: 1rem;
@@ -58,7 +70,7 @@ article.login { max-width: 24rem; margin: 4rem auto; }
 tr.gedimmt td { opacity: .5; }
 fieldset.neue-karte { margin: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; align-items: center; }
 fieldset.neue-karte label { margin: 0; }
-fieldset.neue-karte .zusatz-hinweis { font-size: .8rem; color: var(--pico-muted-color); }
+fieldset.neue-karte .zusatz-hinweis { font-size: var(--schrift-s); color: var(--pico-muted-color); }
 fieldset.neue-karte input[type=text] { margin: 0; max-width: 18rem; }
 details > summary { font-weight: bold; }
 
@@ -68,11 +80,13 @@ details > summary { font-weight: bold; }
 .zeitraumwahl .zeitraum-label { font-size: 1.25rem; min-width: 6rem; text-align: center; }
 .zeitraumwahl .arten { margin-left: auto; }
 .zeitraumwahl form.zeitraum-auswahl { display: flex; flex-wrap: nowrap; gap: .5rem; align-items: center; margin: 0; }
-.zeitraumwahl form.zeitraum-auswahl select { width: auto; margin: 0; padding: .25rem 2.2rem .25rem .7rem; height: auto;
-  font-weight: bold; }
+/* Niedrige Auswahlfelder (Zeitraum, Stromart setzen): gleiche Innenabstände, Platz rechts für den Pfeil */
+:is(.zeitraumwahl form.zeitraum-auswahl, .stromart-setzen) select { width: auto; margin: 0;
+  padding: .25rem 2.2rem .25rem .7rem; }
+.zeitraumwahl form.zeitraum-auswahl select { height: auto; font-weight: bold; }
 .zeitraumwahl .arten ~ .arten { margin-left: 0; }  /* weitere Gruppen direkt daneben */
-.zeitraumwahl a[role=button] { padding: .2rem .7rem; margin: 0; }
-abbr.geschaetzt { text-decoration: none; cursor: help; color: #9a6a00; font-weight: bold; }
+.zeitraumwahl a[role=button] { padding: var(--knopf-klein); margin: 0; }
+abbr.geschaetzt { text-decoration: none; cursor: help; color: var(--warnung-text); font-weight: bold; }
 abbr.hilfe { display: inline-block; width: 1.1em; height: 1.1em; line-height: 1.1em; border-radius: 50%;
   border: 1px solid var(--pico-muted-color); color: var(--pico-muted-color); font-size: .75em; font-weight: bold;
   text-align: center; text-decoration: none; cursor: help; vertical-align: .1em; }
@@ -86,15 +100,15 @@ small.haken-hinweis.fehler { color: var(--pico-del-color); }
 
 /* Roter Punkt in der Menüleiste (offene Import-Vorschauen); Aufgaben: Zahl als rotes Badge (.menue-anzahl.offen) */
 nav a .punkt { display: inline-block; width: .5rem; height: .5rem; margin-left: .25rem; vertical-align: super;
-  border-radius: 50%; background: #e53935; }
+  border-radius: 50%; background: var(--punkt-rot); }
 .unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-article.offene-vorschauen { border-left: .3rem solid #c98a00; }
-article.offene-vorschauen header.kopf a[role=button] { padding: .3rem .9rem; }
+article.offene-vorschauen { border-left: 4px solid var(--warnung); }
+article.offene-vorschauen header.kopf a[role=button] { padding: var(--knopf-mittel); }
 article.offene-vorschauen ul { margin-bottom: .5rem; }
-article.import-bekannt { border-left: .3rem solid var(--pico-primary); }
+article.import-bekannt { border-left: 4px solid var(--pico-primary); }
 article.import-bekannt ul { margin-bottom: 0; }
-article.import-zurueckgestellt { border-left: .3rem solid var(--pico-muted-border-color); }
+article.import-zurueckgestellt { border-left: 4px solid var(--pico-muted-border-color); }
 article.import-zurueckgestellt ul { margin-bottom: 0; }
 article.import-zurueckgestellt li { margin-bottom: .35rem; }
 .zurueck-aktionen { display: inline-flex; gap: .4rem; margin-left: .5rem; vertical-align: middle; }
@@ -102,7 +116,7 @@ article.import-zurueckgestellt li { margin-bottom: .35rem; }
 .vorschau-aktionen { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; }
 .vorschau-aktionen form.zurueckstellen { display: flex; gap: .5rem; align-items: center; margin: 0; }
 .vorschau-aktionen form.zurueckstellen input { margin: 0; width: 20rem; max-width: 60vw;
-  --pico-form-element-spacing-vertical: .3rem; font-size: .85rem; }
+  --pico-form-element-spacing-vertical: .3rem; font-size: var(--schrift-m); }
 .vorschau-aktionen form.zurueckstellen button { margin: 0; white-space: nowrap; }
 
 /* Upload-Feld als gut erkennbare Ablagefläche (Dateien lassen sich auch hineinziehen) */
@@ -111,7 +125,7 @@ form.upload input[type=file] { width: 100%; height: auto; padding: 1.75rem 1rem;
   background: color-mix(in srgb, var(--pico-primary) 4%, transparent); }
 form.upload input[type=file]:hover, form.upload input[type=file]:focus-visible {
   background: color-mix(in srgb, var(--pico-primary) 10%, transparent); }
-form.upload .datei-liste { margin: 0 0 .75rem; padding-left: 1.25rem; font-size: .9rem; }
+form.upload .datei-liste { margin: 0 0 .75rem; padding-left: 1.25rem; font-size: var(--schrift-l); }
 form.upload .datei-liste li { margin: 0; }
 /* Menüpunkt „Import“ als Ablage beim Ziehen von Dateien */
 a.import-ablage.ziehen { outline: 2px dashed var(--pico-primary); outline-offset: 4px; border-radius: var(--pico-border-radius);
@@ -138,9 +152,9 @@ a.import-ablage.ziehen { outline: 2px dashed var(--pico-primary); outline-offset
 :root[data-theme="dark"] .marker.stromart-ac { background: #b197fc; }
 :root[data-theme="dark"] .marker.stromart-dc { background: #f783ac; }
 :root[data-theme="dark"] .marker.stromart-ohne { background: #a6acb5; }
-.marker.warnung { background: #9a6a00; }  /* weiße Schrift: #c98a00 wäre zu hell (Kontrast) */
+.marker.warnung { background: var(--warnung-flaeche); }
 td.stromart { white-space: nowrap; }
-a.unplausibel { color: #9a6a00; font-weight: bold; text-decoration: none; }
+a.unplausibel { color: var(--warnung-text); font-weight: bold; text-decoration: none; }
 
 /* Zeitleiste (Gantt): Farben als Rollen, Dunkelmodus mit eigenen Stufen */
 .zeitleiste-rahmen, .zeitleiste-legende { --zl-balken: #2a78d6; --zl-balken-text: #ffffff; --zl-luecke: #fab219;
@@ -159,13 +173,13 @@ a.unplausibel { color: #9a6a00; font-weight: bold; text-decoration: none; }
 .zl-fahrzeug small { color: var(--pico-muted-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .zl-achse { position: relative; height: calc(var(--spuren, 1) * var(--spur-hoehe) + .5rem); }
 .zl-kopf .zl-achse { height: 1.8rem; }
-.zl-kopf { font-size: .8rem; color: var(--pico-muted-color); }
+.zl-kopf { font-size: var(--schrift-s); color: var(--pico-muted-color); }
 .zl-monat { position: absolute; top: .4rem; padding-left: .25rem; border-left: 1px solid var(--zl-gitter);
   white-space: nowrap; overflow: hidden; }
 .zl-gitter { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--zl-gitter); }
 .zl-heute { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--zl-heute); z-index: 3; }
 .zl-balken, .zl-luecke { position: absolute; height: calc(var(--spur-hoehe) - .3rem); border-radius: 4px;
-  font-size: .78rem; line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
+  font-size: var(--schrift-s); line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
   text-decoration: none; box-sizing: border-box; }
 .zl-balken { top: calc(.25rem + var(--spur, 0) * var(--spur-hoehe)); background: var(--zl-balken);
   color: var(--zl-balken-text); border-left: 2px solid var(--zl-flaeche); z-index: 2; }
@@ -175,14 +189,14 @@ a.unplausibel { color: #9a6a00; font-weight: bold; text-decoration: none; }
   background-color: color-mix(in srgb, var(--zl-luecke) 18%, transparent);
   background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 8px);
   border: 1px solid var(--zl-luecke); z-index: 1; }
-.zeitleiste-legende { font-size: .85rem; display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: center; }
+.zeitleiste-legende { font-size: var(--schrift-m); display: flex; flex-wrap: wrap; gap: .3rem 1rem; align-items: center; }
 .zeitleiste-legende span { display: inline-block; width: 1.6rem; height: .8rem; vertical-align: middle;
   margin-right: .3rem; border-radius: 3px; }
 .legende-balken { background: var(--zl-balken); }
 .legende-luecke { border: 1px solid var(--zl-luecke); background-color: color-mix(in srgb, var(--zl-luecke) 18%, transparent);
   background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 8px); }
 .zl-ohne { position: absolute; top: .25rem; height: calc(var(--hoehe, 1) * var(--spur-hoehe) - .3rem); border-radius: 4px;
-  font-size: .78rem; line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
+  font-size: var(--schrift-s); line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
   text-decoration: none; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--pico-muted-color) 45%, transparent);
   z-index: 1; }
 .zl-ohne span { padding: 0 .35rem; display: block; overflow: hidden; text-overflow: ellipsis; color: var(--pico-muted-color); }
@@ -208,7 +222,7 @@ body > main.container { padding-bottom: 4rem; }
 /* Vollständigkeit im Dashboard: Status mit Symbol und Text, Farbe nur als Zusatz */
 details.vollstaendigkeit { border: 1px solid var(--pico-muted-border-color); border-left-width: 4px;
   border-radius: var(--pico-border-radius); padding: .5rem 1rem; margin-bottom: 1.5rem; }
-details.vollstaendigkeit.fehlt { border-left-color: #c98a00; }
+details.vollstaendigkeit.fehlt { border-left-color: var(--warnung); }
 details.vollstaendigkeit.ok { border-left-color: var(--pico-ins-color); }
 details.vollstaendigkeit > summary { margin-bottom: 0; }
 details.vollstaendigkeit[open] > summary { margin-bottom: .75rem; }
@@ -280,14 +294,14 @@ main article { border: 1px solid var(--pico-muted-border-color); }
 .diagramm svg .gitter { stroke: var(--gitter); stroke-width: 1px; }
 .diagramm svg .achse { stroke: var(--achse); stroke-width: 1px; }
 .diagramm svg .achsentext { fill: var(--achsentext); font-size: 11px; }
-.legende { list-style: none; padding: 0; margin: 0; flex: 1; min-width: 12rem; font-size: .9rem; }
+.legende { list-style: none; padding: 0; margin: 0; flex: 1; min-width: 12rem; font-size: var(--schrift-l); }
 .diagramm-inhalt:not(.mit-torte) .legende { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
 .legende li { list-style: none; margin: 0 0 .25rem; display: flex; align-items: baseline; gap: .4rem; }
 .legende li > :is(a, span):not(.farbfeld):not(.legende-wert) { min-width: 0; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; }  /* lange Namen kürzen statt umbrechen; voller Name im Tooltip der Säulen */
 .legende .legende-wert { margin-left: auto; padding-left: .75rem; color: var(--pico-muted-color); white-space: nowrap; }
 .diagramm-inhalt:not(.mit-torte) .legende .legende-wert { margin-left: 0; padding-left: .25rem; }
-.legende code { background: none; padding: 0; font-size: .85rem; }
+.legende code { background: none; padding: 0; font-size: var(--schrift-m); }
 .farbfeld { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; flex: none; vertical-align: -.05rem; }
 details.diagramm-tabelle { border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);
   padding: .5rem 1rem; margin-bottom: .5rem; }
@@ -318,7 +332,7 @@ td.nowrap { white-space: nowrap; }
 .karte-dashboard .karte { height: 40rem; }
 .karte-liste .karte { height: 48rem; max-height: 80vh; }
 .karte-legende { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .5rem 0 0;
-  font-size: .85rem; color: var(--pico-muted-color); }
+  font-size: var(--schrift-m); color: var(--pico-muted-color); }
 .karte-legende small { margin-left: 1rem; }
 .karte-verlauf { width: 8rem; height: .6rem; border-radius: 3px;
   background: linear-gradient(90deg, #f7c4dc, #ec7fae, #d6336c, #93307f, #5b2a86); }
@@ -343,8 +357,8 @@ td.nowrap { white-space: nowrap; }
 .karte .karte-landname, .karte .karte-stadt { pointer-events: none; white-space: nowrap; }
 .karte .karte-landname span, .karte .karte-stadt span { display: block; transform: translate(-50%, -50%);
   color: var(--karte-text); text-shadow: 0 0 2px var(--karte-land), 0 0 3px var(--karte-land), 0 0 4px var(--karte-land); }
-.karte .karte-landname span { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; opacity: .65; }
-.karte .karte-stadt span { font-size: .72rem; transform: translate(5px, -50%); }
+.karte .karte-landname span { font-size: var(--schrift-xs); letter-spacing: .12em; text-transform: uppercase; opacity: .65; }
+.karte .karte-stadt span { font-size: var(--schrift-xs); transform: translate(5px, -50%); }
 .karte .karte-stadt.links span { transform: translate(calc(-100% - 5px), -50%); }
 .karte .karte-stadt.links span::before { left: auto; right: -7px; }
 .karte .karte-stadt span::before { content: ""; position: absolute; left: -7px; top: 50%; width: 5px; height: 5px;
@@ -386,14 +400,14 @@ small.person { white-space: nowrap; }
 .karte[data-modus="statisch"].leaflet-container { cursor: default; }
 /* ---------------------------------------------------------------- Preisschilder (Karte bei den Ladevorgängen) */
 /* Stromart: AC dunkelviolett, DC pink; Preis: grün unter, rot über dem Ø – weiße Schrift, Kontrast ≥ 4,5:1 */
-.karte-bereich { --schild-ac: #5b2a86; --schild-dc: #d6336c; --schild-ohne: #6b7079; --schild-guenstig: #1a7f5a;
-  --schild-teuer: #c92a2a; }
+.karte-bereich { --schild-ac: #5b2a86; --schild-dc: #d6336c; --schild-ohne: #6b7079; --schild-guenstig: var(--ok-flaeche);
+  --schild-teuer: var(--gefahr-flaeche); }
 .karte-bereich[data-farbe="preis"] .nach-art, .karte-bereich:not([data-farbe="preis"]) .nach-preis,
 .karte-bereich[data-farbe="heat"] .nach-art, .karte-bereich:not([data-farbe="heat"]) .nach-heat { display: none; }
 .karte-farben.nach-heat { align-items: center; gap: .35rem; }
 .karte-farben.nach-heat .karte-verlauf { width: 5rem; }
 .karte-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.5rem; margin-bottom: .5rem; }
-.karte-farben { display: inline-flex; gap: .4rem; font-size: .8rem; }
+.karte-farben { display: inline-flex; gap: .4rem; font-size: var(--schrift-s); }
 .schild-muster { padding: .05rem .45rem; border-radius: 4px; color: #fff; font-weight: 600; }
 .schild-muster.ac { background: var(--schild-ac); } .schild-muster.dc { background: var(--schild-dc); }
 .schild-muster.ohne { background: var(--schild-ohne); }
@@ -405,7 +419,7 @@ small.person { white-space: nowrap; }
   box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
 .karte .schild.ac { --f: var(--schild-ac); } .karte .schild.dc { --f: var(--schild-dc); } .karte .schild.ohne { --f: var(--schild-ohne); }
 .karte .schild.guenstig { --f: var(--schild-guenstig); } .karte .schild.teuer { --f: var(--schild-teuer); }
-.karte .schild-wert { font-size: .8rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.karte .schild-wert { font-size: var(--schrift-s); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .karte .schild-einheit { font-size: .56rem; font-weight: 600; line-height: 1; opacity: .9; }
 /* Spitze zeigt auf den Ort: allein mittig nach unten, zu zweit von links bzw. rechts schräg zum gemeinsamen Punkt */
 .karte .schild::after { content: ""; position: absolute; bottom: -9px; border-top: 9px solid var(--f); }
@@ -427,9 +441,9 @@ small.person { white-space: nowrap; }
 .karte .karte-gruppe { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%;
   transform: translate(-50%, calc(-50% - 26px)); box-shadow: 0 1px 5px rgb(0 0 0 / .3); cursor: zoom-in; }
 .karte .karte-gruppe span { display: flex; align-items: center; justify-content: center; width: calc(100% - 10px);
-  height: calc(100% - 10px); border-radius: 50%; background: #fff; color: #2b3038; font-weight: 700; font-size: .85rem; }
+  height: calc(100% - 10px); border-radius: 50%; background: #fff; color: #2b3038; font-weight: 700; font-size: var(--schrift-m); }
 /* Tooltip/Popup mit den Ladungen */
-.karte .karte-tip table { margin: .2rem 0 0; font-size: .78rem; }
+.karte .karte-tip table { margin: .2rem 0 0; font-size: var(--schrift-s); }
 .karte .karte-tip td { padding: .05rem .6rem .05rem 0; border: 0; background: transparent; color: inherit; white-space: nowrap; }
 .karte .karte-tip td.rechts { text-align: right; }
 /* Tooltip eines Schilds: anklickbar (Zeile → Detailseite), bei vielen Ladungen scrollbar */
@@ -442,7 +456,7 @@ small.person { white-space: nowrap; }
 .karte .leaflet-tooltip { background: var(--karte-land); color: var(--karte-text); border-color: var(--karte-grenze); }
 .karte .leaflet-tooltip-top::before { border-top-color: var(--karte-grenze); }
 .karte .leaflet-tooltip-bottom::before { border-bottom-color: var(--karte-grenze); }
-.karte .karte-tip, .karte .karte-tip li { font-size: .8rem; line-height: 1.35; color: inherit; }
+.karte .karte-tip, .karte .karte-tip li { font-size: var(--schrift-s); line-height: 1.35; color: inherit; }
 .karte .karte-tip ul { margin: .2rem 0 0; padding-left: 1rem; }
 .karte .karte-tip li { list-style: disc; margin: 0; }
 /* Relief (Graustufen, Ebenen weiß) wird mit der Landfarbe multipliziert: nur die Hangschatten werden sichtbar.
@@ -458,13 +472,13 @@ small.person { white-space: nowrap; }
 .filter-formular .filterzeile:has(label.suche) { margin-top: .5rem; align-items: center; }
 .filter-formular label.suche input { width: 100%; height: auto; }
 .karte-liste .karte-kopf { margin-top: 1.75rem; }
-.karte .karte-farblegende { display: flex; gap: .4rem; padding: .3rem .5rem; border-radius: 6px; font-size: .8rem;
+.karte .karte-farblegende { display: flex; gap: .4rem; padding: .3rem .5rem; border-radius: 6px; font-size: var(--schrift-s);
   background: color-mix(in srgb, var(--karte-land) 88%, transparent); box-shadow: 0 1px 3px rgb(0 0 0 / .2); }
 /* Umschalter (Segmente): AC/DC | Preis über der Karte, Monat | Quartal | Halbjahr | Jahr in der Zeitraumwahl.
    Gut sichtbarer Rahmen in Primärfarbe, Trennlinien, Auswahl gefüllt (aria-pressed bzw. aria-current) */
 .umschalter { display: inline-flex; vertical-align: middle; border: 1.5px solid var(--pico-primary-border);
   border-radius: var(--pico-border-radius); overflow: hidden; }
-.umschalter > a, .umschalter > button { margin: 0; padding: .3rem .85rem; border: 0; border-radius: 0; font-size: .85rem;
+.umschalter > a, .umschalter > button { margin: 0; padding: var(--knopf-klein); border: 0; border-radius: 0; font-size: var(--schrift-m);
   line-height: 1.4; background: transparent; color: var(--pico-primary); text-decoration: none; box-shadow: none; }
 .umschalter > * + * { border-left: 1.5px solid var(--pico-primary-border); }
 .umschalter > :hover { background: color-mix(in srgb, var(--pico-primary) 12%, transparent); }
@@ -488,7 +502,6 @@ nav.umschalter { margin-bottom: 1rem; }
 :is(button, a[role=button], input[type=submit], input[type=button]).outline:is(:hover, :focus-visible) {
   background-color: color-mix(in srgb, var(--pico-primary) 12%, transparent) !important; }
 .stromart-setzen { margin: 1rem 0; align-items: center; }
-.stromart-setzen select { width: auto; margin: 0; padding: .25rem 2.2rem .25rem .7rem; }
 label.stromart-vorgabe select { max-width: 16rem; }
 /* Breite: Inhalt nutzt die Fensterbreite (seitlicher Rand bleibt), höchstens 1800 px – Picos feste Stufen
    (bis 1200 bzw. 1450 px) engten breite Tabellen unnötig ein. Eingabeformulare bleiben handlich schmal. */
@@ -499,7 +512,7 @@ label.stromart-vorgabe select { max-width: 16rem; }
   body > header.container, body > main.container { max-width: min(calc(100% - 5rem), 1800px); }
 }
 form.formular { max-width: 52rem; }
-.karte-tip .schild-muster { padding: 0 .35rem; font-size: .72rem; }  /* Anteile im Gruppen-Tooltip */
+.karte-tip .schild-muster { padding: 0 .35rem; font-size: var(--schrift-xs); }  /* Anteile im Gruppen-Tooltip */
 /* Knöpfe in Aktionszeilen nicht über die ganze Breite (Pico setzt Submit-Knöpfe in Formularen auf 100 %) */
 .aktionszeile > button { width: auto; margin: 0; }
 /* AC/DC-Marker behalten ihre Schriftfarbe auch in Knöpfen (Pico überschreibt dort --pico-background-color) */
@@ -521,7 +534,7 @@ a.maps-link { margin-left: .5rem; white-space: nowrap; }  /* neben der Adresse (
 .formular .aktionszeile.vorgabe > button { width: auto; margin: 0; }
 /* Löschen/Deaktivieren: rot hinterlegt beim Überfahren */
 /* !important: die hellblaue Hover-Regel der umrandeten Knöpfe setzt den Hintergrund ebenfalls mit !important */
-button.outline.gefahr:is(:hover, :focus-visible), button.gefahr:is(:hover, :focus-visible) { background: #c92a2a !important; border-color: #c92a2a !important;
+button.outline.gefahr:is(:hover, :focus-visible), button.gefahr:is(:hover, :focus-visible) { background: var(--gefahr-flaeche) !important; border-color: var(--gefahr-flaeche) !important;
   color: #fff !important; }
 .theme-wahl { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0; }
 .theme-wahl .umschalter { width: auto; margin: 0; }  /* Pico gibt role=group volle Breite */
@@ -574,26 +587,26 @@ body.nur-lesen .gesperrt { opacity: .4; cursor: not-allowed; filter: grayscale(1
 body.nur-lesen .gesperrt:hover { background-color: transparent !important; }
 body.nur-lesen form[method="post"]:not([data-immer]) :is(input, select, textarea):disabled { cursor: not-allowed; }
 body.nur-lesen article[data-schreiben] > header::after { content: "🔒 nur Operator/Admin"; float: right;
-  font-size: .75rem; font-weight: normal; color: var(--pico-muted-color); }
+  font-size: var(--schrift-xs); font-weight: normal; color: var(--pico-muted-color); }
 body.nur-lesen article[data-schreiben] { border-style: dashed; }
 .gesperrt-eintrag { display: block; padding: var(--pico-nav-link-spacing-vertical) var(--pico-nav-link-spacing-horizontal);
   color: var(--pico-muted-color); cursor: not-allowed; }
 .marker.rolle-admin { background: #5b2a86; }
-.marker.rolle-operator { background: #1a7f5a; }
+.marker.rolle-operator { background: var(--ok-flaeche); }
 .marker.rolle-viewer { background: #6b7079; }
 .marker[class*="rolle-"] { color: #fff; }  /* feste Grundfarben: im Dunkelmodus sonst dunkel auf dunkel */
 fieldset small.fehler-text { color: var(--pico-del-color); }
 /* Als Admin angemeldet: dünne rote Leiste am oberen Fensterrand (unter der Statusleiste von Mobilgeräten) */
 body.als-admin::before { content: ""; position: fixed; z-index: 1000; left: 0; right: 0;
-  top: env(safe-area-inset-top, 0px); height: 3px; background: #c92a2a; pointer-events: none; }
+  top: env(safe-area-inset-top, 0px); height: 3px; background: var(--gefahr-flaeche); pointer-events: none; }
 /* Einstellungen für Nicht-Admins: nur lesen */
 
 fieldset.einstellungen-felder { margin: 0; padding: 0; border: 0; }
 form.upload > button[type=submit] { display: block; margin-top: .75rem; }
 /* Löschen mit Folgen (z. B. Zuordnung): eigener, rot abgesetzter Bereich */
-article.gefahrenzone { max-width: 52rem; margin-top: 2rem; border: 1px solid color-mix(in srgb, #c92a2a 45%, transparent);
+article.gefahrenzone { max-width: 52rem; margin-top: 2rem; border: 1px solid color-mix(in srgb, var(--gefahr) 45%, transparent);
   box-shadow: none; }
-article.gefahrenzone > header { color: #c92a2a; }
+article.gefahrenzone > header { color: var(--gefahr); }
 .leasing-uebernehmen { margin: -.5rem 0 var(--pico-spacing); }
 .leasing-uebernehmen + .ladung-uebernehmen { margin: calc(.5rem - var(--pico-spacing)) 0 var(--pico-spacing); }
 .luecken { margin-bottom: 1.5rem; }
@@ -630,7 +643,7 @@ body > header.container + main { padding-top: 1rem; }
 :root { scroll-padding-top: 4.5rem; }
 body { overflow-x: clip; }  /* fensterbreite Fläche hinter der Leiste ohne waagrechten Scrollbalken (clip: sticky bleibt) */
 /* Zeitleiste: Leasing (Fahrzeug-Zeilen) – Beginn/Ende als grüne Linie mit Fähnchen, Zeit außerhalb grau */
-.zeitleiste-rahmen { --zl-leasing: #1a7f5a; --zl-ausserhalb: color-mix(in srgb, var(--pico-muted-color) 16%, transparent); }
+.zeitleiste-rahmen { --zl-leasing: var(--ok); --zl-ausserhalb: color-mix(in srgb, var(--pico-muted-color) 16%, transparent); }
 .zl-ausserhalb { position: absolute; top: 0; bottom: 0; background: var(--zl-ausserhalb); z-index: 0; }
 .zl-leasing { position: absolute; top: 0; bottom: 0; border-left: 3px solid var(--zl-leasing); z-index: 3; }
 .zl-leasing::before { position: absolute; top: 0; font-size: .6rem; line-height: 1; padding: .1rem .2rem;
@@ -638,22 +651,22 @@ body { overflow-x: clip; }  /* fensterbreite Fläche hinter der Leiste ohne waag
 .zl-leasing.beginn::before { content: "L▸"; left: 0; border-radius: 0 3px 3px 0; }
 .zl-leasing.ende { transform: translateX(-3px); }
 .zl-leasing.ende::before { content: "◂L"; right: 0; border-radius: 3px 0 0 3px; }
-.legende-leasing { width: 0 !important; height: 1rem !important; border-left: 3px solid #1a7f5a; border-radius: 0 !important; }
+.legende-leasing { width: 0 !important; height: 1rem !important; border-left: 3px solid var(--ok); border-radius: 0 !important; }
 .legende-ausserhalb { background: color-mix(in srgb, #6b7079 16%, transparent); }
 /* Fahrzeugliste: Hinweise je Fahrzeug als kleine Marken; grüner Haken, wenn alles passt */
 td.hinweise { line-height: 1.9; }
-.hinweis { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .45rem; border-radius: 999px; font-size: .78rem;
+.hinweis { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .45rem; border-radius: 999px; font-size: var(--schrift-s);
   line-height: 1.6; white-space: nowrap; text-decoration: none; border: 1px solid currentColor; }
 .hinweis.rot { color: var(--pico-del-color); background: color-mix(in srgb, var(--pico-del-color) 10%, transparent); }
-.hinweis.gelb { color: #9a6a00; background: color-mix(in srgb, #c98a00 14%, transparent); }
+.hinweis.gelb { color: var(--warnung-text); background: color-mix(in srgb, var(--warnung) var(--toenung), transparent); }
 .hinweis.grau { color: var(--pico-muted-color); background: color-mix(in srgb, var(--pico-muted-color) 8%, transparent); }
 a.hinweis:hover { filter: brightness(.85); }
 /* Offene Punkte oben auf einer Detailseite (Makro offene_punkte) */
 .offene-punkte { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 0; line-height: 1.9; }
 .offene-punkte-titel { font-weight: 600; margin-right: .5rem; }
-.alles-ok { color: #1a7f5a; font-weight: 700; font-size: 1.25rem; line-height: 1; }
+.alles-ok { color: var(--ok); font-weight: 700; font-size: 1.25rem; line-height: 1; }
 /* Fahrer:innen-Liste: MSP der Ladekarten (gefüllt = persönlich, umrandet = über das Fahrzeug) */
-.msp-marke { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .45rem; border-radius: 4px; font-size: .78rem;
+.msp-marke { display: inline-block; margin: 0 .25rem .15rem 0; padding: 0 .45rem; border-radius: 4px; font-size: var(--schrift-s);
   line-height: 1.6; white-space: nowrap; color: var(--pico-primary-inverse); background: var(--pico-primary-background);
   border: 1px solid var(--pico-primary-background); }
 .msp-marke.fahrzeug { color: var(--pico-primary); background: transparent; }
@@ -662,14 +675,14 @@ a.hinweis:hover { filter: brightness(.85); }
 .datum-mit-knopf > label { flex: 1; margin-bottom: 0; }  /* sonst sitzt der Knopf um den Label-Abstand tiefer */
 .datum-mit-knopf > button { width: auto; margin-bottom: var(--pico-spacing); }
 /* ---------------------------------------------------------------- Mini-Zeitleiste der Zuordnungs-Abschnitte */
-.mini-zl { --zl-balken: #2a78d6; --zl-luecke: #fab219; --zl-leasing: #1a7f5a; --spur-h: 1.35rem; margin: .5rem 0 1rem; }
-.mini-zl-achse { position: relative; height: 1.1rem; font-size: .7rem; color: var(--pico-muted-color); }
+.mini-zl { --zl-balken: #2a78d6; --zl-luecke: #fab219; --zl-leasing: var(--ok); --spur-h: 1.35rem; margin: .5rem 0 1rem; }
+.mini-zl-achse { position: relative; height: 1.1rem; font-size: var(--schrift-xs); color: var(--pico-muted-color); }
 .mini-zl-achse span { position: absolute; top: 0; padding-left: .2rem; border-left: 1px solid var(--pico-muted-border-color);
   white-space: nowrap; }
 .mini-zl-band { position: relative; height: calc(var(--spuren) * var(--spur-h) + .3rem); border-radius: 4px;
   background: color-mix(in srgb, var(--pico-muted-border-color) 35%, transparent); overflow: hidden; }
 .mini-zl-balken { position: absolute; top: calc(var(--spur) * var(--spur-h) + .15rem); height: calc(var(--spur-h) - .2rem);
-  border-radius: 3px; background: var(--zl-balken); color: #fff; font-size: .72rem; line-height: calc(var(--spur-h) - .2rem);
+  border-radius: 3px; background: var(--zl-balken); color: #fff; font-size: var(--schrift-xs); line-height: calc(var(--spur-h) - .2rem);
   text-decoration: none; overflow: hidden; z-index: 2; border-left: 1px solid var(--pico-background-color); }
 .mini-zl-balken span { display: block; padding: 0 .3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mini-zl-balken:hover { filter: brightness(1.12); }
@@ -689,19 +702,19 @@ a.hinweis:hover { filter: brightness(.85); }
 .mini-zl-leasing { position: absolute; top: 0; bottom: 0; border-left: 3px solid var(--zl-leasing); z-index: 3; }
 .mini-zl-leasing.ende { transform: translateX(-3px); }
 /* Tabelle: Lücken-Zeilen hervorgehoben */
-.zuordnungs-tabelle tr.luecken-zeile.warnung > td { background: color-mix(in srgb, #fab219 14%, transparent); color: #8a5a00; }
+.zuordnungs-tabelle tr.luecken-zeile.warnung > td { background: color-mix(in srgb, var(--warnung) var(--toenung), transparent); color: var(--warnung-text); }
 .zuordnungs-tabelle tr.luecken-zeile.neutral > td { color: var(--pico-muted-color); font-style: italic; }
 article.hervorgehoben { outline: 3px solid var(--pico-primary); outline-offset: 2px; transition: outline-color .3s; }
 /* Symbole (Material Design Icons, app/icons.py): in Textgröße, auf der Grundlinie. Arten und Zustände farbig
    (wie in Home Assistant), alles andere in Textfarbe bzw. im Menü grau. :where() hält die Menüregel schwächer als die
    Farben der Arten. */
 :root { --sym-auto: #1c7ed6; --sym-person: #7950f2; --sym-karte: #0c8599; --sym-msp: #e67700;
-  --sym-warnung: #c98a00; --sym-ok: #1a7f5a; --sym-co2e: #2f9e44; --sym-vorgaenge: #d6336c; }
+  --sym-warnung: var(--warnung); --sym-ok: var(--ok); --sym-co2e: #2f9e44; --sym-vorgaenge: #d6336c; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --sym-auto: #4dabf7; --sym-person: #9775fa; --sym-karte: #3bc9db; --sym-msp: #ffa94d;
-    --sym-warnung: #f0b429; --sym-ok: #3ccf8e; --sym-co2e: #51cf66; --sym-vorgaenge: #e0558a; } }
+    --sym-co2e: #51cf66; --sym-vorgaenge: #e0558a; } }
 :root[data-theme="dark"] { --sym-auto: #4dabf7; --sym-person: #9775fa; --sym-karte: #3bc9db; --sym-msp: #ffa94d;
-  --sym-warnung: #f0b429; --sym-ok: #3ccf8e; --sym-co2e: #51cf66; --sym-vorgaenge: #e0558a; }
+  --sym-co2e: #51cf66; --sym-vorgaenge: #e0558a; }
 svg.symbol { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 :where(nav) svg.symbol { margin-right: .4rem; color: var(--pico-muted-color); }
 :where(nav) a[aria-current="page"] svg.symbol, :where(nav) summary[aria-current="page"] svg.symbol { color: inherit; }
@@ -737,9 +750,9 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
 :is(.filter-formular, .filterleiste, .kompakt) { --pico-form-element-spacing-vertical: .32rem;
   --pico-form-element-spacing-horizontal: .6rem; }
 :is(.filter-formular, .filterleiste, .kompakt) :is(input:not([type=checkbox]):not([type=radio]), select, details.mehrfach > summary) {
-  font-size: .9rem; }
+  font-size: var(--schrift-l); }
 :is(.filter-formular, .filterleiste, .kompakt) .filterzeile > label, :is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld > span {
-  font-size: .78rem; color: var(--pico-muted-color); }
+  font-size: var(--schrift-s); color: var(--pico-muted-color); }
 :is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld > span { margin-bottom: .2rem; }
 :is(.filter-formular, .filterleiste, .kompakt) .filterzeile > label > input { margin-top: .2rem; }
 :is(.filter-formular, .filterleiste, .kompakt) details.mehrfach > summary { height: auto; min-width: 7.5rem; }
@@ -747,7 +760,7 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
 /* gesetzte Filter: Beschriftung bleibt blau */
 :is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld.gesetzt > span { color: var(--pico-primary); }
 /* Mini-Zeitleiste: Beschriftung der Enden und der Leasing-Markierungen unter dem Band */
-.mini-zl-enden { position: relative; height: 1.1rem; margin-top: .15rem; font-size: .7rem; color: var(--pico-muted-color);
+.mini-zl-enden { position: relative; height: 1.1rem; margin-top: .15rem; font-size: var(--schrift-xs); color: var(--pico-muted-color);
   white-space: nowrap; }
 .mini-zl-enden .links { position: absolute; left: 0; }
 .mini-zl-enden .rechts { position: absolute; right: 0; }
@@ -755,7 +768,7 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
 .mini-zl-enden .leasing.ende { transform: translateX(calc(-100% + .35rem)); }
 .mini-zl-enden .links:has(+ .leasing), .mini-zl-enden .links { z-index: 1; }
 /* Mittelgroße Knöpfe für Nebenaktionen in Formularen (z. B. „Zuordnen“) */
-button.knopf-mittel { padding: .35rem 1rem; font-size: .9rem; }
+button.knopf-mittel { padding: var(--knopf-mittel); font-size: var(--schrift-l); }
 /* Absendeknopf gesperrt, bis die Pflichtfelder ausgefüllt sind */
 .ausgegraut { opacity: .45; cursor: not-allowed; }
 .ausgegraut:hover { background-color: transparent !important; filter: none; }
@@ -779,7 +792,7 @@ main :is(article, .abschnitt-karte, .diagramm, .einstellung-gruppe, form.formula
 /* Kurzer Hinweis mit ausführlichem Text im Tooltip */
 .mit-tooltip { cursor: help; color: var(--pico-muted-color); }
 .theme-wahl .umschalter button { min-width: 2.8rem; padding-block: .15rem; font-size: 1.2rem; line-height: 1.3; }
-.zeitraum-wahl .umschalter button { font-size: .9rem; padding-inline: .7rem; line-height: 1.6; }
+.zeitraum-wahl .umschalter button { font-size: var(--schrift-l); padding-inline: .7rem; line-height: 1.6; }
 
 /* ---------------------------------------------------------------- Lade-Animation (base.html) */
 /* E-Auto an der Ladesäule mit wachendem Falken (Zeichnung: _makros.lade_auto): Strom fließt durchs Kabel, der Blitz pulsiert.
@@ -816,7 +829,7 @@ html.laedt main { opacity: .5; transition: opacity .3s; }
 .cpo-tabelle tbody + tbody, .cpo-personen tbody + tbody { border-top: 1px solid var(--pico-muted-border-color); }
 .cpo-tabelle td, .cpo-personen td { border-bottom: 0; }
 .aufklappen { display: inline-flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem;
-  margin: 0; padding: 0; font-size: .8rem; line-height: 1; border-radius: 50%; box-shadow: none; cursor: pointer;
+  margin: 0; padding: 0; font-size: var(--schrift-s); line-height: 1; border-radius: 50%; box-shadow: none; cursor: pointer;
   color: var(--pico-primary); border: 1px solid color-mix(in srgb, var(--pico-primary) 45%, transparent);
   background: color-mix(in srgb, var(--pico-primary) 8%, var(--pico-form-element-background-color)); }
 .aufklappen:hover, .aufklappen:focus-visible, .aufklappen[aria-expanded="true"] { background: var(--pico-primary);
@@ -830,11 +843,11 @@ html.laedt main { opacity: .5; transition: opacity .3s; }
 .cpo-vorschau .preis { min-width: 6.5rem; text-align: right; }
 .cpo-vorschau .betrag { min-width: 6rem; text-align: right; color: var(--pico-muted-color); }
 .cpo-vorschau .karten { display: inline-flex; flex-wrap: wrap; gap: .3rem; }
-.karten-chip { padding: 0 .45rem; border: 1px solid var(--pico-muted-border-color); border-radius: 1rem; font-size: .8rem;
+.karten-chip { padding: 0 .45rem; border: 1px solid var(--pico-muted-border-color); border-radius: 1rem; font-size: var(--schrift-s);
   white-space: nowrap; }
 .karten-chip small { color: var(--pico-muted-color); }
 .cpo-personen tr.person td { padding-top: .6rem; font-weight: 500; }
-.cpo-personen tr.karte-zeile td { padding-block: .15rem; font-size: .88rem; color: var(--pico-muted-color); }
+.cpo-personen tr.karte-zeile td { padding-block: .15rem; font-size: var(--schrift-m); color: var(--pico-muted-color); }
 .cpo-personen tr.karte-zeile td:first-child { padding-left: 2rem; }
 .cpo-personen tr.karte-zeile a { color: inherit; }
 .cpo-personen tr.karte-zeile:last-child td { padding-bottom: .6rem; }
@@ -895,41 +908,29 @@ nav .marke svg.falke { height: 2rem; width: auto; aspect-ratio: 1399 / 905; colo
 .import-schritte .schritt-text { display: flex; flex-direction: column; line-height: 1.25; }
 .import-schritte .schritt-text small { color: var(--pico-muted-color); }
 .import-schritte .schritt-text small a { text-decoration: none; }
-.import-schritte li.erledigt .schritt-nr { background: #1a7f5a; border-color: #1a7f5a; color: #fff; }
+.import-schritte li.erledigt .schritt-nr { background: var(--ok-flaeche); border-color: var(--ok-flaeche); color: #fff; }
 .import-schritte li.aktiv { color: var(--pico-color); background: color-mix(in srgb, var(--pico-primary) 8%, var(--pico-card-background-color));
   border-radius: var(--pico-border-radius); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pico-primary) 35%, transparent); }
 .import-schritte li.aktiv .schritt-nr { border-color: var(--pico-primary); color: var(--pico-primary); }
-.import-schritte li.aktiv.erledigt .schritt-nr { color: #fff; border-color: #1a7f5a; }
+.import-schritte li.aktiv.erledigt .schritt-nr { color: #fff; border-color: var(--ok-flaeche); }
 .block-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
-.block-status { font-size: .88rem; color: var(--pico-muted-color); }
-.block-status.ok { color: #1a7f5a; font-weight: 600; }
-.block-status.offen { color: #b06d00; font-weight: 600; }
+.block-status { font-size: var(--schrift-m); color: var(--pico-muted-color); }
+.block-status.ok { color: var(--ok); font-weight: 600; }
+.block-status.offen { color: var(--warnung-text); font-weight: 600; }
 .marker.spaeter { background: color-mix(in srgb, var(--pico-primary) 14%, transparent); color: var(--pico-primary); cursor: help; }
 .hinweis-spaeter { margin-bottom: 1rem; }
-.import-abschluss { border-left: 4px solid #1a7f5a; }
+.import-abschluss { border-left: 4px solid var(--ok); }
 /* Liste der Importe: aufklappbar, standardmäßig zu */
 details.importe-liste > summary { display: flex; align-items: baseline; gap: .75rem; }
 details.importe-liste > summary h2 { display: inline; margin: 0; font-size: 1.3rem; }
 details.importe-liste > summary small { color: var(--pico-muted-color); }
 details.importe-liste[open] > summary { margin-bottom: .75rem; }
-.import-abschluss > header strong { color: #1a7f5a; font-size: 1.1rem; }
+.import-abschluss > header strong { color: var(--ok); font-size: 1.1rem; }
 .import-abschluss .abschluss-dateien { margin: 0 0 .75rem; padding-left: 1.2rem; }
 .import-abschluss .abschluss-spaeter { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0;
-  padding: .6rem .8rem; border-radius: var(--pico-border-radius); background: color-mix(in srgb, #c98a00 12%, transparent); }
+  padding: .6rem .8rem; border-radius: var(--pico-border-radius); background: color-mix(in srgb, var(--warnung) var(--toenung), transparent); }
 .import-abschluss .abschluss-spaeter a[role=button] { margin: 0; }
-tr.neu-importiert > td { background: color-mix(in srgb, #1a7f5a 10%, transparent) !important; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.block-status.ok, .import-abschluss > header strong) { color: #3ccf8e; }
-  :root:not([data-theme="light"]) .block-status.offen { color: #f0b429; } }
-[data-theme="dark"] :is(.block-status.ok, .import-abschluss > header strong) { color: #3ccf8e; }
-[data-theme="dark"] .block-status.offen { color: #f0b429; }
-/* Grün- und Gelbtöne für Text: im Dunkelmodus hellere Varianten (die dunklen sind dort kaum lesbar) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) :is(.ok-text, .alles-ok) { color: #3ccf8e; }
-  :root:not([data-theme="light"]) :is(.hinweis.gelb, .zuordnungs-tabelle tr.luecken-zeile.warnung > td, .fzl-befunde li.gelb,
-    abbr.geschaetzt, a.unplausibel) { color: #f0b429; } }
-[data-theme="dark"] :is(.ok-text, .alles-ok) { color: #3ccf8e; }
-[data-theme="dark"] :is(.hinweis.gelb, .zuordnungs-tabelle tr.luecken-zeile.warnung > td, .fzl-befunde li.gelb,
-  abbr.geschaetzt, a.unplausibel) { color: #f0b429; }
+tr.neu-importiert > td { background: color-mix(in srgb, var(--ok) var(--toenung), transparent) !important; }
 .kachel .pro-tag { color: var(--pico-muted-color); }
 
 /* Footer: Marke, Link, Version */
@@ -945,7 +946,7 @@ footer.fuss { position: sticky; bottom: 0; z-index: 800; width: 100%; margin-top
   background: color-mix(in srgb, var(--dash-grund, var(--pico-background-color)) 72%, transparent);
   -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
   border-top: 1px solid color-mix(in srgb, var(--pico-muted-border-color) 70%, transparent);
-  font-size: .8rem; color: var(--pico-muted-color); }
+  font-size: var(--schrift-s); color: var(--pico-muted-color); }
 footer.fuss .fuss-inhalt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
   gap: .25rem 1.5rem; padding-inline: max(1.25rem, env(safe-area-inset-left, 0px)) max(1.25rem, env(safe-area-inset-right, 0px)); }
 footer.fuss .fuss-marke { display: inline-flex; align-items: center; gap: .5rem; }
@@ -958,7 +959,7 @@ main .einstellung-gruppe .tabelle { border: 0; box-shadow: none; padding: 0; bac
 .mail-test input { flex: 1 1 14rem; margin: 0; }
 .mail-test button { margin: 0; width: auto; }
 .hat-email { color: var(--pico-muted-color); cursor: help; }
-label.haken.klein { font-size: .85rem; margin-top: .35rem; }
+label.haken.klein { font-size: var(--schrift-m); margin-top: .35rem; }
 /* Marke: „Ladefalke“ mit „resch.cloud“ klein darunter */
 nav .marke .marke-text { display: inline-flex; flex-direction: column; line-height: 1.05; }
 nav .marke .marke-text small { font-size: .62rem; font-weight: 400; color: var(--pico-muted-color); letter-spacing: .03em; }
@@ -969,11 +970,11 @@ hgroup.login-titel > p.login-herkunft { font-size: .68rem; letter-spacing: .05em
 tr.hervorgehoben > td { background: color-mix(in srgb, var(--pico-primary) 12%, transparent) !important; }
 /* TLP-Kennzeichnung (Traffic Light Protocol 2.0): farbige Schrift auf Schwarz */
 .tlp { display: inline-block; padding: 0 .4rem; background: #000; font-family: ui-monospace, monospace; font-weight: 700;
-  font-size: .8rem; border-radius: .2rem; color: #fff; }
+  font-size: var(--schrift-s); border-radius: .2rem; color: #fff; }
 .tlp-green { color: #33ff00; } .tlp-amber, .tlp-amber-strict { color: #ffc000; } .tlp-red { color: #ff2b2b; }
 .report-karte .knopfgruppe { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
 .report-karte .knopfgruppe > * { margin: 0; }
-.ok-text { color: #1a7f5a; } .fehler-text { color: var(--pico-del-color); }
+.ok-text { color: var(--ok); } .fehler-text { color: var(--pico-del-color); }
 /* Versanddialog (Reports): Empfänger:innen als Liste mit Kästchen, freie Adressen, Fuß mit Anzahl und Knöpfen */
 dialog.versand-dialog > article { width: min(40rem, 94vw); max-width: none; }
 dialog.versand-dialog > article > form { margin: 0; }
@@ -990,24 +991,24 @@ dialog.versand-dialog > article > form { margin: 0; }
 .versand-dialog .empfaenger-zeile small { display: block; line-height: 1.3; color: var(--pico-muted-color); }
 .versand-dialog .empfaenger-zeile:has(input:disabled) { cursor: not-allowed; opacity: .7; }
 .versand-dialog textarea { margin: 0 0 .35rem; font-size: .95rem; }
-.versand-dialog .versand-hilfe { display: block; color: var(--pico-muted-color); font-size: .8rem; line-height: 1.3;
+.versand-dialog .versand-hilfe { display: block; color: var(--pico-muted-color); font-size: var(--schrift-s); line-height: 1.3;
   margin: .45rem 0 .9rem; }
 .versand-dialog .vorschlaege { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .4rem; margin: 0 0 .9rem; }
-.versand-dialog .vorschlaege button { margin: 0; width: auto; padding: .15rem .55rem; font-size: .8rem; }
+.versand-dialog .vorschlaege button { margin: 0; width: auto; padding: .15rem .55rem; font-size: var(--schrift-s); }
 .versand-dialog .versand-hinweis { color: var(--pico-muted-color); margin: .8rem 0 0; line-height: 1.35; }
-.versand-dialog .versand-hinweis small { font-size: .8rem; }
-.versand-dialog .tlp-hinweis { margin: .8rem 0 0; padding: .45rem .8rem; font-size: .85rem; line-height: 1.35; }
+.versand-dialog .versand-hinweis small { font-size: var(--schrift-s); }
+.versand-dialog .tlp-hinweis { margin: .8rem 0 0; padding: .45rem .8rem; font-size: var(--schrift-m); line-height: 1.35; }
 .versand-dialog footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
 .versand-dialog footer button { margin: 0; width: auto; }
 .versand-dialog footer .versand-anzahl { margin-right: auto; color: var(--pico-muted-color); }
 /* Änderungsprotokoll (Seite „Protokoll“, Verlauf auf Detailseiten) */
-.protokoll-liste td { vertical-align: top; font-size: .88rem; }
+.protokoll-liste td { vertical-align: top; font-size: var(--schrift-m); }
 .protokoll-liste td.zeit { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.protokoll-liste .objekt-typ { display: block; color: var(--pico-muted-color); font-size: .75rem; }
+.protokoll-liste .objekt-typ { display: block; color: var(--pico-muted-color); font-size: var(--schrift-xs); }
 .protokoll-liste .system { color: var(--pico-muted-color); font-style: italic; }
 .protokoll-liste .kontext { display: block; color: var(--pico-muted-color); }
 .protokoll-liste details { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
-.protokoll-liste details > summary { font-size: .8rem; color: var(--pico-muted-color); padding: 0; line-height: 1.4; }
+.protokoll-liste details > summary { font-size: var(--schrift-s); color: var(--pico-muted-color); padding: 0; line-height: 1.4; }
 .protokoll-liste details > summary::after { display: none; }
 .protokoll-liste details > summary::before { content: "▸ "; }
 .protokoll-liste details[open] > summary::before { content: "▾ "; }
@@ -1015,19 +1016,19 @@ dialog.versand-dialog > article > form { margin: 0; }
 .protokoll-liste dt { font-weight: 600; margin: 0; }
 .protokoll-liste dd { margin: 0; overflow-wrap: anywhere; }
 .protokoll-liste del { color: var(--pico-muted-color); }
-.protokoll-liste tr.protokoll-warnung > td { background: color-mix(in srgb, #c98a00 10%, transparent); }
+.protokoll-liste tr.protokoll-warnung > td { background: color-mix(in srgb, var(--warnung) var(--toenung), transparent); }
 .protokoll-filter label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; }
 .protokoll-filter input, .protokoll-filter select, .protokoll-filter button, .protokoll-filter a[role=button] { margin: 0; width: auto; }
 .blaettern { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
 .verlauf-abschnitt { margin-top: 2rem; }
-.syslog-ca textarea { font-family: var(--pico-font-family-monospace); font-size: .78rem; max-width: 40rem; }
+.syslog-ca textarea { font-family: var(--pico-font-family-monospace); font-size: var(--schrift-s); max-width: 40rem; }
 /* Ladekarte: Name (Person / Kennzeichen) mit MSP-Etikett, Kennung im Tooltip (Makro „karte“) */
 .karte-anzeige { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .35rem; cursor: help; }
 .karte-anzeige a { cursor: pointer; }
 .karte-anzeige.ohne { color: var(--pico-muted-color); cursor: default; }
-.karte-msp { display: inline-block; padding: 0 .4rem; border-radius: 4px; font-size: .72rem; line-height: 1.55;
+.karte-msp { display: inline-block; padding: 0 .4rem; border-radius: 4px; font-size: var(--schrift-xs); line-height: 1.55;
   white-space: nowrap; color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 12%, transparent); }
-.karte-zusatz, .karte-weitere { color: var(--pico-muted-color); font-size: .75rem; white-space: nowrap; }
+.karte-zusatz, .karte-weitere { color: var(--pico-muted-color); font-size: var(--schrift-xs); white-space: nowrap; }
 .maps-links { display: inline-flex; flex-wrap: wrap; gap: .3rem; vertical-align: middle; }
 /* Tabellen: Zeile unter der Maus hervorheben – man sieht leicht, wo man ist (Kopf- und Leerzeilen ausgenommen) */
 table tbody tr:hover > td, table tbody tr:hover > th {
@@ -1045,14 +1046,12 @@ td.dauer small { color: var(--pico-muted-color); }
 .kacheln-klein .kachel { padding: .55rem .8rem; }
 .kacheln-klein .kachel-zahl { font-size: 1.35rem; line-height: 1.2; }
 @media (max-width: 600px) { .kacheln-klein .kachel-zahl { font-size: 1.15rem; } }
-.kacheln-klein .kachel > span:last-child { font-size: .8rem; color: var(--pico-muted-color); }
+.kacheln-klein .kachel > span:last-child { font-size: var(--schrift-s); color: var(--pico-muted-color); }
 /* Sparpotenzial je CPO */
 .ersparnis { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.ersparnis.hat { color: #b06d00; }
+.ersparnis.hat { color: var(--warnung-text); }
 [title].ersparnis { cursor: help; }
 .msp-vergleich tbody + tbody tr:first-child td { border-top: 2px solid var(--pico-muted-border-color); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ersparnis.hat { color: #f0b429; } }
-[data-theme="dark"] .ersparnis.hat { color: #f0b429; }
 /* Menüleiste links (Mein Konto → Darstellung): feste Seitenleiste ab 1024 px Breite, darunter wie oben.
    Stammdaten und Benutzermenü klappen als Gruppe auf; Benutzermenü unten. */
 :root { --seitenleiste: 14.5rem; }
@@ -1087,9 +1086,9 @@ td.dauer small { color: var(--pico-muted-color); }
     border-radius: 0; background: none; box-shadow: none; transform: none; opacity: 1; }
   body.menue-links nav details.dropdown[open] > summary + ul { display: flex; flex-direction: column; align-items: stretch; }
   body.menue-links nav details.dropdown > summary + ul li { width: auto; margin: 0; padding: 0; }
-  body.menue-links nav details.dropdown > summary + ul li a { display: block; margin: 0; padding: .32rem .7rem; font-size: .92rem;
+  body.menue-links nav details.dropdown > summary + ul li a { display: block; margin: 0; padding: .32rem .7rem; font-size: var(--schrift-l);
     text-align: left; border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0; }
-  body.menue-links nav details.dropdown .gesperrt-eintrag { padding: .32rem .7rem; font-size: .92rem; }
+  body.menue-links nav details.dropdown .gesperrt-eintrag { padding: .32rem .7rem; font-size: var(--schrift-l); }
   /* Abmelden: eigener Block mit Luft rundum (form.inline wäre inline – dort wirken keine Abstände nach oben/unten) */
   body.menue-links nav details.dropdown form.inline { display: block; margin: 1rem .7rem .9rem; }
   body.menue-links nav details.dropdown form button { padding: .4rem 1rem; }
@@ -1101,7 +1100,7 @@ td.dauer small { color: var(--pico-muted-color); }
   body.menue-links > footer.fuss { display: none; }
   body.menue-links .seiten-fuss { display: flex; flex-direction: column; gap: .2rem;
     padding: .7rem .7rem calc(1.4rem + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--pico-muted-border-color); font-size: .75rem; line-height: 1.35; color: var(--pico-muted-color); }
+    border-top: 1px solid var(--pico-muted-border-color); font-size: var(--schrift-xs); line-height: 1.35; color: var(--pico-muted-color); }
   body.menue-links .seiten-fuss a { text-decoration: none; }
   body.menue-links > main { padding-bottom: 1.5rem; }
 }
@@ -1162,8 +1161,8 @@ fieldset.maut .knoepfe { display: flex; flex-wrap: wrap; gap: .5rem; margin-bott
 fieldset.maut .knoepfe button { margin: 0; width: auto; }
 /* Reine Navigation als kleine Knöpfe (← Alle …, Vormonat/Jahr/Reports); Links in Text und Tabellen bleiben Links */
 .nav-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; margin-bottom: 1rem; }
-a.nav-knopf[role=button] { margin: 0; padding: .25rem .75rem; font-size: .85rem; width: auto; }
-.nav-leiste .nav-titel { font-size: .85rem; color: var(--pico-muted-color); margin-right: .2rem; }
+a.nav-knopf[role=button] { margin: 0; padding: var(--knopf-klein); font-size: var(--schrift-m); width: auto; }
+.nav-leiste .nav-titel { font-size: var(--schrift-m); color: var(--pico-muted-color); margin-right: .2rem; }
 /* Datumsfeld als Text TT.MM.JJJJ (Safari macOS, base.html): Kalendersymbol rechts, darüber unsichtbar das native
    Datumsfeld – ein Klick aufs Symbol öffnet Safaris Kalender. Das native Feld ist so groß wie das ganze Textfeld, damit
    Safari den Kalender wie bei einem normalen Datumsfeld links unter dem Feld ausrichtet (sonst am schmalen Symbol, oft
@@ -1180,7 +1179,6 @@ a.nav-knopf[role=button] { margin: 0; padding: .25rem .75rem; font-size: .85rem;
 .datum-feld.gesperrt > .datum-symbol { opacity: .4; }
 /* Blättern zwischen Detailseiten (Makro blaettern): rechts in der Navigationsleiste */
 .detail-blaettern { margin-left: auto; display: inline-flex; align-items: center; gap: .4rem; }
-.detail-blaettern a.nav-knopf[role=button] { padding: .25rem .65rem; }
 .detail-blaettern a[aria-disabled=true] { opacity: .35; pointer-events: none; }
 /* Nach dem Blättern (base.html): Inhalt blendet ein, Überschrift leuchtet kurz auf */
 /* Ohne Bewegung: nur kurze Überblendung (Start nicht ganz unsichtbar, kein Aufblitzen einer leeren Seite) */
@@ -1188,7 +1186,7 @@ a.nav-knopf[role=button] { margin: 0; padding: .25rem .75rem; font-size: .85rem;
 @keyframes titel-blitz { from { color: color-mix(in srgb, var(--pico-primary) 75%, var(--pico-h1-color)); } }
 main.blaettern-vor, main.blaettern-zurueck { animation: blaettern-blende .8s ease-out; }
 main h1.titel-blitz { animation: titel-blitz 2s ease-out; }
-.detail-blaettern-position { font-size: .85rem; color: var(--pico-muted-color); font-variant-numeric: tabular-nums; }
+.detail-blaettern-position { font-size: var(--schrift-m); color: var(--pico-muted-color); font-variant-numeric: tabular-nums; }
 /* Einstellungen → Reports: Versand-Kästen mit Hauptschalter, Zeitangaben als Satz */
 fieldset.versand-block label.haken.haupt { font-weight: 600; }
 .versand-details { margin: .3rem 0 .3rem 1.9rem; }
@@ -1207,7 +1205,7 @@ fieldset.versand-block, fieldset.maut { margin: 1rem 0 0; padding: .9rem 1.1rem 
   border-radius: var(--pico-border-radius); background: var(--flaeche-innen); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
 fieldset.maut { margin-top: .75rem; }
 fieldset.versand-block legend, fieldset.maut legend {
-  padding: .1rem .65rem; border-radius: 999px; font-size: .9rem; font-weight: 600; color: var(--pico-primary);
+  padding: .1rem .65rem; border-radius: 999px; font-size: var(--schrift-l); font-weight: 600; color: var(--pico-primary);
   background: var(--pico-card-background-color); border: 1px solid var(--rahmen-innen); }
 /* Kästen innerhalb einer Karte (z. B. „Per Mail senden an …“ auf „Reports“, Aufklapper in Abschnitten und Formularen):
    deutlich abgesetzt wie die Kästen der Einstellungen – sonst verschwindet der Rahmen in der Karte.
@@ -1229,9 +1227,9 @@ main :is(.abschnitt-karte, article, .einstellung-gruppe, form.formular, .detail-
 details.syslog-erweitert { margin: .5rem 0 1rem; padding: .4rem .9rem; border-radius: var(--pico-border-radius); }
 details.syslog-erweitert > summary { font-size: .95rem; }
 /* Menü → Stammdaten: Anzahl aktiver Einträge rechts neben dem Namen */
-nav .menue-anzahl { margin-left: auto; padding-left: .75rem; font-size: .8rem; color: var(--pico-muted-color);
+nav .menue-anzahl { margin-left: auto; padding-left: .75rem; font-size: var(--schrift-s); color: var(--pico-muted-color);
   font-variant-numeric: tabular-nums; }
-nav .menue-anzahl.offen { padding: 0 .45rem; border-radius: 999px; background: #e53935; color: #fff; font-weight: 600;
+nav .menue-anzahl.offen { padding: 0 .45rem; border-radius: 999px; background: var(--punkt-rot); color: #fff; font-weight: 600;
   line-height: 1.45; margin-left: auto; }
 nav a:has(> .menue-anzahl.offen), body.menue-links > header.container > nav li > a:has(> .menue-anzahl.offen) {
   display: flex; align-items: center; gap: .5rem; }
@@ -1269,18 +1267,18 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 /* Zeitleiste des Fahrzeugs (Fahrzeugseite): Fahrer:innen und Ladekarten auf gemeinsamer Achse, Beschriftung links */
 .fzl-zeile { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: center; gap: .6rem; }
 .fzl-zeile + .fzl-zeile { margin-top: .3rem; }
-.fzl-titel { font-size: .8rem; color: var(--pico-muted-color); text-align: right; }
+.fzl-titel { font-size: var(--schrift-s); color: var(--pico-muted-color); text-align: right; }
 /* Markierung über einer Leiste: falsche Kartenanzahl (gelb) bzw. außerhalb des Leasings / keine Karte (rot) */
 .mini-zl-markierung { position: absolute; top: 0; bottom: 0; z-index: 1; border-bottom: 3px solid; }
-.mini-zl-markierung.gelb { border-color: #c98a00; background: repeating-linear-gradient(135deg,
-  color-mix(in srgb, #fab219 35%, transparent) 0 2px, transparent 2px 7px); }
+.mini-zl-markierung.gelb { border-color: var(--warnung); background: repeating-linear-gradient(135deg,
+  color-mix(in srgb, var(--warnung) 35%, transparent) 0 2px, transparent 2px 7px); }
 .mini-zl-markierung.rot { border-color: var(--pico-del-color); background: repeating-linear-gradient(135deg,
   color-mix(in srgb, var(--pico-del-color) 30%, transparent) 0 2px, transparent 2px 7px); }
-.fzl-befunde { list-style: none; padding: 0; margin: .6rem 0 0; font-size: .85rem; }
+.fzl-befunde { list-style: none; padding: 0; margin: .6rem 0 0; font-size: var(--schrift-m); }
 .fzl-befunde li { list-style: none; margin: 0 0 .15rem; padding-left: 1.1rem; position: relative; }
 .fzl-befunde li::before { content: "⚠"; position: absolute; left: 0; }
 .fzl-befunde li.rot { color: var(--pico-del-color); }
-.fzl-befunde li.gelb { color: #8a5a00; }
+.fzl-befunde li.gelb { color: var(--warnung-text); }
 @media (max-width: 40rem) { .fzl-zeile { grid-template-columns: minmax(0, 1fr); } .fzl-titel { text-align: left; } }
 
 /* Einstellungen: Spritpreis-Tabelle über die volle Breite der Felder */
@@ -1295,11 +1293,11 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
   box-shadow: 0 .4rem 1.4rem rgb(0 0 0 / .18), 0 .1rem .3rem rgb(0 0 0 / .08);
   animation: toast-ein .25s ease-out; max-height: none; overflow: visible; }
 .toast.meldung-info { background: color-mix(in srgb, var(--pico-ins-color) 12%, var(--pico-card-background-color)); }
-.toast.meldung-warnung { background: color-mix(in srgb, #c98a00 14%, var(--pico-card-background-color)); }
+.toast.meldung-warnung { background: color-mix(in srgb, var(--warnung) var(--toenung), var(--pico-card-background-color)); }
 .toast.meldung-fehler { background: color-mix(in srgb, var(--pico-del-color) 12%, var(--pico-card-background-color)); }
 .toast-symbol { flex: none; line-height: 1.4; }
 .toast.meldung-info .toast-symbol svg.symbol { color: var(--pico-ins-color); }
-.toast.meldung-warnung .toast-symbol svg.symbol { color: #c98a00; }
+.toast.meldung-warnung .toast-symbol svg.symbol { color: var(--warnung); }
 .toast.meldung-fehler .toast-symbol svg.symbol { color: var(--pico-del-color); }
 .toast-text { flex: 1; min-width: 0; line-height: 1.4; overflow-wrap: anywhere; }
 .toast-text form.meldung-aktion { display: block; margin: .4rem 0 0; }
@@ -1315,7 +1313,7 @@ body:has(.speichern-leiste) .toasts { bottom: calc(var(--fuss-ist, var(--fuss-ho
 /* Spritpreise: Oil Bulletin (Status, Knöpfe) und lange Liste mit Bildlauf */
 .oil-status { margin: .3rem 0; }
 .oil-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0 1rem; }
-.oil-knoepfe input[type="file"] { width: auto; max-width: 100%; margin: 0; padding: .25rem; font-size: .85rem; }
+.oil-knoepfe input[type="file"] { width: auto; max-width: 100%; margin: 0; padding: .25rem; font-size: var(--schrift-m); }
 .oil-knoepfe button { margin: 0; }
 .spritpreis-liste { max-height: 22rem; overflow-y: auto; }
 /* Einstellungen: einklappbare Rubriken (details.einstellung-gruppe), Suche, Treffer, Länder-Abschnitt */
@@ -1354,11 +1352,9 @@ form.formular > fieldset.versand-block { margin-bottom: 1rem; }
 .vorschau-rechts label.stromart-vorgabe select { max-width: none; }
 /* Grüner Haken über „Import bestätigen“: alles geprüft, kann guten Gewissens übernommen werden */
 .datenqualitaet-ok { display: flex; align-items: flex-start; gap: .5rem; margin: 0 0 .75rem; padding: .5rem .75rem;
-  border-radius: var(--pico-border-radius); color: #1a7f5a; background: color-mix(in srgb, #1a7f5a 12%, transparent); }
+  border-radius: var(--pico-border-radius); color: var(--ok); background: color-mix(in srgb, var(--ok) var(--toenung), transparent); }
 .datenqualitaet-ok > svg { flex: none; width: 1.3em; height: 1.3em; margin-top: .1em; }
 .datenqualitaet-ok small { display: block; color: var(--pico-muted-color); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .datenqualitaet-ok { color: #3ccf8e; } }
-[data-theme="dark"] .datenqualitaet-ok { color: #3ccf8e; }
 /* Mittlere Breite: Miniatur nur neben 1. und 2., Ladekarten und Übernehmen wieder über die volle Breite */
 @media (max-width: 1399px) {
   .vorschau-links, .vorschau-rechts { display: contents; }
@@ -1374,7 +1370,7 @@ form.formular > fieldset.versand-block { margin-bottom: 1rem; }
 .kompakt .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
 /* Abschnitt 1 der Vorschau: erkannt → nur Zusammenfassung, Felder per „Ändern“; sonst offen ohne Zeile */
 details.vorschau-einstellungen { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
-details.vorschau-einstellungen > summary { font-size: .9rem; font-weight: normal; color: var(--pico-muted-color);
+details.vorschau-einstellungen > summary { font-size: var(--schrift-l); font-weight: normal; color: var(--pico-muted-color);
   padding: 0; line-height: 1.5; }
 details.vorschau-einstellungen > summary::after { display: none; }
 details.vorschau-einstellungen[open] > summary { margin-bottom: .6rem; }
@@ -1391,7 +1387,7 @@ details.vorschau-einstellungen[open] .aendern { display: none; }
 .pdf-miniatur-bild img { display: block; width: 100%; height: 100%; object-fit: cover;
   object-position: top center; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
 .pdf-miniatur.ohne-bild .pdf-miniatur-bild { display: none; }
-.pdf-miniatur-text { font-size: .75rem; color: var(--pico-muted-color); }
+.pdf-miniatur-text { font-size: var(--schrift-xs); color: var(--pico-muted-color); }
 .pdf-ansicht { margin-bottom: var(--pico-block-spacing-vertical); }
 .pdf-ansicht header.kopf { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
   flex-wrap: wrap; margin-bottom: .5rem; }
@@ -1408,7 +1404,7 @@ table.cpo-stromart input { margin: 0; }
 /* Import-Vorschau: AC/DC je Ladevorgang – Marker und kleine Auswahl zum Ändern */
 .stromart-wahl { white-space: nowrap; }
 .stromart-wahl select { display: inline-block; width: auto; margin: 0 0 0 .3rem; padding: .1rem 1.6rem .1rem .4rem;
-  height: auto; font-size: .8rem; vertical-align: middle; background-position: center right .3rem; }
+  height: auto; font-size: var(--schrift-s); vertical-align: middle; background-position: center right .3rem; }
 .stromart-wahl small { display: block; margin-top: .3rem; line-height: 1.2; color: var(--pico-muted-color); }
 /* Import-Vorschau: Zeitzone der Uhrzeiten (Tooltip an Start/Ende, Info unter „2. Prüfen“) */
 th.mit-zeit-info { cursor: help; text-decoration: underline dotted; text-underline-offset: .2em; }
