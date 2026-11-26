@@ -22,10 +22,11 @@ nicht umschreiben – ändert sich die Entscheidung, ein neues ADR anlegen und d
 | [0012](0012-gaeste-und-grundgebuehren.md) | Gäste als eigener Topf, kartenbezogene Grundgebühren aufs Fahrzeug | angenommen | 04.11.2026 |
 | [0013](0013-topliste-bayesscher-preis.md) | Topliste nach Fahrer:innen mit kWh-gewichtetem Preis | angenommen | 05.11.2026 |
 | [0014](0014-karten-ohne-fremddienste.md) | Verortung und Karten ohne externe Dienste | angenommen | 11/2026 |
-| [0015](0015-internet-nur-laden.md) | Die App darf aus dem Internet laden, aber keine Daten senden | angenommen | 24.11.2026 |
+| [0015](0015-internet-nur-laden.md) | Die App darf aus dem Internet laden, aber keine Daten senden | ersetzt durch 0022 | 24.11.2026 |
 | [0016](0016-erster-admin-ohne-env.md) | Erster Admin ohne dauerhaftes Passwort in `.env` | angenommen | 24.11.2026 |
 | [0017](0017-rollen-serverseitig.md) | Rollen serverseitig durchsetzen, in der Oberfläche kennzeichnen | angenommen | 04.11.2026 |
 | [0018](0018-aenderungsprotokoll-after-flush.md) | Änderungsprotokoll zentral beim Speichern | angenommen | 11/2026 |
 | [0019](0019-ohne-dienstwagen.md) | „Ohne Dienstwagen“ als Zeitraum, Ersatzfahrzeuge als echte Fahrzeuge | angenommen | 24.11.2026 |
 | [0020](0020-import-zurueckstellen.md) | Import-Vorschauen zurückstellen statt verwerfen | angenommen | 25.11.2026 |
 | [0021](0021-oeffentliches-repo-ohne-echte-daten.md) | Öffentliches Repository ohne echte Daten | angenommen | 18.11.2026 |
+| [0022](0022-grundsatz-internetzugriff.md) | Grundsatz Internetzugriff: Browser nur von der App, Server lädt ohne Personenbezug | angenommen | 26.11.2026 |

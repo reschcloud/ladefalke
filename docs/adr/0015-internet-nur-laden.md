@@ -1,6 +1,6 @@
 # 0015 – Die App darf aus dem Internet laden, aber keine Daten senden
 
-- **Status:** angenommen
+- **Status:** ersetzt durch [0022](0022-grundsatz-internetzugriff.md) (Grundsatz präzisiert, die Abrufe selbst bleiben)
 - **Entschieden:** 24.11.2026 (ersetzt den Grundsatz „die App geht nie ins Internet“)
 
 ## Kontext

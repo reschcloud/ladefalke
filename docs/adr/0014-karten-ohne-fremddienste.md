@@ -24,4 +24,4 @@ und Bewegungsmuster der Mitarbeitenden. Ursprünglich galt außerdem: Die App ge
 ## Folgen
 
 Verortung ist nur PLZ-genau. Seit ADR 0015 darf die App das PLZ-Verzeichnis selbst herunterladen; der Grundsatz
-„keine Daten an Dritte“ bleibt und trägt diese Entscheidung weiter.
+„keine Daten an Dritte“ bleibt und trägt diese Entscheidung weiter (präzisiert in ADR 0022).
