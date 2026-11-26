@@ -2,9 +2,9 @@
 {% import "_makros.html" as m %}
 {% block titel %}Ladevorgang {{ v.id }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ liste_url }}" role="button" class="outline secondary klein nav-knopf">← Ladevorgänge</a>
-  {%- if von_aufgaben %} <a href="/aufgaben" role="button" class="outline secondary klein nav-knopf">← Aufgaben</a>{% endif %}</p>
-<h1>Ladevorgang {{ v.start | datumzeit }}</h1>
+<p class="nav-leiste">{{ m.nav_knopf(liste_url, "← Ladevorgänge") }}
+  {%- if von_aufgaben %} {{ m.nav_knopf("/aufgaben", "← Aufgaben") }}{% endif %}</p>
+{% call m.titel("ladevorgaenge", "h1") %}Ladevorgang {{ v.start | datumzeit }}{% endcall %}
 
 {# Die wichtigsten Werte als kleine Kacheln (wie im Dashboard); was hier steht, steht nicht noch einmal in der Liste #}
 {% set stromart_quelle = {"manuell": "manuell gesetzt (Rechnung: " ~ (v.rohdaten.get("stromart_rechnung") or "keine Angabe") ~ ")",
@@ -48,7 +48,7 @@
   <dl>
     <dt>Import</dt><dd><a href="/import/{{ v.import_id }}">{{ v.import_.bezeichnung }}</a>{% if v.externe_id %} · ID {{ v.externe_id }}{% endif %}
       <a href="/import/{{ v.import_id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false"
-         role="button" class="outline klein maps-link" title="Rechnung bzw. Datei, aus der dieser Ladevorgang stammt (neuer Tab)">Originaldokument ↗</a></dd>
+         role="button" class="outline klein extern-link" title="Rechnung bzw. Datei, aus der dieser Ladevorgang stammt (neuer Tab)">Originaldokument ↗</a></dd>
     <dt>Fahrzeug</dt>
     <dd>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}
         <small>({{ {"automatisch": "automatisch ermittelt", "manuell": "manuell gesetzt", "keine": "nicht ermittelbar"}[v.zuordnung_quelle.value] }})</small></dd>
@@ -71,8 +71,8 @@
         <option value="{{ fz.id }}" {% if v.zuordnung_quelle.value == "manuell" and v.fahrzeug_id == fz.id %}selected{% endif %}>manuell: {{ fz.kennzeichen }}{% if fz.modell %} ({{ fz.modell }}){% endif %}</option>
       {% endfor %}
     </select>
-    <small>Manuell gesetzt bleibt es auch bei „neu zuordnen“ {{ m.hilfe("Geschätzte kWh werden mit den Werten des Fahrzeugs neu berechnet; die Kosten bleiben wie in der Rechnung.") }}</small>
-    <button type="submit">Speichern</button>
+    <small class="formular-hinweis">Manuell gesetzt bleibt es auch bei „neu zuordnen“ {{ m.hilfe("Geschätzte kWh werden mit den Werten des Fahrzeugs neu berechnet; die Kosten bleiben wie in der Rechnung.") }}</small>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel">Speichern</button></div>
   </form>
 </article>
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
@@ -86,7 +86,7 @@
     </label>
     <button type="submit" class="outline" data-bestaetigen="Land dieses Ladevorgangs ändern? Der Ladeort wird dabei neu zugeordnet.">Land speichern</button>
   </form>
-  <small id="land-hinweis">Aus EVSE-ID bzw. Rechnung – nur ändern, wenn das nicht stimmt {{ m.hilfe("Zum Beispiel ein ausländischer Betreiber an einem Ladepunkt in Österreich.") }}</small>
+  <small id="land-hinweis" class="formular-hinweis">Aus EVSE-ID bzw. Rechnung – nur ändern, wenn das nicht stimmt {{ m.hilfe("Zum Beispiel ein ausländischer Betreiber an einem Ladepunkt in Österreich.") }}</small>
 {% if v.ladeort %}
   {% if ladeort_fehler %}<p class="meldung meldung-fehler" role="alert" id="ladeort-fehler">{{ ladeort_fehler }}</p>{% endif %}
   {% set lw = ladeort_werte or {"plz": v.ladeort.plz_wirksam, "ort": v.ladeort.ort_manuell} %}
@@ -102,9 +102,9 @@
     </label>
     <button type="submit" class="outline">Speichern</button>
   </form>
-  {% if v.ladeort.genauigkeit == "verzichtet" %}<p><small>Derzeit bewusst ohne Verortung – Speichern mit PLZ oder Ort
-    verortet ihn wieder.</small></p>{% endif %}
-  <small id="ladeort-hinweis">Erkannt: {{ v.ladeort.plz or "keine PLZ" }}{% if v.ladeort.ort %}, „{{ v.ladeort.ort }}“{% endif %}.
+  {% if v.ladeort.genauigkeit == "verzichtet" %}<small class="formular-hinweis">Derzeit bewusst ohne Verortung – Speichern
+    mit PLZ oder Ort verortet ihn wieder.</small>{% endif %}
+  <small id="ladeort-hinweis" class="formular-hinweis">Erkannt: {{ v.ladeort.plz or "keine PLZ" }}{% if v.ladeort.ort %}, „{{ v.ladeort.ort }}“{% endif %}.
     Eingetragenes gilt für alle Ladevorgänge an dieser Adresse; leer = wieder das Erkannte
     {{ m.hilfe("Adresse: " ~ v.ladeort.adresse ~ ". Eingetragene PLZ bzw. Ort haben Vorrang vor den erkannten. Den Ort so schreiben wie im Postleitzahlen-Verzeichnis (z. B. „Bregenz am Bodensee“).") }}</small>
 {% endif %}
@@ -129,7 +129,7 @@
         {{ "Wieder ins Ladeprofil aufnehmen" if v.profil_ausgenommen else "Aus dem Ladeprofil ausnehmen" }}</button>
     </form>
   </div>
-  <small>Betrifft nur das Ladeprofil des Fahrzeugs (Ø kWh, Ø Ladeleistung) – Kosten und kWh zählen weiter überall.
+  <small class="formular-hinweis">Betrifft nur das Ladeprofil des Fahrzeugs (Ø kWh, Ø Ladeleistung) – Kosten und kWh zählen weiter überall.
     Grenzen: <a href="/einstellungen#datenqualitaet">Einstellungen</a>.</small>
 </article>
 

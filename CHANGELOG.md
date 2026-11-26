@@ -38,6 +38,10 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   entfernt – es gilt überall fest der Ladebeginn, am Verhalten ändert sich nichts.
 - Einheitlichere Optik: Status-Farben (grün, gelb, rot), Schriftgrößen und Knopfgrößen kommen aus wenigen zentralen
   Werten; im Dunkelmodus passen sich alle grünen und gelben Texte und Rahmen an.
+- Gleiche Bausteine überall: Zurück-Knöpfe, Löschen/Entfernen unter dem Formular, Speichern-Knöpfe in Unterformularen,
+  Fehler- und Hinweistexte an Feldern, Symbol im Seitentitel (auch Auswertung von Fahrzeug und Fahrer:in, Ladevorgang,
+  Benutzer:innen, Zuordnungsformulare), kleine Kacheln beim Import, leere Zustände. „← Alle MSP“ führt wie bei den
+  übrigen Stammdaten zur zuletzt angesehenen Liste.
 
 ### Behoben
 

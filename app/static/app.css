@@ -90,13 +90,14 @@ abbr.geschaetzt { text-decoration: none; cursor: help; color: var(--warnung-text
 abbr.hilfe { display: inline-block; width: 1.1em; height: 1.1em; line-height: 1.1em; border-radius: 50%;
   border: 1px solid var(--pico-muted-color); color: var(--pico-muted-color); font-size: .75em; font-weight: bold;
   text-align: center; text-decoration: none; cursor: help; vertical-align: .1em; }
-section { margin-bottom: 2.5rem; }
+/* Abstand zwischen Abschnitten einer Seite (section, Abschnittstitel, Verlauf) */
+:root { --abstand-abschnitt: 2rem; }
+section { margin-bottom: var(--abstand-abschnitt); }
 
 
 /* Checkbox mit Hinweis darunter, eingerückt auf Höhe des Beschriftungstexts */
 label.haken:has(+ small.haken-hinweis) { margin-bottom: .2rem; }
 small.haken-hinweis { display: block; margin: -.4rem 0 .9rem 1.9rem; color: var(--pico-muted-color); }
-small.haken-hinweis.fehler { color: var(--pico-del-color); }
 
 /* Roter Punkt in der Menüleiste (offene Import-Vorschauen); Aufgaben: Zahl als rotes Badge (.menue-anzahl.offen) */
 nav a .punkt { display: inline-block; width: .5rem; height: .5rem; margin-left: .25rem; vertical-align: super;
@@ -195,6 +196,7 @@ a.unplausibel { color: var(--warnung-text); font-weight: bold; text-decoration: 
 .legende-balken { background: var(--zl-balken); }
 .legende-luecke { border: 1px solid var(--zl-luecke); background-color: color-mix(in srgb, var(--zl-luecke) 18%, transparent);
   background-image: repeating-linear-gradient(135deg, var(--zl-luecke) 0 2px, transparent 2px 8px); }
+.zl-luecke.zl-ganz { left: 0; width: 100%; }  /* nie zugeordnet: ganze Zeile */
 .zl-ohne { position: absolute; top: .25rem; height: calc(var(--hoehe, 1) * var(--spur-hoehe) - .3rem); border-radius: 4px;
   font-size: var(--schrift-s); line-height: calc(var(--spur-hoehe) - .3rem); white-space: nowrap; overflow: hidden;
   text-decoration: none; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--pico-muted-color) 45%, transparent);
@@ -527,7 +529,8 @@ article > small + form { margin-top: 1rem; }  /* mehrere Formulare in einem Kast
 .ladeort-eingabe input[name=plz] { width: 6rem; }
 .ladeort-eingabe input[name=ort] { width: 14rem; }
 td > form.inline button { white-space: nowrap; }
-a.maps-link { margin-left: .5rem; white-space: nowrap; }  /* neben der Adresse (Aufgaben, Ladeorte) */
+/* Externe Links als kleiner Knopf: Karten neben der Adresse (Aufgaben, Ladeorte), Originaldateien */
+:is(a.maps-link, a.extern-link) { margin-left: .5rem; white-space: nowrap; }
 .diagramm-zwischentitel { margin: 1rem 0 .5rem; color: var(--pico-muted-color); }  /* Torte unter den Säulen */
 /* MSP: Hinweis und „Vorgabe anwenden“ direkt unter dem jeweiligen Vorgabefeld */
 .formular .aktionszeile.vorgabe { margin: -.5rem 0 var(--pico-spacing); align-items: center; gap: .5rem 1rem; }
@@ -552,7 +555,7 @@ button[type=submit] { width: auto; }
 .umschalter > button[type=submit] { min-width: 0; }
 .login button[type=submit] { width: 100%; }
 /* ---------------------------------------------------------------- Einstellungen */
-nav.einstellungen-nav { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .25rem 1.25rem;
+nav.abschnitt-nav { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .25rem 1.25rem;
   margin-bottom: 1.25rem; font-size: .95rem; }
 .einstellung-gruppe { max-width: 56rem; margin-bottom: 1.25rem; padding: 1rem 1.25rem .25rem;
   border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius);
@@ -570,7 +573,6 @@ nav.einstellungen-nav { display: flex; flex-wrap: wrap; justify-content: flex-st
 .einstellung.stichtag select { max-width: 16rem; margin-bottom: .3rem; }
 .einstellung small { display: block; margin-top: .25rem; }
 .einstellung small.standardwert { color: var(--pico-muted-color); }
-.einstellung small.fehler { color: var(--pico-del-color); }
 .einstellung .geaendert-marker { display: none; color: var(--pico-primary); font-weight: 600; }
 .einstellung.geaendert .geaendert-marker { display: inline; }
 .einstellung.geaendert :is(input, select) { border-color: var(--pico-primary); box-shadow: inset 0 0 0 1px var(--pico-primary); }
@@ -595,7 +597,6 @@ body.nur-lesen article[data-schreiben] { border-style: dashed; }
 .marker.rolle-operator { background: var(--ok-flaeche); }
 .marker.rolle-viewer { background: #6b7079; }
 .marker[class*="rolle-"] { color: #fff; }  /* feste Grundfarben: im Dunkelmodus sonst dunkel auf dunkel */
-fieldset small.fehler-text { color: var(--pico-del-color); }
 /* Als Admin angemeldet: dünne rote Leiste am oberen Fensterrand (unter der Statusleiste von Mobilgeräten) */
 body.als-admin::before { content: ""; position: fixed; z-index: 1000; left: 0; right: 0;
   top: env(safe-area-inset-top, 0px); height: 3px; background: var(--gefahr-flaeche); pointer-events: none; }
@@ -736,9 +737,12 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
 :is(.seiten-titel, .abschnitt-titel).art-person { --art: var(--sym-person); }
 :is(.seiten-titel, .abschnitt-titel).art-karte { --art: var(--sym-karte); }
 :is(.seiten-titel, .abschnitt-titel).art-msp { --art: var(--sym-msp); }
+:is(.seiten-titel, .abschnitt-titel).art-ladevorgaenge { --art: var(--sym-vorgaenge); }
+:is(.seiten-titel, .abschnitt-titel).art-zuordnung { --art: var(--pico-primary); }
+:is(.seiten-titel, .abschnitt-titel).art-benutzer { --art: var(--sym-person); }
 :is(.seiten-titel, .abschnitt-titel) > svg.symbol:first-child { width: .95em; height: .95em; vertical-align: -.1em;
   margin-right: .4em; color: var(--art); }
-.abschnitt-titel { margin-top: 2.2rem; padding-bottom: .3rem;
+.abschnitt-titel { margin-top: var(--abstand-abschnitt); padding-bottom: .3rem;
   border-bottom: 2px solid color-mix(in srgb, var(--art) 45%, transparent); }
 /* Seite „Zuordnungen“: Umschalter Zeitleiste | Liste unter dem Titel */
 .zuordnungen-ansicht { margin-bottom: .9rem; }
@@ -853,7 +857,7 @@ html.laedt main { opacity: .5; transition: opacity .3s; }
 .cpo-personen tr.karte-zeile:last-child td { padding-bottom: .6rem; }
 .cpo-personen tbody.sammel tr.person td { font-weight: 400; font-style: italic; }
 .vorgaenge-link { text-decoration: none; }
-.kacheln + section { margin-top: 2rem; }
+.kacheln + section { margin-top: var(--abstand-abschnitt); }
 
 /* Sortierbare Spaltenköpfe (Ladevorgänge serverseitig, kleine Tabellen im Browser: data-sortierbar) */
 th.sortierbar a, th[data-sort] { color: inherit; text-decoration: none; cursor: pointer; white-space: nowrap; user-select: none; }
@@ -913,7 +917,6 @@ nav .marke svg.falke { height: 2rem; width: auto; aspect-ratio: 1399 / 905; colo
   border-radius: var(--pico-border-radius); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pico-primary) 35%, transparent); }
 .import-schritte li.aktiv .schritt-nr { border-color: var(--pico-primary); color: var(--pico-primary); }
 .import-schritte li.aktiv.erledigt .schritt-nr { color: #fff; border-color: var(--ok-flaeche); }
-.block-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
 .block-status { font-size: var(--schrift-m); color: var(--pico-muted-color); }
 .block-status.ok { color: var(--ok); font-weight: 600; }
 .block-status.offen { color: var(--warnung-text); font-weight: 600; }
@@ -974,7 +977,11 @@ tr.hervorgehoben > td { background: color-mix(in srgb, var(--pico-primary) 12%, 
 .tlp-green { color: #33ff00; } .tlp-amber, .tlp-amber-strict { color: #ffc000; } .tlp-red { color: #ff2b2b; }
 .report-karte .knopfgruppe { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; }
 .report-karte .knopfgruppe > * { margin: 0; }
-.ok-text { color: var(--ok); } .fehler-text { color: var(--pico-del-color); }
+/* Leerer Zustand außerhalb von Tabellen (in Tabellen: Zeile mit colspan) */
+p.leer { color: var(--pico-muted-color); }
+.ok-text { color: var(--ok); } .fehler-text { color: var(--gefahr); }  /* Statustexte (z. B. Versand) */
+/* Fehler an einem Feld (Makros feld/auswahl und eigene Felder) bzw. ein fehlgeschlagener Stand */
+:is(small, strong).fehler { color: var(--gefahr); }
 /* Versanddialog (Reports): Empfänger:innen als Liste mit Kästchen, freie Adressen, Fuß mit Anzahl und Knöpfen */
 dialog.versand-dialog > article { width: min(40rem, 94vw); max-width: none; }
 dialog.versand-dialog > article > form { margin: 0; }
@@ -1020,7 +1027,7 @@ dialog.versand-dialog > article > form { margin: 0; }
 .protokoll-filter label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; }
 .protokoll-filter input, .protokoll-filter select, .protokoll-filter button, .protokoll-filter a[role=button] { margin: 0; width: auto; }
 .blaettern { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
-.verlauf-abschnitt { margin-top: 2rem; }
+.verlauf-abschnitt { margin-top: var(--abstand-abschnitt); }
 .syslog-ca textarea { font-family: var(--pico-font-family-monospace); font-size: var(--schrift-s); max-width: 40rem; }
 /* Ladekarte: Name (Person / Kennzeichen) mit MSP-Etikett, Kennung im Tooltip (Makro „karte“) */
 .karte-anzeige { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .35rem; cursor: help; }
@@ -1188,7 +1195,7 @@ main.blaettern-vor, main.blaettern-zurueck { animation: blaettern-blende .8s eas
 main h1.titel-blitz { animation: titel-blitz 2s ease-out; }
 .detail-blaettern-position { font-size: var(--schrift-m); color: var(--pico-muted-color); font-variant-numeric: tabular-nums; }
 /* Einstellungen → Reports: Versand-Kästen mit Hauptschalter, Zeitangaben als Satz */
-fieldset.versand-block label.haken.haupt { font-weight: 600; }
+fieldset.feldgruppe label.haken.haupt { font-weight: 600; }
 .versand-details { margin: .3rem 0 .3rem 1.9rem; }
 .versand-satz { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin-bottom: .4rem; }
 .versand-satz > span { display: inline-flex; align-items: center; gap: .4rem; }
@@ -1201,10 +1208,10 @@ fieldset.versand-block label.haken.haupt { font-weight: 600; }
 .versand-frage { margin: .4rem 0 .3rem; font-weight: 600; font-size: .95rem; }
 /* Kästen innerhalb einer Karte (Versand und Fristen in den Einstellungen, Vignette/Maut beim Fahrzeug): deutlich
    abgesetzt (Farben --rahmen-innen/--flaeche-innen, siehe unten) */
-fieldset.versand-block, fieldset.maut { margin: 1rem 0 0; padding: .9rem 1.1rem .5rem; border: 1px solid var(--rahmen-innen);
+fieldset.feldgruppe, fieldset.maut { margin: 1rem 0 0; padding: .9rem 1.1rem .5rem; border: 1px solid var(--rahmen-innen);
   border-radius: var(--pico-border-radius); background: var(--flaeche-innen); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
 fieldset.maut { margin-top: .75rem; }
-fieldset.versand-block legend, fieldset.maut legend {
+fieldset.feldgruppe legend, fieldset.maut legend {
   padding: .1rem .65rem; border-radius: 999px; font-size: var(--schrift-l); font-weight: 600; color: var(--pico-primary);
   background: var(--pico-card-background-color); border: 1px solid var(--rahmen-innen); }
 /* Kästen innerhalb einer Karte (z. B. „Per Mail senden an …“ auf „Reports“, Aufklapper in Abschnitten und Formularen):
@@ -1236,7 +1243,7 @@ nav a:has(> .menue-anzahl.offen), body.menue-links > header.container > nav li >
 nav li:has(> a > .menue-anzahl) > a { display: flex; align-items: center; gap: 0; width: 100%; box-sizing: border-box; }
 body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { display: flex; align-items: center; gap: 0; }
 /* Letzter Kasten einer Einstellungsgruppe (z. B. Reports → Offene Aufgaben): Luft zum Rand der Gruppe */
-.einstellung-gruppe > fieldset.versand-block:last-child { margin-bottom: 1rem; }
+.einstellung-gruppe > fieldset.feldgruppe:last-child { margin-bottom: 1rem; }
 /* Seitenleiste hebt sich ab: Kartenfläche statt Seitengrund, kräftigere Kante mit Schatten; Logo größer mit Abstand */
 @media (min-width: 1024px) {
   body.menue-links > header.container::before {
@@ -1338,9 +1345,9 @@ details.einstellung-gruppe > summary.kopf:hover h2 { color: var(--pico-primary);
 /* Mein Konto: Abos in Blöcken wie der Versand in den Einstellungen */
 fieldset.abo-gruppe form.abo { margin: 0 0 .5rem; }
 fieldset.abo-gruppe form.abo label.haken { margin-bottom: .15rem; }
-/* Kästen (versand-block) außerhalb des Versands: Theme-/Zeitraum-Wahl ohne Extra-Abstand, Formulare der Stammdaten */
-fieldset.versand-block .theme-wahl { margin-bottom: .4rem; }
-form.formular > fieldset.versand-block { margin-bottom: 1rem; }
+/* Feldgruppen (fieldset.feldgruppe): Theme-/Zeitraum-Wahl ohne Extra-Abstand, Formulare der Stammdaten */
+fieldset.feldgruppe .theme-wahl { margin-bottom: .4rem; }
+form.formular > fieldset.feldgruppe { margin-bottom: 1rem; }
 
 /* Vorschau: Miniatur der PDF-Rechnung rechts neben „1. Format und Ladeart“, Klick klappt die ganze PDF auf */
 /* Miniatur so hoch wie der Kasten daneben: das Bild liegt absolut im Rahmen, bestimmt also die Zeilenhöhe nicht mit */

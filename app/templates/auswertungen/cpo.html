@@ -7,7 +7,7 @@
 {% set land = d.code | cpo_land %}
 {% block titel %}{{ name }} {{ a.zeitraum.label }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="/auswertungen?{{ parameter }}#cpo" role="button" class="outline secondary klein nav-knopf">← Auswertungen {{ a.zeitraum.label }}</a></p>
+<p class="nav-leiste">{{ m.nav_knopf("/auswertungen?" ~ parameter ~ "#cpo", "← Auswertungen " ~ a.zeitraum.label) }}</p>
 <h1>{% if land %}<code>{{ name }}</code>{% else %}{{ name }}{% endif %}
   {% if land %}<small class="titel-zusatz">{{ land | flagge }} {{ land | landname }}</small>{% endif %}</h1>
 {{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
@@ -35,7 +35,7 @@
 
 {% set s = d.summe %}
 {% if s.leer %}
-<p class="meldung meldung-info">Keine öffentlichen Ladungen bei {{ name }} im Zeitraum {{ a.zeitraum.label }}. Mit ◀ ▶
+<p class="leer">Keine öffentlichen Ladungen bei {{ name }} im Zeitraum {{ a.zeitraum.label }}. Mit ◀ ▶
   oder Quartal/Jahr lassen sich andere Zeiträume ansehen.</p>
 {% else %}
 {# Kennzahlen laut SPEC §6 (Kosten, kWh, Ø €/kWh, Ladevorgänge), Reihenfolge wie im Dashboard; dazu Sparpotenzial #}

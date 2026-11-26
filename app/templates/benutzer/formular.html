@@ -2,8 +2,8 @@
 {% import "_makros.html" as m %}
 {% block titel %}{{ b.name if b else "Neue:r Benutzer:in" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="/benutzer" role="button" class="outline secondary klein nav-knopf">← Alle Benutzer:innen</a>{{ m.blaettern(blaettern) }}</p>
-<h1>{{ b.name if b else "Neue:r Benutzer:in" }}</h1>
+<p class="nav-leiste">{{ m.nav_knopf("/benutzer", "← Alle Benutzer:innen") }}{{ m.blaettern(blaettern) }}</p>
+{% call m.titel("benutzer", "h1") %}{{ b.name if b else "Neue:r Benutzer:in" }}{% endcall %}
 <form method="post" class="formular" action="{{ '/benutzer/%d' % b.id if b else '/benutzer/neu' }}">
   <div class="grid">
     {% if b %}<label>Benutzername<input type="text" value="{{ b.benutzername }}" disabled></label>
@@ -18,7 +18,7 @@
                   {% if fehler.get("rolle") %}aria-invalid="true"{% endif %}>
       <strong>{{ text }}</strong> <small>– {{ rollen_text[rolle] }}</small></label>
     {% endfor %}
-    {% if fehler.get("rolle") %}<small class="fehler-text">{{ fehler.rolle }}</small>{% endif %}
+    {% if fehler.get("rolle") %}<small class="fehler">{{ fehler.rolle }}</small>{% endif %}
   </fieldset>
   {% if b %}
     {{ m.haken("aktiv", "aktiv (kann sich anmelden)", werte, fehler) }}
@@ -31,10 +31,10 @@
   {% endif %}
   <button type="submit">{{ "Speichern" if b else "Anlegen" }}</button>
 </form>
-{% if b and b.id != request.state.benutzer.id %}
-  {% if b.aktiv %}<p><small>Löschen geht erst, wenn die Person deaktiviert ist (Haken „aktiv“ entfernen und speichern).</small></p>
+{% if b and b.id != request.state.benutzer.id %}<div class="entfernen-zeile">
+  {% if b.aktiv %}<small class="hinweis-knopf">Löschen geht erst, wenn die Person deaktiviert ist (Haken „aktiv“ entfernen und speichern).</small>
   {% else %}{{ m.loeschen_knopf("/benutzer/%d/loeschen" % b.id, "Benutzer:in „%s“ endgültig löschen?" % b.benutzername) }}{% endif %}
-{% endif %}
+</div>{% endif %}
 
 {% if b %}
 <section class="einstellung-gruppe">
@@ -46,7 +46,7 @@
     </div>
     <small class="formular-hinweis">Mindestens {{ mindestlaenge }} Zeichen. Bitte sicher weitergeben; die Person kann es
       unter „Mein Konto“ ändern.</small>
-    <button type="submit" class="outline" data-bestaetigen="Passwort für „{{ b.benutzername }}“ neu setzen?">Passwort setzen</button>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel" data-bestaetigen="Passwort für „{{ b.benutzername }}“ neu setzen?">Passwort setzen</button></div>
   </form>
 </section>
 {% endif %}

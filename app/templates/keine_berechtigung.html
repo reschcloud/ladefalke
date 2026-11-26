@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_makros.html" as m %}
 {% block titel %}Keine Berechtigung{% endblock %}
 {% block inhalt %}
 <h1>Keine Berechtigung</h1>
 <p class="meldung meldung-warnung">Diese Aktion ist mit deiner Rolle nicht erlaubt. Viewer können alles ansehen, aber
   nichts ändern; Einstellungen und Benutzer:innen verwaltet ein Admin.</p>
-<p class="nav-leiste"><a href="/" role="button" class="outline secondary klein nav-knopf">← Zum Dashboard</a></p>
+<p class="nav-leiste">{{ m.nav_knopf("/", "← Zum Dashboard") }}</p>
 {% endblock %}

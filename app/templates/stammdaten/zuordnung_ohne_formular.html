@@ -2,8 +2,8 @@
 {% import "_makros.html" as m %}
 {% block titel %}Zeitraum ohne Fahrer:in{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a></p>
-<h1>Zeitraum „ohne Fahrer:in“ bearbeiten</h1>
+<p class="nav-leiste">{{ m.nav_knopf(zurueck, "← Zurück") }}</p>
+{% call m.titel("zuordnung", "h1") %}Zeitraum „ohne Fahrer:in“ bearbeiten{% endcall %}
 <p><a href="/stammdaten/fahrzeuge/{{ o.fahrzeug.id }}">{{ o.fahrzeug.kennzeichen }}</a> ist bewusst niemandem zugeordnet ·
   {{ m.zeitraum_zelle(o) }}</p>
 <form method="post" class="formular" action="{{ request.url.path }}?zurueck={{ zurueck | urlencode }}">
@@ -16,5 +16,5 @@
     keine Person. Zeiträume, die direkt aneinandergrenzen, werden zusammengefasst.</small>
   <button type="submit">Speichern</button>
 </form>
-{{ m.loeschen_knopf(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode), "Zeitraum „ohne Fahrer:in“ löschen?") }}
+<div class="entfernen-zeile">{{ m.loeschen_knopf(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode), "Zeitraum „ohne Fahrer:in“ löschen?") }}</div>
 {% endblock %}

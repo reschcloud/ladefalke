@@ -73,7 +73,7 @@ def test_fest_ladebeginn(angemeldet, db):
     assert f'<td><a href="/ladevorgaenge/{v.id}">30.09.2026 22:00</a></td>' in liste
     # daneben die Dauer, darunter das Ladeende (anderer Tag: mit Datum)
     assert '<td class="dauer">4:00 h<br><small>bis\n  01.10.2026 02:00</small></td>' in liste
-    assert "<h1>Ladevorgang 30.09.2026 22:00</h1>" in angemeldet.get(f"/ladevorgaenge/{v.id}").text
+    assert "</svg>Ladevorgang 30.09.2026 22:00</h1>" in angemeldet.get(f"/ladevorgaenge/{v.id}").text
     assert "<th>Ladebeginn</th><th>Dauer</th>" in angemeldet.get(f"/stammdaten/fahrzeuge/{fz_a.id}").text
     assert auswerten(db, zeitraum("monat", 2026, 9), app_einstellungen.laden(db)).gesamt.anzahl == 1
 

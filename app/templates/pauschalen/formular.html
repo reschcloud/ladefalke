@@ -2,7 +2,7 @@
 {% import "_makros.html" as m %}
 {% block titel %}{{ "Pauschale bearbeiten" if p else "Neue Pauschale" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="/import{{ '?pauschalen_jahr=%d' % p.monat.year if p }}#pauschalen" role="button" class="outline secondary klein nav-knopf">← Import · Pauschalen</a></p>
+<p class="nav-leiste">{{ m.nav_knopf("/import" ~ ('?pauschalen_jahr=%d' % p.monat.year if p) ~ "#pauschalen", "← Import · Pauschalen") }}</p>
 <h1>{{ "Pauschale %s – %s" % (p.bezeichnung, p.monat | monat) if p else "Neue Pauschale" }}</h1>
 
 <form method="post" class="formular" action="{{ '/import/pauschalen/%d' % p.id if p else '/import/pauschalen/neu' }}">
@@ -21,10 +21,10 @@
     {{ m.auswahl("ladeart", "Ladeart", ladearten, werte, fehler, pflicht=true) }}
   </div>
   {{ m.textfeld("notiz", "Notiz", werte, fehler) }}
-  <small>Bei Papierrechnungen den Nettobetrag der Rechnung (z. B. Grundgebühr) und die Monats-kWh eingeben.</small>
+  <small class="formular-hinweis">Bei Papierrechnungen den Nettobetrag der Rechnung (z. B. Grundgebühr) und die Monats-kWh eingeben.</small>
   <button type="submit">Speichern</button>
 </form>
-{% if p %}
+{% if p %}<div class="entfernen-zeile">
   {{ m.loeschen_knopf("/import/pauschalen/%d/loeschen" % p.id, "Pauschale %s für %s löschen?" % (p.bezeichnung, p.monat | monat)) }}
-{% endif %}
+</div>{% endif %}
 {% endblock %}

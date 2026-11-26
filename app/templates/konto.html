@@ -9,7 +9,7 @@
 
 <section class="einstellung-gruppe">
   <header class="kopf"><h2 id="darstellung">Darstellung</h2></header>
-  <fieldset class="versand-block">
+  <fieldset class="feldgruppe">
   <legend>Theme</legend>
   <form method="post" action="/konto/theme" class="theme-wahl" hx-boost="false" data-immer>  {# ganze Seite neu laden: hx-boost tauscht nur den body, das Theme steht am html #}
     <span class="umschalter" role="group" aria-label="Theme" title="Theme">
@@ -21,7 +21,7 @@
     <small>Nur für dich, wirkt sofort. Auto folgt dem Betriebssystem bzw. Browser.</small>
   </form>
   </fieldset>
-  <fieldset class="versand-block">
+  <fieldset class="feldgruppe">
   <legend>Vorausgewählter Zeitraum</legend>
   <form method="post" action="/konto/zeitraum" class="theme-wahl zeitraum-wahl" data-immer>
     <span class="umschalter" role="group" aria-label="Vorausgewählter Zeitraum">
@@ -46,8 +46,8 @@
       {% if fehler.get("email") %}<small id="email-fehler" class="fehler">{{ fehler.email }}</small>{% endif %}
     </label>
     <small class="formular-hinweis">Für Mails der App an dich (z. B. Reports). Leer lassen und speichern entfernt die Adresse.</small>
-    {% if darf %}<button type="submit">Speichern</button>
-    {% else %}<button type="submit" class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin">Speichern</button>{% endif %}
+    <div class="formular-fuss">{% if darf %}<button type="submit" class="knopf-mittel">Speichern</button>
+    {% else %}<button type="submit" class="knopf-mittel ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin">Speichern</button>{% endif %}</div>
   </form>
   {# Abos: erst die Benachrichtigung, dann Reports nach Zeitplan, dann die Monatsreports #}
   {% macro abo(aktion, an, titel, hinweis) %}
@@ -58,19 +58,19 @@
     <noscript><button type="submit" class="outline klein">Übernehmen</button></noscript>
   </form>
   {% endmacro %}
-  <fieldset class="versand-block abo-gruppe">
+  <fieldset class="feldgruppe abo-gruppe">
   <legend>Benachrichtigung</legend>
   {{ abo("/konto/fristen-abo", ich.fristen_abo, "Bei Fristen benachrichtigen",
          "Mail, sobald eine Frist (Leasing-Ende, Führerscheinkontrolle, Vignette, Streckenmaut) in die Hinweisfrist fällt und wenn sie abläuft – mit den betroffenen Fahrzeugen bzw. Personen im Text und dem Report „Offene Aufgaben“ im Anhang; geprüft einmal täglich ab 7 Uhr") }}
   </fieldset>
-  <fieldset class="versand-block abo-gruppe">
+  <fieldset class="feldgruppe abo-gruppe">
   <legend>Reports nach Zeitplan</legend>
   {{ abo("/konto/aufgaben-abo", ich.aufgaben_abo, "Offene Aufgaben per Mail erhalten",
          "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den Report „Offene Aufgaben“ nach dessen Zeitplan") }}
   {{ abo("/konto/report-abo/zuordnungen", ich.zuordnungen_abo, "Zuordnungen am Stichtag per Mail erhalten",
          "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du den Report nach dessen Zeitplan, Stichtag ist der Versandtag") }}
   </fieldset>
-  <fieldset class="versand-block abo-gruppe">
+  <fieldset class="feldgruppe abo-gruppe">
   <legend>Monatsreports</legend>
   {{ abo("/konto/abo", ich.zusammenfassung_abo, "Zusammenfassungen per Mail erhalten",
          "Wird der automatische Versand genutzt (Einstellungen → Reports), bekommst du im Folgemonat die Zusammenfassung als PDF") }}
@@ -90,7 +90,7 @@
       {{ m.feld("wiederholung", "Neues Passwort wiederholen", {}, fehler, typ="password", pflicht=true) }}
     </div>
     <small class="formular-hinweis">Mindestens {{ mindestlaenge }} Zeichen.</small>
-    <button type="submit">Passwort ändern</button>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel">Passwort ändern</button></div>
   </form>
 </section>
 {% endblock %}

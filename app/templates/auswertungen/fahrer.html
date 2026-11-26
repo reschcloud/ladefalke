@@ -3,8 +3,8 @@
 {% import "_makros.html" as m %}
 {% block titel %}{{ z.fahrer.name }} {{ a.zeitraum.label }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="/auswertungen?{{ parameter }}" role="button" class="outline secondary klein nav-knopf">← Auswertungen {{ a.zeitraum.label }}</a></p>
-<h1>{{ z.fahrer.name }}</h1>
+<p class="nav-leiste">{{ m.nav_knopf("/auswertungen?" ~ parameter, "← Auswertungen " ~ a.zeitraum.label) }}</p>
+{% call m.titel("person", "h1") %}{{ z.fahrer.name }}{% endcall %}
 {{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
 {{ m.querverweise("Siehe auch", [
      ("/stammdaten/fahrer/%d" % z.fahrer.id, "Stammdaten", "Stammdaten, Zuordnungen und letzte Ladevorgänge"),
@@ -13,7 +13,7 @@
 <p><small>Nur Ladekosten ohne Gebühren; Ladungen, bei denen {{ z.fahrer.name }} zum Ladezeitpunkt gefahren ist {{ m.zurechnung() }}.</small></p>
 
 {% if z.summe.leer %}
-<p class="meldung meldung-info">Keine Ladevorgänge im Zeitraum {{ a.zeitraum.label }}. Mit ◀ ▶ oder Quartal/Jahr
+<p class="leer">Keine Ladevorgänge im Zeitraum {{ a.zeitraum.label }}. Mit ◀ ▶ oder Quartal/Jahr
   lassen sich andere Zeiträume ansehen.</p>
 {% else %}
 {{ b.kennzahlen(z.summe, zeitraum=a.zeitraum, schnitt=a.zeitraum.schnitt(z.summe), dc=dc, co2e=a.co2e_ersparnis(z.summe), tank=a.tank_ersparnis(z.summe)) }}

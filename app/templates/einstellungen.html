@@ -30,7 +30,7 @@
 {% set nur_lesen = request.state.benutzer.rolle != "admin" %}
 {# Schaltbare Funktionen (Fristen, Schätzungen): Hauptschalter zuerst, Einstellungen erst, wenn er an ist (wie beim Versand unter „Reports“) #}
     {% macro feature(name, titel, schalter, erklaerung) %}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>{{ titel }}</legend>
       <label class="haken haupt"><input type="checkbox" name="{{ name }}" {% if werte.get(name) %}checked{% endif %}
         {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> {{ schalter }}</label>
@@ -51,7 +51,7 @@
   </span>
 </div>
 <p class="einstellungen-keine" hidden><small>Keine Einstellung gefunden.</small></p>
-<nav class="einstellungen-nav" aria-label="Rubriken">
+<nav class="abschnitt-nav" aria-label="Rubriken">
   <a href="#ladevorgaenge">Import und Ladevorgänge</a><a href="#kosten">Kosten und USt.</a><a href="#fristen">Aufgaben und Fristen</a>
   <a href="#auswertungen">Auswertungen</a><a href="#reports">Reports</a><a href="#email">E-Mail</a><a href="#protokoll">Protokoll</a><a href="#backup">Backup</a><a href="#system">System</a>
 </nav>
@@ -66,7 +66,7 @@
 
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("ladevorgaenge", "Import und Ladevorgänge", "Ein Ladevorgang zählt immer nach seinem Ladebeginn (Monat, Zuordnung zu Fahrzeug und Person, Filter). Den Strompreis für Importe ohne Kostenangabe (z. B. eigene Wallboxen) legt der jeweilige MSP fest (Stammdaten → MSP).") }}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>Plausibilität AC/DC</legend>
       <small class="versand-hinweis">Geprüft wird die Leistung über den Vorgang (kWh / angesteckte Dauer). Unplausible
         Vorgänge werden markiert, erscheinen unter „Aufgaben“ und zählen nicht fürs Ladeprofil.</small>
@@ -79,7 +79,7 @@
         in der Liste unten steht: ab „AC unplausibel ab“ DC, unter „DC unplausibel unter“ AC, dazwischen keine Angabe.</small>
     </fieldset>
     {% set c = cpo_liste %}
-    <fieldset class="versand-block" id="cpo-stromart">
+    <fieldset class="feldgruppe" id="cpo-stromart">
     <legend>CPO-Liste für AC/DC</legend>
     <small class="versand-hinweis">Betreiber, die nur AC oder nur DC anbieten (z. B. Ionity = DC). Gilt für Ladevorgänge,
       deren Rechnung kein AC/DC angibt – vor der Ø-Leistung und vor der Vorgabe des {{ MSP }}; Rechnungsangaben und
@@ -115,7 +115,7 @@
       (beim Import und nach jeder Änderung hier oder an den Grenzen oben).</small>
       {% if not nur_lesen %}<button type="submit" form="stromart-neu-bestimmen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">AC/DC jetzt neu bestimmen</button>{% endif %}</p>
     </fieldset>
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>kWh-Schätzung – Ersatzwerte</legend>
       <small class="versand-hinweis">Ohne kWh in der Rechnung (z. B. Zeittarif) schätzt die App aus den gemessenen Ladungen
         (erklärt auf jeder Fahrzeugseite unter „Ladeprofil und kWh-Schätzung“). <strong>Die Werte hier gelten nur</strong>,
@@ -131,7 +131,7 @@
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("kosten", "Kosten und Umsatzsteuer", "Alle Kosten sind tatsächliche Kosten: netto plus der Teil der USt., der nicht als Vorsteuer zurückkommt. Inländische USt. (Land des Unternehmens) ist je Fahrzeug abziehbar (Vorsteuerabzug in Prozent, auf der Fahrzeugseite), ausländische USt. zählt immer voll. Nennt eine Rechnung keine USt., wird sie mit dem Steuersatz unten geschätzt (≈). Private Ladungen und Pauschalen sind ohne USt.") }}
     {% set geaendert = werte.get("firmenland") != standard.get("firmenland") %}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
     <legend>Vorsteuer</legend>
     <div class="einstellung-felder">
       <div class="einstellung{{ ' geaendert' if geaendert }}">
@@ -144,7 +144,7 @@
       {{ einstellung("vorsteuer_standard", "Vorsteuerabzug ohne Fahrzeug", "%", "Für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnete Karten). Je Fahrzeug auf der Fahrzeugseite.") }}
     </div>
     </fieldset>
-    <fieldset class="versand-block" id="steuersaetze">
+    <fieldset class="feldgruppe" id="steuersaetze">
     <legend>Steuersätze</legend>
     <small class="versand-hinweis">Umsatzsteuer-Normalsatz je Land ab einem Datum – nur für Rechnungen ohne USt.-Angabe.
       Vorbelegt, bitte prüfen; Änderungen gelten sofort.</small>
@@ -173,7 +173,7 @@
 
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("fristen", "Aufgaben und Fristen", "Unter „Aufgaben“ erscheint je Art (Leasing, Führerschein, Vignette, Streckenmaut) eine Info, sobald eine Frist in die Hinweisfrist fällt (auch überfällige oder fehlende Angaben). Führerscheinkontrolle, Vignette und Streckenmaut FLEX lassen sich für diese Installation einschalten – ausgeschaltet gibt es dafür weder Felder noch Hinweise oder Aufgaben; eingetragene Daten bleiben erhalten.") }}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>Leasing</legend>
       <div class="einstellung-felder">
         {{ einstellung("leasing_dauer_monate", "Leasingdauer", "Monate", "Belegt beim Fahrzeug das Leasing-Ende aus dem Beginn vor.", empfehlung=false) }}
@@ -203,7 +203,7 @@
       {{ einstellung("topliste_m", "Gewichtung m", "kWh", "Leer lassen: Median der kWh je Fahrer:in im Zeitraum.", leer_text="leer (Median im Zeitraum)") }}
       {{ einstellung("topliste_mindestmenge", "Mindestmenge für die Topliste", "kWh", "Wer im Zeitraum weniger geladen hat, erscheint nicht in der Topliste.") }}
     </div>
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>Vergleich mit Verbrennern</legend>
       <small class="versand-hinweis">Grobe Schätzungen: aus den geladenen kWh die Strecke (Verbrauch E-PKW), dafür
         Emissionen bzw. Tankkosten eines Verbrenners (Verbrauch Verbrenner). Gilt für beide Schätzungen unten.</small>
@@ -282,7 +282,7 @@
     {% set aus = nur_lesen %}
     {% set gesperrt %}{% if aus %}disabled title="Unzureichende Berechtigungen"{% endif %}{% endset %}
 
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
     <legend>Kennzeichnung</legend>
     <div class="einstellung-felder">
       <div class="einstellung">
@@ -299,7 +299,7 @@
     <p class="gruppe-text"><small>Braucht einen Mailserver (Einstellungen → E-Mail). Manuell versenden geht jederzeit unter „Reports“.</small></p>
 
     {# Monatsreports: Hauptschalter zuerst, Details nur, wenn er an ist #}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>Monatsreports</legend>
       <label class="haken haupt"><input type="checkbox" name="report_auto" {% if werte.get("report_auto") %}checked{% endif %} {{ gesperrt }}>
         Monatsreports automatisch versenden</label>
@@ -335,7 +335,7 @@
        Wochentag bzw. Tag (1.–28. oder Monatsletzter) erst, wenn er an ist #}
     {% macro zeitplan_block(name, legende, schalter, hinweis) %}
     {% set za = werte.get(name ~ "_auto") or "woechentlich" %}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
       <legend>{{ legende }}</legend>
       <label class="haken haupt"><input type="checkbox" name="{{ name }}_auto_an" {% if werte.get(name ~ "_auto_an") %}checked{% endif %} {{ gesperrt }}>
         {{ schalter }}</label>
@@ -423,13 +423,13 @@
   {% set sl = syslog %}
   <details class="einstellung-gruppe protokoll-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("protokoll", "Protokoll", "Das Änderungsprotokoll hält fest, wer was wann geändert hat (Stammdaten, Korrekturen, Importe, Einstellungen, Anmeldungen, Sicherungen). Einsehen können es Admins unter Benutzermenü → Protokoll.") }}
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
     <legend>Aufbewahrung</legend>
     <div class="einstellung-felder">
       {{ einstellung("protokoll_aufbewahrung_jahre", "Einträge aufbewahren", "Jahre", "Ältere Einträge löscht die App automatisch (Datenschutz: das Protokoll enthält Namen und geänderte Werte).") }}
     </div>
     </fieldset>
-    <fieldset class="versand-block">
+    <fieldset class="feldgruppe">
     <legend>Syslog (rsyslog)</legend>
     <small class="versand-hinweis">Schickt die Einträge zusätzlich an einen Syslog-Server, z. B. für ein zentrales Log oder
       SIEM. Leer lassen = aus; die App verbindet sich nur mit dem eingetragenen Server. Gesendet wird im Hintergrund – ist der
@@ -670,7 +670,7 @@
       return el;
     };
     oeffnenFuer(decodeURIComponent(location.hash.slice(1)));
-    document.querySelectorAll(".einstellungen-nav a").forEach((a) => a.addEventListener("click", (e) => {
+    document.querySelectorAll(".abschnitt-nav a").forEach((a) => a.addEventListener("click", (e) => {
       const el = oeffnenFuer(a.hash.slice(1));
       if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth", block: "start" }); history.replaceState(null, "", a.hash); }
     }));
@@ -682,7 +682,7 @@
       const g = e.target.closest("details.einstellung-gruppe");
       if (g) g.open = true;
     }, true);
-    const EINHEITEN = ".einstellung, fieldset.versand-block, .gruppe-text, h3, label.haken, details.syslog-erweitert";
+    const EINHEITEN = ".einstellung, fieldset.feldgruppe, .gruppe-text, h3, label.haken, details.syslog-erweitert";
     const text = (el) => (el.textContent + " " + [...el.querySelectorAll("[title]")].map((t) => t.title).join(" ")).toLowerCase();
     let vorher = null;
     suche?.addEventListener("input", () => {

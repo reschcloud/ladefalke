@@ -5,7 +5,7 @@
 {% block inhalt %}
 {% macro fahrzeug_link(fz) %}<a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a>{% endmacro %}
 
-<p class="nav-leiste"><a href="/import" role="button" class="outline secondary klein nav-knopf">← Import-Übersicht</a></p>
+<p class="nav-leiste">{{ m.nav_knopf("/import", "← Import-Übersicht") }}</p>
 {{ s.schritte(2, navigation) }}
 <h1>Vorschau: {{ imp.dateiname }}</h1>
 <p><a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein">Originaldatei öffnen ↗</a>
@@ -19,7 +19,7 @@
 <div class="vorschau-links">
 <article>
   {% set parser_name = (parser | selectattr(0, "equalto", imp.parser_key) | map(attribute=1) | first) if imp.parser_key else none %}
-  <header class="block-kopf"><strong>1. Format und Ladeart</strong>
+  <header class="kopf"><strong>1. Format und Ladeart</strong>
     {% if parser_name and imp.msp_id %}<span class="block-status ok">{{ icon("ok") }} {{ parser_name }}</span>
     {% else %}<span class="block-status offen">bitte Format wählen</span>{% endif %}</header>
   {# Automatisch erkannt und ohne Fehler: nur eine Zeile mit den Einstellungen, die Felder erst über „Ändern“ #}
@@ -51,7 +51,7 @@
 {% else %}
 {% set r = vs.ergebnis.rechnung %}
 <article>
-  <header class="block-kopf"><strong>2. Prüfen</strong>
+  <header class="kopf"><strong>2. Prüfen</strong>
     {% if vs.warnungen %}<span class="block-status offen">{{ icon("warnung") }} {{ vs.warnungen | length }} Hinweis{{ "e" if vs.warnungen | length != 1 }} – bitte lesen</span>
     {% else %}<span class="block-status ok">{{ icon("ok") }} keine Auffälligkeiten</span>{% endif %}</header>
   <div class="kacheln kacheln-klein">
@@ -72,7 +72,7 @@
 </article>
 <article class="karten-block">
   {% set neu = vs.unbekannte_karten | length %}
-  <header class="block-kopf"><strong>3. Ladekarten</strong>
+  <header class="kopf"><strong>3. Ladekarten</strong>
     {% if neu %}<span class="block-status offen">{{ neu }} neue Karte{{ "n" if neu != 1 }} – bitte entscheiden</span>
     {% else %}<span class="block-status ok">{{ icon("ok") }} alle bekannt</span>{% endif %}</header>
   <div class="tabelle">
@@ -141,7 +141,7 @@
 {% set spaeter = vs.vorgaenge | rejectattr("duplikat") | selectattr("fahrzeug", "none")
                  | rejectattr("karte.ist_gastkarte") | list | length %}
 <article class="bestaetigen-block">
-  <header class="block-kopf"><strong>4. Übernehmen</strong>
+  <header class="kopf"><strong>4. Übernehmen</strong>
     {% if navigation.offen > 1 %}<span class="block-status">danach weiter mit der nächsten Datei</span>
     {% else %}<span class="block-status">letzte Datei – danach ist der Import abgeschlossen</span>{% endif %}</header>
   {% set ohne_rechnung = vs.neue | selectattr("v.stromart", "none") | list %}

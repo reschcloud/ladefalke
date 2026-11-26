@@ -2,7 +2,7 @@
 {% import "_makros.html" as m %}
 {% block titel %}Import {{ imp.bezeichnung }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="/import" role="button" class="outline secondary klein nav-knopf">← Alle Importe</a></p>
+<p class="nav-leiste">{{ m.nav_knopf("/import", "← Alle Importe") }}</p>
 <h1>{{ imp.bezeichnung }}</h1>{% if imp.bezeichnung != imp.dateiname %}<p><small>Datei: {{ imp.dateiname }}</small></p>{% endif %}
 
 <div class="grid detail-daten">
@@ -16,11 +16,11 @@
     {% if imp.strompreis_netto_kwh is not none %}<dt>Strompreis netto</dt><dd>{{ imp.strompreis_netto_kwh | zahl(4) }} €/kWh</dd>{% endif %}
     <dt>Originaldatei</dt><dd>{{ imp.dateiname }}
       <a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button"
-         class="outline klein maps-link" title="Originaldatei in neuem Tab öffnen">Originaldatei öffnen ↗</a></dd>
+         class="outline klein extern-link" title="Originaldatei in neuem Tab öffnen">Originaldatei öffnen ↗</a></dd>
   </dl>
 </div>
 
-<div class="kacheln">
+<div class="kacheln kacheln-klein">
   <a class="kachel" href="/ladevorgaenge?import_id={{ imp.id }}"><span class="kachel-zahl">{{ vorgaenge | length }}</span><span>Ladevorgänge</span></a>
   <div class="kachel"><span class="kachel-zahl">{{ summe_kwh | zahl(0) }}</span><span>kWh</span></div>
   <div class="kachel"><span class="kachel-zahl">{{ summe_kosten | geld }}</span><span>Ladekosten netto</span></div>
@@ -31,7 +31,7 @@
 </div>
 {% if ohne_stromart %}
 <p class="aktionszeile"><span>{{ ohne_stromart }} Ladevorgänge dieses Imports haben keine AC/DC-Angabe.</span>
-  <a href="/aufgaben{% if imp.msp_id %}?stromart_msp={{ imp.msp_id }}{% endif %}#stromart" role="button" class="outline klein nav-knopf">In den Aufgaben setzen →</a></p>
+  {{ m.nav_knopf("/aufgaben" ~ ("?stromart_msp=%d" % imp.msp_id if imp.msp_id else "") ~ "#stromart", "In den Aufgaben setzen →") }}</p>
 {% endif %}
 
 {% for w in imp.warnungen %}<p class="meldung meldung-warnung">{{ w }}</p>{% endfor %}

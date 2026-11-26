@@ -3,7 +3,7 @@
 {% import "_ladevorgaenge.html" as lv %}
 {% block titel %}{{ msp.name if msp else "Neuer MSP" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="/stammdaten/msp" role="button" class="outline secondary klein nav-knopf">← Alle MSP</a>{{ m.blaettern(blaettern) }}</p>
+<p class="nav-leiste">{{ m.nav_knopf(blaettern.liste if blaettern else "/stammdaten/msp", "← Alle MSP") }}{{ m.blaettern(blaettern) }}</p>
 {% call m.titel("msp", "h1") %}{{ msp.name if msp else "Neuer MSP" }}{% endcall %}
 {% if parser_fehlt %}
 <p class="meldung meldung-warnung" role="alert">{{ icon("warnung") }} Der Parser <code>{{ msp.parser_key }}</code> ist nicht installiert
@@ -12,7 +12,7 @@
 {% endif %}
 <form method="post" class="formular" data-nur-admin action="{{ '/stammdaten/msp/%d' % msp.id if msp else '/stammdaten/msp/neu' }}">
   {{ m.feld("name", "Name", werte, fehler, pflicht=true) }}
-  <fieldset class="versand-block">
+  <fieldset class="feldgruppe">
   <legend>Parser</legend>
   <label>Parser
     <select name="parser_key" aria-describedby="parser-hinweis"{% if fehler.get("parser_key") %} aria-invalid="true"{% endif %}>
@@ -29,7 +29,7 @@
   <small class="haken-hinweis">Monatliche Rechnung je Ladekarte: Die Vollständigkeitsprüfung erwartet dann je aktiver
     Karte einen Eintrag pro Monat statt einen je {{ MSP }}.</small>
   </fieldset>
-  <fieldset class="versand-block">
+  <fieldset class="feldgruppe">
   <legend>Vorgaben für Importe</legend>
   {{ m.auswahl("standard_ladeart", "Standard-Ladeart", ladearten, werte, fehler, pflicht=true) }}
   <label>Standard AC/DC
@@ -44,7 +44,7 @@
   {# Knöpfe gehören zu eigenen Formularen unter diesem (form-Attribut) – Formulare lassen sich nicht schachteln #}
   {% if msp and ohne_stromart %}
   <div class="aktionszeile vorgabe"><span>{{ ohne_stromart }} Ladevorgänge dieses {{ MSP }} haben keine AC/DC-Angabe.</span>
-    <a href="/aufgaben?stromart_msp={{ msp.id }}#stromart" role="button" class="outline klein nav-knopf">In den Aufgaben setzen →</a>
+    {{ m.nav_knopf("/aufgaben?stromart_msp=%d#stromart" % msp.id, "In den Aufgaben setzen →") }}
   </div>
   {% endif %}
   {% set ohne_kosten = werte.get("parser_key") and installiert.get(werte.parser_key) and not installiert[werte.parser_key].liefert_kosten %}
@@ -79,7 +79,7 @@
 <form method="post" action="/stammdaten/msp/{{ msp.id }}/cpo-anwenden" id="cpo-anwenden" hidden></form>
 {% endif %}
 {% if msp %}
-<div class="aktionszeile" data-nur-admin>
+<div class="entfernen-zeile" data-nur-admin>
   {% if msp.parser_key %}
   {# immer sichtbar; ausgegraut mit Grund, solange das Entfernen nicht möglich ist #}
   {% set grund = ("Der Parser ist installiert – entfernen lässt sich nur die Verknüpfung zu einem fehlenden Parser.\n"
@@ -93,7 +93,7 @@
             {% if grund %}aria-disabled="true" title="{{ grund }}"{% else %}title="Verknüpfung zum fehlenden Parser entfernen – der MSP und seine Daten bleiben"{% endif %}>Parser-Verknüpfung entfernen</button>
   </form>
   {% endif %}
-  {% if hat_daten %}<small>Löschen ist nicht möglich, weil Ladekarten oder Importe zu diesem {{ MSP }} gehören.</small>
+  {% if hat_daten %}<small class="hinweis-knopf">Löschen ist nicht möglich, weil Ladekarten oder Importe zu diesem {{ MSP }} gehören.</small>
   {% else %}{{ m.loeschen_knopf("/stammdaten/msp/%d/loeschen" % msp.id, "MSP „%s“ endgültig löschen?" % msp.name) }}{% endif %}
 </div>
   {{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?msp_id=%d" % msp.id, mit_karte=true, mit_fahrzeug=true) }}

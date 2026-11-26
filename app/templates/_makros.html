@@ -5,7 +5,7 @@
   <input type="{{ typ }}" name="{{ name }}" value="{{ werte.get(name) or '' }}"
          {% if pflicht %}required{% endif %}
          {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
-  {% if fehler.get(name) %}<small id="{{ name }}-fehler">{{ fehler[name] }}</small>{% endif %}
+  {% if fehler.get(name) %}<small id="{{ name }}-fehler" class="fehler">{{ fehler[name] }}</small>{% endif %}
 </label>
 {% endmacro %}
 
@@ -25,7 +25,7 @@
       <option value="{{ wert }}" {% if (werte.get(name) | string) == (wert | string) %}selected{% endif %}>{{ text }}</option>
     {% endfor %}
   </select>
-  {% if fehler.get(name) %}<small id="{{ name }}-fehler">{{ fehler[name] }}</small>{% endif %}
+  {% if fehler.get(name) %}<small id="{{ name }}-fehler" class="fehler">{{ fehler[name] }}</small>{% endif %}
 </label>
 {% endmacro %}
 
@@ -384,6 +384,6 @@
   <div class="kachel"><span class="kachel-zahl">{{ g.anteil_oeffentlich | prozent }}</span><span>öffentlich (kWh)</span></div>
 </div>
 {% elif g %}
-<p><small>Noch keine Ladevorgänge {{ wer }}.</small></p>
+<p class="leer">Noch keine Ladevorgänge {{ wer }}.</p>
 {% endif %}
 {% endmacro %}

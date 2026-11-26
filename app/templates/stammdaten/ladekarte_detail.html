@@ -4,8 +4,8 @@
 {% import "_ladevorgaenge.html" as lv %}
 {% block titel %}{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
-  {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/ladekarten' }}" role="button" class="outline secondary klein nav-knopf">← Alle Ladekarten</a>{{ m.blaettern(blaettern) }}</p>
+<p class="nav-leiste">{% if zurueck %}{{ m.nav_knopf(zurueck, "← Zurück") }}
+  {% endif %}{{ m.nav_knopf((blaettern.liste if blaettern else '/stammdaten/ladekarten'), "← Alle Ladekarten") }}{{ m.blaettern(blaettern) }}</p>
 {% call m.titel("karte", "h1") %}{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}{% endcall %}
 {% if karte %}{{ m.gesamt_kacheln(gesamt, "dieser Karte") }}
 {{ m.offene_punkte(offen, "/stammdaten/ladekarten/%d" % karte.id) }}{# Meldungen immer unter den Kacheln #}

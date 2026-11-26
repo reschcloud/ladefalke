@@ -2,8 +2,8 @@
 {% import "_makros.html" as m %}
 {% block titel %}Zuordnung bearbeiten{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a></p>
-<h1>Fahrzeug-Zuordnung bearbeiten</h1>
+<p class="nav-leiste">{{ m.nav_knopf(zurueck, "← Zurück") }}</p>
+{% call m.titel("zuordnung", "h1") %}Fahrzeug-Zuordnung bearbeiten{% endcall %}
 <p><a href="/stammdaten/fahrer/{{ z.fahrer.id }}">{{ z.fahrer.name }}</a> fährt
   <a href="/stammdaten/fahrzeuge/{{ z.fahrzeug.id }}">{{ z.fahrzeug.kennzeichen }}</a> · {{ m.zeitraum_zelle(z) }}</p>
 <form method="post" class="formular" action="{{ request.url.path }}?zurueck={{ zurueck | urlencode }}">

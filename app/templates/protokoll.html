@@ -30,8 +30,8 @@
 {% if seiten > 1 %}
 {% set basis = "/protokoll?" ~ (filter | urlencode) %}
 <nav class="blaettern" aria-label="Seiten">
-  {% if seite > 1 %}<a href="{{ basis }}&seite={{ seite - 1 }}" role="button" class="outline secondary klein nav-knopf">← neuer</a>{% endif %}
-  {% if seite < seiten %}<a href="{{ basis }}&seite={{ seite + 1 }}" role="button" class="outline secondary klein nav-knopf">älter →</a>{% endif %}
+  {% if seite > 1 %}{{ m.nav_knopf(basis ~ "&seite=" ~ (seite - 1), "← neuer") }}{% endif %}
+  {% if seite < seiten %}{{ m.nav_knopf(basis ~ "&seite=" ~ (seite + 1), "älter →") }}{% endif %}
 </nav>
 {% endif %}
 {% endblock %}

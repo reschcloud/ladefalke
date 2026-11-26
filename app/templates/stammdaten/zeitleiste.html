@@ -75,7 +75,7 @@
         title="Leasing-Ende {{ zeile.objekt.leasing_ende | datum }}"></span>{% endif %}
       {% if zl.heute is not none %}<span class="zl-heute" style="left: {{ zl.heute }}%"></span>{% endif %}
       {% if zeile.nie_zugeordnet %}
-        <a class="zl-luecke" href="{{ zeile.link }}" style="left: 0; width: 100%"
+        <a class="zl-luecke zl-ganz" href="{{ zeile.link }}"
            title="Noch nie {{ 'einer Fahrer:in' if nach_fahrzeug else 'einem Fahrzeug' }} zugeordnet"><span>{{ icon("warnung") }} noch nie zugeordnet</span></a>
       {% endif %}
       {% for l in zeile.luecken %}

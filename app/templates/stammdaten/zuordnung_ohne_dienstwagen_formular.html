@@ -2,8 +2,8 @@
 {% import "_makros.html" as m %}
 {% block titel %}Zeitraum ohne Dienstwagen{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a></p>
-<h1>Zeitraum „ohne Dienstwagen“ bearbeiten</h1>
+<p class="nav-leiste">{{ m.nav_knopf(zurueck, "← Zurück") }}</p>
+{% call m.titel("zuordnung", "h1") %}Zeitraum „ohne Dienstwagen“ bearbeiten{% endcall %}
 <p><a href="/stammdaten/fahrer/{{ o.fahrer.id }}">{{ o.fahrer.name }}</a> hatte bewusst keinen Dienstwagen ·
   {{ m.zeitraum_zelle(o) }}</p>
 <form method="post" class="formular" action="{{ request.url.path }}?zurueck={{ zurueck | urlencode }}">
@@ -21,5 +21,5 @@
     wenn die Person ab einem späteren Tag ein Fahrzeug bekommt.</small>
   <button type="submit">Speichern</button>
 </form>
-{{ m.loeschen_knopf(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode), "Zeitraum „ohne Dienstwagen“ löschen?") }}
+<div class="entfernen-zeile">{{ m.loeschen_knopf(request.url.path ~ "/loeschen?zurueck=" ~ (zurueck | urlencode), "Zeitraum „ohne Dienstwagen“ löschen?") }}</div>
 {% endblock %}

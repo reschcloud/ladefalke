@@ -39,8 +39,8 @@
 </table>
 </div>
 <p><small>{% if zeilen | length >= anzahl %}Die neuesten {{ anzahl }} Vorgänge. {% endif %}
-</small>{% if alle_link %} <a href="{{ alle_link }}" role="button" class="outline secondary klein nav-knopf">Alle Ladevorgänge anzeigen →</a>{% endif %}</p>
+</small>{% if alle_link %} {{ mk.nav_knopf(alle_link, "Alle Ladevorgänge anzeigen →") }}{% endif %}</p>
 {% else %}
-<p>Noch keine Ladevorgänge.</p>
+<p class="leer">Noch keine Ladevorgänge.</p>
 {% endif %}
 {% endmacro %}

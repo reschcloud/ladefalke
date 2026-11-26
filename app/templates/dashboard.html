@@ -118,12 +118,12 @@
 {{ vollstaendigkeit_anzeige(vollstaendigkeit) }}
 
 {% if a.gesamt.leer %}
-  <p>Für {{ a.zeitraum.label }} liegen noch keine Daten vor.</p>
+  <p class="leer">Für {{ a.zeitraum.label }} liegen noch keine Daten vor.</p>
 {% else %}
   {{ b.kennzahlen(a.gesamt, vergleich, a.zeitraum, a.schnitt_je_auto, dc=dc, co2e=a.co2e_ersparnis(a.gesamt), tank=a.tank_ersparnis(a.gesamt)) }}
   <h2>Verteilung auf Fahrer:innen, {{ MSP }} und {{ CPO }}</h2>
   {% if verteilung.leer %}
-  <p>Im Zeitraum sind keine Ladungen einer Person zugerechnet.</p>
+  <p class="leer">Im Zeitraum sind keine Ladungen einer Person zugerechnet.</p>
   {% else %}
   <div class="diagramme">
     {{ verteilungsdiagramm(verteilung, 0, "kWh je Fahrer:in", "kWh") }}

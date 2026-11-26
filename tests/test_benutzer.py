@@ -157,7 +157,7 @@ def test_loeschen_nur_deaktiviert(rollen, db):
     viktor = db.scalar(select(Benutzer).where(Benutzer.benutzername == "viktor"))
     assert "bitte zuerst deaktivieren" in admin.post(f"/benutzer/{viktor.id}/loeschen").text
     assert db.get(Benutzer, viktor.id) is not None
-    assert "/loeschen" not in admin.get(f"/benutzer/{viktor.id}").text.split("<h1>")[1]  # kein Knopf, solange aktiv
+    assert "/loeschen" not in admin.get(f"/benutzer/{viktor.id}").text.split("<h1")[1]  # kein Knopf, solange aktiv
     admin.post(f"/benutzer/{viktor.id}", data={"name": "Viktor", "rolle": "viewer"})  # deaktivieren
     assert f'action="/benutzer/{viktor.id}/loeschen"' in admin.get(f"/benutzer/{viktor.id}").text
     assert "gelöscht" in admin.post(f"/benutzer/{viktor.id}/loeschen").text

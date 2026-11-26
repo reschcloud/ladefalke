@@ -4,7 +4,7 @@
 {% import "_zuordnung.html" as zo %}
 {% block titel %}{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrzeuge' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrzeuge</a>{{ m.blaettern(blaettern) }}</p>
+<p class="nav-leiste">{{ m.nav_knopf((blaettern.liste if blaettern else '/stammdaten/fahrzeuge'), "← Alle Fahrzeuge") }}{{ m.blaettern(blaettern) }}</p>
 {% call m.titel("auto", "h1") %}{{ fahrzeug.kennzeichen if fahrzeug else "Neues Fahrzeug" }}{% endcall %}
 {% if fahrzeug %}
 {{ m.querverweise("Auswertung", [
@@ -21,7 +21,7 @@
     {{ m.feld("modell", "Modell", werte, fehler) }}
   </div>
   {{ m.haken("ersatzfahrzeug", "Ersatz-/Mietfahrzeug", werte) }}
-  <small class="formular-hinweis">Für Autos, die eine Person nur vorübergehend fährt (Mietwagen, Werkstatt-Ersatz).
+  <small class="haken-hinweis">Für Autos, die eine Person nur vorübergehend fährt (Mietwagen, Werkstatt-Ersatz).
     Sie werden normal zugeordnet und ausgewertet, lösen aber keine Prüfungen der Dienstwagen aus (Lücken ohne
     Fahrer:in, Ladekarten je Fahrzeug, Vignette, Streckenmaut, Leasingfristen).</small>
   <div class="grid leasing" data-leasing-monate="{{ leasing_monate }}">

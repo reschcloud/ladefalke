@@ -2,8 +2,8 @@
 {% import "_makros.html" as m %}
 {% block titel %}Zuordnung bearbeiten{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste"><a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a></p>
-<h1>Karten-Zuordnung bearbeiten</h1>
+<p class="nav-leiste">{{ m.nav_knopf(zurueck, "← Zurück") }}</p>
+{% call m.titel("zuordnung", "h1") %}Karten-Zuordnung bearbeiten{% endcall %}
 <p>Ladekarte <a href="/stammdaten/ladekarten/{{ z.ladekarte.id }}">{{ z.ladekarte.bezeichnung or z.ladekarte.kennung }}</a>
   ({{ z.ladekarte.msp.name }}) → {{ m.karten_ziel(z) }} · {{ m.zeitraum_zelle(z) }}</p>
 <form method="post" class="formular" action="{{ request.url.path }}?zurueck={{ zurueck | urlencode }}">

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
+{% import "_makros.html" as m %}
 {% block titel %}Benutzer:innen{% endblock %}
 {% block inhalt %}
 <div class="kopf">
-  <h1>Benutzer:innen</h1>
+  {% call m.titel("benutzer", "h1") %}Benutzer:innen{% endcall %}
   <a href="/benutzer/neu" role="button">Neue:r Benutzer:in</a>
 </div>
 <p><small>{% for rolle, text in rollen.items() %}<strong>{{ text }}</strong>: {{ rollen_text[rolle] }}{{ " · " if not loop.last }}{% endfor %}.

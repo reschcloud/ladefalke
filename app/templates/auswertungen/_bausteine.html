@@ -135,7 +135,7 @@
 
 {% macro topliste(t, parameter, oeffentlich=false) %}
 {% if not t.teilnehmer %}
-  <p>Keine Fahrer:innen mit mindestens {{ t.mindestmenge | zahl(0) }} kWh {{ "öffentlich geladen " if oeffentlich }}im Zeitraum.</p>
+  <p class="leer">Keine Fahrer:innen mit mindestens {{ t.mindestmenge | zahl(0) }} kWh {{ "öffentlich geladen " if oeffentlich }}im Zeitraum.</p>
 {% else %}
 <div class="grid">
   {% for titel, eintraege in [("Günstigste", t.guenstigste), ("Teuerste", t.teuerste)] %}
@@ -240,6 +240,6 @@ Zu den eigenen Ladungen werden m kWh zum Schnittpreis aller Fahrer:innen dazuger
   </div>
 </details>
 {% else %}
-<p>Im Zeitraum gibt es keine öffentlichen DC-Ladungen.</p>
+<p class="leer">Im Zeitraum gibt es keine öffentlichen DC-Ladungen.</p>
 {% endif %}
 {% endmacro %}

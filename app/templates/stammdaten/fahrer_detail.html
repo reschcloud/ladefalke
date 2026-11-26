@@ -4,8 +4,8 @@
 {% import "_zuordnung.html" as zo %}
 {% block titel %}{{ fahrer.name if fahrer else "Neue Fahrer:in" }}{% endblock %}
 {% block inhalt %}
-<p class="nav-leiste">{% if zurueck %}<a href="{{ zurueck }}" role="button" class="outline secondary klein nav-knopf">← Zurück</a>
-  {% endif %}<a href="{{ blaettern.liste if blaettern else '/stammdaten/fahrer' }}" role="button" class="outline secondary klein nav-knopf">← Alle Fahrer:innen</a>{{ m.blaettern(blaettern) }}</p>
+<p class="nav-leiste">{% if zurueck %}{{ m.nav_knopf(zurueck, "← Zurück") }}
+  {% endif %}{{ m.nav_knopf((blaettern.liste if blaettern else '/stammdaten/fahrer'), "← Alle Fahrer:innen") }}{{ m.blaettern(blaettern) }}</p>
 {% call m.titel("person", "h1") %}{{ fahrer.name if fahrer else "Neue Fahrer:in" }}{% endcall %}
 {% if fahrer %}
 {{ m.querverweise("Auswertung", [
@@ -83,7 +83,7 @@
       <option value="noch kein Dienstwagen"><option value="zwischen zwei Dienstwagen"><option value="Dienstwagen in der Werkstatt">
       <option value="Privatfahrzeug"><option value="Mietwagen">
     </datalist>
-    <button type="submit" class="outline">Zeitraum „ohne Dienstwagen“ eintragen</button>
+    <div class="formular-fuss"><button type="submit" class="knopf-mittel outline">Zeitraum „ohne Dienstwagen“ eintragen</button></div>
   </form>
 </article>
 
