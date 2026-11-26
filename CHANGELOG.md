@@ -3,15 +3,15 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
-## Unveröffentlicht
+## v1.15.0 – 26.11.2026
 
 ### Neu
 
 - Karten-Zuordnung (neu und bearbeiten): Unter den Leasing-Knöpfen setzen „„Gültig ab“ = erste Ladung“ und
   „„Gültig bis“ = letzte Ladung“ den Tag des ersten bzw. letzten Ladevorgangs der Karte (Datum steht im Knopf).
-
 - Fertiges Image auch für ARM-64 (arm64, z. B. Raspberry Pi 4/5 mit 64-Bit-System, ARM-Server). Docker lädt
   automatisch das passende Image; Selbstbauen ist auf solchen Rechnern nicht mehr nötig.
+- Entscheidungen mit Begründung als Architecture Decision Records unter `docs/adr/` (nur Dokumentation).
 
 ### Beim Update beachten
 
