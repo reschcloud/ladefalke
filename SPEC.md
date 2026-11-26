@@ -362,3 +362,17 @@ Noch nicht beauftragt – erst nach Rückfrage umsetzen.
   - PDF-Heatmaps bleiben bei Natural Earth (Flottenbilanz geht nach außen – kein Stadtplan unter privaten Ladeorten).
   - Neues ADR, das ADR 0014 ergänzt.
 - **Content-Security-Policy** (`default-src 'self'`), damit Punkt 1 aus ADR 0022 technisch erzwungen und testbar ist.
+- **Demo-Daten für Präsentationen und Screenshots** (Überlegung vom 26.11.2026): nicht als Anzeige-Umschalter in der
+  laufenden App (zu viele Ausgabestellen – Templates, PDFs, Exporte, Karten-JSON, Rohdaten, Protokolle, Originaldateien;
+  eine vergessene Stelle verrät echte Daten), sondern als Werkzeug (`werkzeuge/demo_daten.py`), das eine **Kopie** der
+  Datenbank (z. B. aus einer Sicherung) für eine zweite Instanz pseudonymisiert:
+  - ersetzen: Namen und E-Mail von Fahrer:innen und Benutzer:innen, Kennzeichen (Bezirkskürzel bleibt), Kennung,
+    Bezeichnung und Vertragsnummer der Ladekarten samt `roh_kartenkennung` (einheitlich zugeordnet), Adressen privater
+    Ladeorte (nur PLZ und Ort bleiben);
+  - leeren bzw. löschen: `rohdaten`, Notizen, Dateinamen und Originaldateien der Importe, Änderungs- und
+    Versandprotokoll, Fristmeldungen, Mail-/Syslog-Zugang; Passwörter auf ein Demo-Passwort;
+  - Beträge, kWh, Daten, MSP und CPO bleiben (optional Beträge mit einem Faktor verfremden);
+  - Abschlussprüfung: keine ursprünglichen Namen, Kennzeichen oder Kartennummern mehr in irgendeiner Textspalte, sonst
+    Abbruch; läuft nie auf der Produktivdatenbank; die Demo-Instanz zeigt ein Band „Demo-Daten“.
+  - Variante: Generator für eine frei erfundene Flotte (kein Risiko, auch für Screenshots im öffentlichen Repo, wirkt
+    aber weniger echt).
