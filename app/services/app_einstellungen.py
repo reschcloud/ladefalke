@@ -17,8 +17,8 @@ STANDARD = {
     # für Ladungen und Gebühren ohne Fahrzeug (Gastkarten, nicht zugeordnet)
     "firmenland": "AT",
     "vorsteuer_standard": "100",
-    "ust_nachgetragen": "",
-    "fristen_mail_geprueft": "",  # Tag der letzten Prüfung für Frist-Benachrichtigungen (services/fristen_mail.py)  # Datum, an dem die USt. aus den Originalrechnungen nachgetragen wurde (ust_nachtrag)
+    "ust_nachgetragen": "",  # Datum, an dem die USt. aus den Originalrechnungen nachgetragen wurde (ust_nachtrag)
+    "fristen_mail_geprueft": "",  # Tag der letzten Prüfung für Frist-Benachrichtigungen (services/fristen_mail.py)
     # Vergleich mit Verbrennern (grobe Schätzungen): Verbrauch E-PKW kWh/100 km und Verbrenner l/100 km (für beide);
     # CO₂e-Einsparung: Schalter, Strommix g CO₂e/kWh, Emission Verbrenner kg CO₂e/l; gesparte Tankkosten: Schalter
     # (Spritpreise mit „gültig ab“ in der Tabelle spritpreis)

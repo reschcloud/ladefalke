@@ -26,7 +26,6 @@ from app.config import einstellungen
 PROTOKOLLE = {"udp": "UDP", "tcp": "TCP", "tls": "TCP mit TLS"}
 FORMATE = {"5424": "RFC 5424 (empfohlen)", "3164": "RFC 3164 (BSD, älter)"}
 FACILITIES = {**{f"local{i}": 16 + i for i in range(8)}, "user": 1}
-STANDARD_PORT = {"udp": 514, "tcp": 514, "tls": 6514}
 APP_NAME = "ladefalke"
 SD_ID = "ladefalke@32473"  # 32473: Beispiel-Unternehmensnummer für eigene Kennungen (RFC 5612)
 # Schweregrade (RFC 5424)

@@ -72,7 +72,7 @@ details > summary { font-weight: bold; }
   font-weight: bold; }
 .zeitraumwahl .arten ~ .arten { margin-left: 0; }  /* weitere Gruppen direkt daneben */
 .zeitraumwahl a[role=button] { padding: .2rem .7rem; margin: 0; }
-abbr.geschaetzt { text-decoration: none; cursor: help; color: #c98a00; font-weight: bold; }
+abbr.geschaetzt { text-decoration: none; cursor: help; color: #9a6a00; font-weight: bold; }
 abbr.hilfe { display: inline-block; width: 1.1em; height: 1.1em; line-height: 1.1em; border-radius: 50%;
   border: 1px solid var(--pico-muted-color); color: var(--pico-muted-color); font-size: .75em; font-weight: bold;
   text-align: center; text-decoration: none; cursor: help; vertical-align: .1em; }
@@ -89,9 +89,6 @@ nav a .punkt { display: inline-block; width: .5rem; height: .5rem; margin-left: 
   border-radius: 50%; background: #e53935; }
 .unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.vorschau-navigation { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
-  margin-bottom: 1rem; }
-.vorschau-navigation a { text-decoration: none; }
 article.offene-vorschauen { border-left: .3rem solid #c98a00; }
 article.offene-vorschauen header.kopf a[role=button] { padding: .3rem .9rem; }
 article.offene-vorschauen ul { margin-bottom: .5rem; }
@@ -141,9 +138,9 @@ a.import-ablage.ziehen { outline: 2px dashed var(--pico-primary); outline-offset
 :root[data-theme="dark"] .marker.stromart-ac { background: #b197fc; }
 :root[data-theme="dark"] .marker.stromart-dc { background: #f783ac; }
 :root[data-theme="dark"] .marker.stromart-ohne { background: #a6acb5; }
-.marker.warnung { background: #c98a00; }
+.marker.warnung { background: #9a6a00; }  /* weiße Schrift: #c98a00 wäre zu hell (Kontrast) */
 td.stromart { white-space: nowrap; }
-a.unplausibel { color: #c98a00; font-weight: bold; text-decoration: none; }
+a.unplausibel { color: #9a6a00; font-weight: bold; text-decoration: none; }
 
 /* Zeitleiste (Gantt): Farben als Rollen, Dunkelmodus mit eigenen Stufen */
 .zeitleiste-rahmen, .zeitleiste-legende { --zl-balken: #2a78d6; --zl-balken-text: #ffffff; --zl-luecke: #fab219;
@@ -339,6 +336,9 @@ td.nowrap { white-space: nowrap; }
 .karte-bereich .karte .leaflet-control-attribution { background: color-mix(in srgb, var(--karte-land) 85%, transparent);
   color: var(--karte-text); }
 .karte-bereich .karte .leaflet-control-attribution a { color: inherit; }
+/* Schmal: Quellenangabe kleiner und auf die rechte Hälfte begrenzt – sonst überdeckt sie die Farblegende links unten */
+@media (max-width: 600px) { .karte-bereich .karte .leaflet-control-attribution { font-size: .6rem; line-height: 1.3;
+  max-width: 55%; } }
 /* Beschriftungen: Text in Textfarben mit Halo in Landfarbe, damit er über Grenzen und Heatmap lesbar bleibt */
 .karte .karte-landname, .karte .karte-stadt { pointer-events: none; white-space: nowrap; }
 .karte .karte-landname span, .karte .karte-stadt span { display: block; transform: translate(-50%, -50%);
@@ -357,8 +357,10 @@ td.nowrap { white-space: nowrap; }
 details.mehrfach > summary { font-weight: normal; min-width: 9rem; white-space: nowrap; }
 details.mehrfach .mehrfach-text { display: inline-block; max-width: 13rem; overflow: hidden; text-overflow: ellipsis;
   vertical-align: bottom; }
-details.mehrfach > summary + ul { min-width: 100%; width: max-content; max-width: 22rem; max-height: 60vh; overflow-y: auto; z-index: 20; }
+details.mehrfach > summary + ul { min-width: 100%; width: max-content; max-width: min(22rem, calc(100vw - 2rem));
+  max-height: 60vh; overflow-y: auto; z-index: 20; }
 details.mehrfach > summary + ul li label { white-space: nowrap; }
+@media (max-width: 600px) { details.mehrfach > summary + ul li label { white-space: normal; } }
 /* gesetzter Filter: Feld blau umrandet und hinterlegt, Auswahl fett, Beschriftung blau mit „×“ zum Aufheben */
 .mehrfach-feld.gesetzt > span { color: var(--pico-primary); font-weight: 600; }
 .mehrfach-feld.gesetzt details.mehrfach > summary { border-color: var(--pico-primary);
@@ -451,10 +453,10 @@ small.person { white-space: nowrap; }
 .karte .leaflet-tooltip.verschoben::before { display: none; }  /* in die Karte geschoben (karte.js einpassen) */
 /* Ladevorgänge: Filter in Zeilen (Zeitraum · Auswahlen · Suche), Umschalter mit Abstand, Legende in der Karte */
 .filter-formular { margin-bottom: 1rem; }
-.filter-formular .filterzeile { margin-bottom: .75rem; }
+.filter-formular .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
 .filter-formular label.suche { flex: 1 1 24rem; max-width: 40rem; }
-.filter-formular .filterzeile:has(label.suche) { margin-top: 1.25rem; align-items: center; }
-.filter-formular label.suche input { width: 100%; }
+.filter-formular .filterzeile:has(label.suche) { margin-top: .5rem; align-items: center; }
+.filter-formular label.suche input { width: 100%; height: auto; }
 .karte-liste .karte-kopf { margin-top: 1.75rem; }
 .karte .karte-farblegende { display: flex; gap: .4rem; padding: .3rem .5rem; border-radius: 6px; font-size: .8rem;
   background: color-mix(in srgb, var(--karte-land) 88%, transparent); box-shadow: 0 1px 3px rgb(0 0 0 / .2); }
@@ -560,7 +562,7 @@ nav.einstellungen-nav { display: flex; flex-wrap: wrap; justify-content: flex-st
 .einstellung.geaendert .geaendert-marker { display: inline; }
 .einstellung.geaendert :is(input, select) { border-color: var(--pico-primary); box-shadow: inset 0 0 0 1px var(--pico-primary); }
 .einstellung-gruppe .theme-wahl { margin-bottom: 1rem; }
-.speichern-leiste { position: sticky; bottom: var(--fuss-hoehe); z-index: 5; max-width: 56rem; display: flex; align-items: center;
+.speichern-leiste { position: sticky; bottom: var(--fuss-ist, var(--fuss-hoehe)); z-index: 5; max-width: 56rem; display: flex; align-items: center;
   gap: 1rem; padding: .75rem 1.25rem; margin-bottom: 1rem; border-top: 1px solid var(--pico-muted-border-color);
   background: var(--pico-background-color); }
 .speichern-leiste button { margin: 0; }
@@ -579,6 +581,7 @@ body.nur-lesen article[data-schreiben] { border-style: dashed; }
 .marker.rolle-admin { background: #5b2a86; }
 .marker.rolle-operator { background: #1a7f5a; }
 .marker.rolle-viewer { background: #6b7079; }
+.marker[class*="rolle-"] { color: #fff; }  /* feste Grundfarben: im Dunkelmodus sonst dunkel auf dunkel */
 fieldset small.fehler-text { color: var(--pico-del-color); }
 /* Als Admin angemeldet: dünne rote Leiste am oberen Fensterrand (unter der Statusleiste von Mobilgeräten) */
 body.als-admin::before { content: ""; position: fixed; z-index: 1000; left: 0; right: 0;
@@ -740,10 +743,7 @@ svg.symbol-ok, svg.symbol-haken { color: var(--sym-ok); }
 :is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld > span { margin-bottom: .2rem; }
 :is(.filter-formular, .filterleiste, .kompakt) .filterzeile > label > input { margin-top: .2rem; }
 :is(.filter-formular, .filterleiste, .kompakt) details.mehrfach > summary { height: auto; min-width: 7.5rem; }
-.filter-formular .filterzeile { gap: .5rem .6rem; margin-bottom: .5rem; }
-.filter-formular .filterzeile:has(label.suche) { margin-top: .5rem; }
 .filter-formular input[type=date] { display: block; width: 9.5rem; }
-.filter-formular label.suche input { height: auto; }
 /* gesetzte Filter: Beschriftung bleibt blau */
 :is(.filter-formular, .filterleiste, .kompakt) .mehrfach-feld.gesetzt > span { color: var(--pico-primary); }
 /* Mini-Zeitleiste: Beschriftung der Enden und der Leasing-Markierungen unter dem Band */
@@ -922,11 +922,19 @@ tr.neu-importiert > td { background: color-mix(in srgb, #1a7f5a 10%, transparent
   :root:not([data-theme="light"]) .block-status.offen { color: #f0b429; } }
 [data-theme="dark"] :is(.block-status.ok, .import-abschluss > header strong) { color: #3ccf8e; }
 [data-theme="dark"] .block-status.offen { color: #f0b429; }
+/* Grün- und Gelbtöne für Text: im Dunkelmodus hellere Varianten (die dunklen sind dort kaum lesbar) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.ok-text, .alles-ok) { color: #3ccf8e; }
+  :root:not([data-theme="light"]) :is(.hinweis.gelb, .zuordnungs-tabelle tr.luecken-zeile.warnung > td, .fzl-befunde li.gelb,
+    abbr.geschaetzt, a.unplausibel) { color: #f0b429; } }
+[data-theme="dark"] :is(.ok-text, .alles-ok) { color: #3ccf8e; }
+[data-theme="dark"] :is(.hinweis.gelb, .zuordnungs-tabelle tr.luecken-zeile.warnung > td, .fzl-befunde li.gelb,
+  abbr.geschaetzt, a.unplausibel) { color: #f0b429; }
 .kachel .pro-tag { color: var(--pico-muted-color); }
 
 /* Footer: Marke, Link, Version */
 /* Klebend wie die Menüleiste: beim Scrollen unten sichtbar; auf kurzen Seiten am unteren Fensterrand (body als Spalte) */
-:root { --fuss-hoehe: 2.6rem; }
+:root { --fuss-hoehe: 2.6rem; }  /* Mindesthöhe; tatsächliche Höhe (umbrochen) misst base.html als --fuss-ist */
 body { display: flex; flex-direction: column; min-height: 100vh; }
 body > .container { width: 100%; }
 body > main { flex: 1 0 auto; }
@@ -1142,14 +1150,6 @@ html.menue-kompakt #hauptmenue details.dropdown > summary + ul li a { margin: 0;
 html.menue-kompakt #hauptmenue details.dropdown form.inline { display: block; margin: .8rem .7rem .6rem; }
 html.menue-kompakt #hauptmenue li.benutzer-eintrag { margin-top: .3rem; padding-top: .3rem; border-top: 1px solid var(--pico-muted-border-color); }
 html.menue-kompakt body.menue-links .seiten-fuss { display: none; }
-/* Hinweis „Update verfügbar“ neben der Version (Footer bzw. Seitenleiste) */
-a.update-hinweis { color: var(--pico-primary); font-weight: 600; text-decoration: none; }
-a.update-hinweis:hover { text-decoration: underline; }
-.system-gruppe h3 { font-size: 1rem; margin: 1rem 0 .4rem; }
-.system-gruppe .update-verfuegbar { color: var(--pico-primary); }
-.system-gruppe pre.befehl { margin: .3rem 0 .5rem; padding: .5rem .8rem; }
-.system-status { margin: .3rem 0; }
-.system-knoepfe { margin-bottom: .5rem; }
 html.menue-kompakt body.menue-links > footer.fuss { display: block; }
 html.menue-kompakt body.menue-links { --fuss-hoehe: 2.6rem; }
 /* Löschen/Deaktivieren unter dem Formular: Abstand zum Formular und zum nächsten Abschnitt */
@@ -1287,7 +1287,7 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 .einstellung.spritpreise { grid-column: 1 / -1; }
 
 /* Meldungen nach Aktionen als Karten rechts unten über der Seite (base.html .toasts) */
-.toasts { position: fixed; right: 1rem; bottom: calc(var(--fuss-hoehe) + 1rem + env(safe-area-inset-bottom, 0px));
+.toasts { position: fixed; right: 1rem; bottom: calc(var(--fuss-ist, var(--fuss-hoehe)) + 1rem + env(safe-area-inset-bottom, 0px));
   z-index: 1500; display: flex; flex-direction: column; align-items: flex-end; gap: .6rem;
   width: min(26rem, calc(100vw - 2rem)); pointer-events: none; }
 .toast { pointer-events: auto; width: 100%; margin: 0; display: flex; align-items: flex-start; gap: .6rem;
@@ -1311,7 +1311,7 @@ body.menue-links nav details.dropdown > summary + ul li a:has(.menue-anzahl) { d
 @keyframes toast-ein { from { opacity: 0; transform: translateY(.8rem); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } .toast.blendet-aus { transform: none; } }
 /* Seiten mit Speicherleiste (Einstellungen): Meldungen darüber, damit „Speichern“ frei bleibt */
-body:has(.speichern-leiste) .toasts { bottom: calc(var(--fuss-hoehe) + 5.5rem + env(safe-area-inset-bottom, 0px)); }
+body:has(.speichern-leiste) .toasts { bottom: calc(var(--fuss-ist, var(--fuss-hoehe)) + 5.5rem + env(safe-area-inset-bottom, 0px)); }
 /* Spritpreise: Oil Bulletin (Status, Knöpfe) und lange Liste mit Bildlauf */
 .oil-status { margin: .3rem 0; }
 .oil-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .4rem 0 1rem; }
@@ -1414,3 +1414,5 @@ table.cpo-stromart input { margin: 0; }
 th.mit-zeit-info { cursor: help; text-decoration: underline dotted; text-underline-offset: .2em; }
 .zeiten-utc { margin: .5rem 0 0; color: var(--pico-muted-color); }
 .zeiten-utc svg.symbol { vertical-align: -.15em; }
+/* Lange Befehle und Adressen im Fließtext (z. B. curl in Einstellungen → System) dürfen umbrechen */
+p code, small code { overflow-wrap: anywhere; }

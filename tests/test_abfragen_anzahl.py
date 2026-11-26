@@ -1,5 +1,6 @@
-"""Zahl der SQL-Abfragen wächst nicht mit der Zahl der Ladevorgänge (kein N+1): Aufgaben, Report „Offene Aufgaben“
-und die Vollständigkeitsprüfung (Report „Zusammenfassung“) laden die Zuordnungen einmal vor."""
+"""Tempo: Die Zahl der SQL-Abfragen wächst nicht mit der Zahl der Ladevorgänge (kein N+1) – Aufgaben, Report
+„Offene Aufgaben“ und die Vollständigkeitsprüfung (Report „Zusammenfassung“) laden die Zuordnungen einmal vor. Dazu
+Menüzahlen, Teil-Antwort der Ladevorgangsliste, Cache-Kopf statischer Dateien und Index auf dem Ladebeginn."""
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -85,3 +86,42 @@ def test_aufgaben_unplausibel_begrenzt(angemeldet, db, karte_ohne_zuordnung, mon
     tabelle = seite.split('id="unplausibel"')[1].split("</table>")[0]
     assert tabelle.count("<tr>") == 1 + 2  # Kopf und zwei Vorgänge
     assert "Nur die neuesten 2 von 3 angezeigt" in seite
+
+
+def test_menue_zahlen_gemerkt_bis_zur_aenderung(angemeldet, db, karte_ohne_zuordnung, monkeypatch):
+    """Die Zahlen im Menü werden nicht bei jeder Anfrage neu gezählt, nach einer gespeicherten Änderung aber schon."""
+    monkeypatch.setattr(offen, "MENUE_GUELTIG", 60)  # in den übrigen Tests aus (conftest)
+    angemeldet.get("/stammdaten/msp")
+    with abfragen_zaehlen(db) as erneut:
+        angemeldet.get("/stammdaten/msp")
+    with abfragen_zaehlen(db) as frisch:
+        offen.zaehlen(db), offen.bestand(db)
+    assert len(erneut) < 10 and len(frisch) > 5  # die Menüzähler kommen beim zweiten Mal aus dem Speicher
+    vorher = offen.menue_zahlen(db)[0].ohne_fahrzeug
+    karte_ohne_zuordnung(2)  # Commit: Datenstand ändert sich
+    assert offen.menue_zahlen(db)[0].ohne_fahrzeug == vorher + 2
+
+
+def test_ladevorgaenge_nur_liste(angemeldet, karte_ohne_zuordnung):
+    """Kartenausschnitt und Sortierkopf („X-Teil: liste“) bekommen nur die Liste samt Sortierfeld."""
+    karte_ohne_zuordnung(3)
+    ganz = angemeldet.get("/ladevorgaenge?sortierung=kwh-ab")
+    teil = angemeldet.get("/ladevorgaenge?sortierung=kwh-ab", headers={"X-Teil": "liste"})
+    assert teil.status_code == 200 and "X-Teil" in teil.headers["vary"] and "X-Teil" in ganz.headers["vary"]
+    assert '<div id="liste">' in teil.text and 'id="karte"' not in teil.text and "<html" not in teil.text
+    assert '<input type="hidden" id="sortierung-feld" name="sortierung" value="kwh-ab">' in teil.text
+    assert len(teil.text) * 3 < len(ganz.text)
+    liste = ganz.text.split('<div id="liste">')[1].split("</div>{# /liste")[0][:2000]
+    assert liste.split("<tbody>")[0] in teil.text  # gleicher Kopf wie in der ganzen Seite
+
+
+def test_statische_dateien_mit_version_dauerhaft(client):
+    mit = client.get("/static/app.css?v=1")
+    ohne = client.get("/static/app.css")
+    assert mit.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert "immutable" not in ohne.headers.get("cache-control", "")
+
+
+def test_index_auf_ladebeginn(db):
+    from sqlalchemy import inspect
+    assert "ix_ladevorgang_start" in {i["name"] for i in inspect(db.connection()).get_indexes("ladevorgang")}

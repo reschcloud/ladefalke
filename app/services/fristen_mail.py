@@ -119,8 +119,8 @@ def automatisch_pruefen() -> None:
     """Vom Taktgeber minütlich aufgerufen."""
     from app.db import SessionLocal
     from app.models import Einstellung
-    from app.services.versand import _jetzt
-    jetzt = _jetzt()
+    from app.config import jetzt_lokal
+    jetzt = jetzt_lokal()
     with SessionLocal() as db:
         eintrag = db.get(Einstellung, GEPRUEFT)
         if not faellig(eintrag.wert if eintrag else "", jetzt):

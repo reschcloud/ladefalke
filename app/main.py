@@ -3,6 +3,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import parse_qs
 
 from fastapi import Depends, FastAPI
 from sqlalchemy import text
@@ -53,7 +54,8 @@ app = FastAPI(title="Ladefalke", docs_url=None, redoc_url=None, openapi_url=None
 app.add_middleware(SessionMiddleware, secret_key=einstellungen().secret_key,
                    session_cookie="ladekosten_session", max_age=12 * 3600, same_site="lax",
                    https_only=einstellungen().cookie_secure)
-app.add_middleware(GZipMiddleware, minimum_size=1000)  # u. a. Kartendaten (details.json, basiskarte.js)
+# Stufe 6 statt 9: gleiche Größe bei den großen Kartendaten (details.json, basiskarte.js), halbe Rechenzeit
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 @app.middleware("http")
 async def download_signal(request, call_next):
     """Downloads mit „download_kennung“ (PDF-Reports, base.html): Cookie mit der Kennung setzen, sobald die Datei
@@ -68,7 +70,17 @@ async def download_signal(request, call_next):
 
 app.add_exception_handler(auth.NichtAngemeldet, auth.nicht_angemeldet_behandeln)
 app.add_exception_handler(auth.KeineBerechtigung, auth.keine_berechtigung_behandeln)
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+class StatischeDateien(StaticFiles):
+    """Mit Versionsparameter (`?v=…`, base.html: static_version) ändert sich der Inhalt unter der Adresse nie –
+    der Browser darf die Datei dauerhaft behalten und fragt nicht einmal nach. Ohne `v` wie bisher (Nachfrage)."""
+    async def get_response(self, path: str, scope):
+        antwort = await super().get_response(path, scope)
+        if antwort.status_code == 200 and "v" in parse_qs(scope.get("query_string", b"").decode()):
+            antwort.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return antwort
+
+
+app.mount("/static", StatischeDateien(directory=Path(__file__).parent / "static"), name="static")
 
 
 

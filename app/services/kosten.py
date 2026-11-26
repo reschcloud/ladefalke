@@ -15,22 +15,16 @@ werden in der Auswertung berechnet (ihr Fahrzeug hängt von der Kartenzuordnung 
 from bisect import bisect_right
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 from sqlalchemy import event, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Fahrzeug, Gebuehr, Ladeart, Ladevorgang, Steuersatz
-from app.parsers.basis import REVERSE_CHARGE
+from app.parsers.basis import REVERSE_CHARGE, cent as _cent
 
-CENT = Decimal("0.01")
-VOLL = Decimal(100)
 # Felder, deren Änderung die Kosten eines Ladevorgangs beeinflusst
 RELEVANT = ("kosten_netto", "ust_betrag", "ust_satz", "ust_land", "fahrzeug_id", "land", "ladeart", "start", "ende")
-
-
-def _cent(wert: Decimal) -> Decimal:
-    return wert.quantize(CENT, rounding=ROUND_HALF_UP)
 
 
 @dataclass
@@ -41,11 +35,6 @@ class Ergebnis:
     land: str | None  # Land der USt.
     geschaetzt: bool  # USt. geschätzt (nicht laut Rechnung)
     abzug: Decimal  # angewandter Vorsteuerabzug in Prozent
-
-    @property
-    def nicht_abziehbar(self) -> Decimal:
-        """Der Teil der USt., der in den Kosten steckt."""
-        return _cent(self.ust * (1 - self.abzug / 100))
 
     @property
     def geschaetzt_in_kosten(self) -> Decimal:

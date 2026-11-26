@@ -86,7 +86,7 @@ def uebernehmen(db: Session, inhalt: bytes) -> Ergebnis:
     from app.services import app_einstellungen
     e = app_einstellungen.laden(db)
     mittel = monatsmittel(inhalt, e.firmenland, e.sprit_art)
-    erste = db.scalar(select(func.min(Ladevorgang.ende)))
+    erste = db.scalar(select(func.min(Ladevorgang.start)))
     ab = max(FRUEHESTENS, erste.date().replace(day=1)) if erste else FRUEHESTENS
     mittel = {m: p for m, p in mittel.items() if m >= ab}
     vorhanden = {s.gueltig_ab: s for s in db.scalars(select(Spritpreis).where(Spritpreis.gueltig_ab.in_(mittel)))}

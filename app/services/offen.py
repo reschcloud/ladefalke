@@ -1,4 +1,5 @@
 """Offene Punkte für Menüleiste (roter Punkt) und Dashboard."""
+import time
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -6,12 +7,13 @@ from fastapi import Depends, Request
 from sqlalchemy import Date, cast, exists, false, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.config import heute
 from app.db import get_db
 from app.models import (Fahrer, FahrerOhneFahrzeug, Fahrzeug, Gebuehr, Import, ImportStatus, Ladekarte, Ladeort,
                         Ladevorgang, Msp, ZuordnungKarte)
 from app.services.app_einstellungen import laden as einstellungen_laden
 from app.services.geokodierung import verzeichnis_vorhanden
-from app.services import fristen, kartenpruefung, stromart
+from app.services import fristen, kartenpruefung, seitencache, stromart
 from app.services.ladeprofil import unplausibel_sql
 
 
@@ -91,13 +93,26 @@ def bestand(db: Session) -> dict[str, int]:
             "fahrzeuge": anzahl(Fahrzeug, Fahrzeug.aktiv), "fahrer": anzahl(Fahrer, Fahrer.aktiv)}
 
 
+# Zahlen fürs Menü gemerkt bis zur nächsten gespeicherten Änderung (Datenstand des Seitencaches), längstens
+# MENUE_GUELTIG Sekunden (Änderungen von außerhalb der App) und nur am selben Tag (Fristen) – sonst kostete jede
+# Anfrage rund 20 Abfragen, auch Seiten aus dem Seitencache, Exporte und nachgeladene Teilstücke.
+MENUE_GUELTIG = 60
+_menue: tuple | None = None  # (Datenstand, Tag, Zeitpunkt, OffenePunkte, Bestand, Stichtag)
+
+
+def menue_zahlen(db: Session) -> tuple[OffenePunkte, dict[str, int], str]:
+    global _menue
+    stand, tag, jetzt = seitencache.datenstand(), heute(), time.monotonic()
+    m = _menue
+    if m is None or m[0] != stand or m[1] != tag or jetzt - m[2] > MENUE_GUELTIG:
+        m = _menue = (stand, tag, jetzt, zaehlen(db), bestand(db), einstellungen_laden(db).stichtag)
+    return m[3], m[4], m[5]
+
+
 def offene_punkte_laden(request: Request, db: Session = Depends(get_db)) -> None:
     """Dependency für alle angemeldeten Seiten: Zahlen für die Menüleiste, den Stichtag (Ladeende/Ladebeginn,
     für Beschriftungen) und das Theme in request.state ablegen."""
-    request.state.offen = zaehlen(db)
-    request.state.bestand = bestand(db)
-    e = einstellungen_laden(db)
-    request.state.stichtag = e.stichtag
+    request.state.offen, request.state.bestand, request.state.stichtag = menue_zahlen(db)
     request.state.theme = request.state.benutzer.theme  # je Benutzer; base.html: data-theme am <html>
 
 

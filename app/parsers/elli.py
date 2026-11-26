@@ -152,7 +152,7 @@ def parsen_text(text: str) -> Ergebnis:
     brutto_summe = sum((Decimal(v.rohdaten["brutto"]) for v in ergebnis.vorgaenge), Decimal(0))
     if summe is not None and brutto_summe != summe:
         warnungen.append(f"Summe der Bruttopreise {brutto_summe} EUR ≠ Summe laut Dokument {summe} EUR.")
-    if m := re.search(rf"Ladevorgänge insgesamt\s+(\d+)", text):
+    if m := re.search(r"Ladevorgänge insgesamt\s+(\d+)", text):
         if int(m.group(1)) != len(ergebnis.vorgaenge):
             warnungen.append(f"{len(ergebnis.vorgaenge)} Ladevorgänge gelesen, laut Übersicht {m.group(1)}.")
     if m := re.search(rf"Geladene Energie\s+insgesamt\s+({ZAHL})\s*kWh", text):

@@ -496,7 +496,7 @@
         abbruch?.abort();
         abbruch = new AbortController();
         try {
-          const antwort = await fetch(url, { signal: abbruch.signal });
+          const antwort = await fetch(url, { signal: abbruch.signal, headers: { "X-Teil": "liste" } });  // nur die Liste
           const neu = new DOMParser().parseFromString(await antwort.text(), "text/html").getElementById("liste");
           const alt = document.getElementById("liste");
           if (!neu || !alt || !karte.getContainer().isConnected) return;

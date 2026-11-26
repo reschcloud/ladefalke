@@ -38,3 +38,8 @@ def einstellungen() -> Einstellungen:
 def heute() -> date:
     """Heutiges Datum in der konfigurierten Zeitzone."""
     return datetime.now(ZoneInfo(einstellungen().tz)).date()
+
+
+def jetzt_lokal() -> datetime:
+    """Jetzt in der konfigurierten Zeitzone, ohne Zeitzonenangabe (wie die gespeicherten lokalen Zeitpunkte)."""
+    return datetime.now(ZoneInfo(einstellungen().tz)).replace(tzinfo=None)

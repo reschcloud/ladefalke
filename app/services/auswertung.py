@@ -183,7 +183,7 @@ def zeitraum_alles(db: Session) -> Zeitraum:
 
 def datenjahre(db: Session, z: Zeitraum) -> list[int]:
     """Jahre für die Auswahl: vom ersten Ladevorgang bis heute (und jedenfalls das gewählte Jahr)."""
-    erstes = db.scalar(select(func.min(Ladevorgang.ende)))
+    erstes = db.scalar(select(func.min(Ladevorgang.start)))  # Stichtag Ladebeginn (ADR 0008), Index
     von = min(erstes.year if erstes else heute().year, z.jahr)
     return list(range(max(heute().year, z.jahr), von - 1, -1))
 

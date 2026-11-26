@@ -46,7 +46,3 @@ def parser_erkennen(pfad: Path) -> str | None:
     Ergebnis nicht von der Reihenfolge der Parser ab, und kein Parser kann einem anderen Dateien wegnehmen."""
     passend = passende_parser(pfad)
     return passend[0] if len(passend) == 1 else None
-
-
-def unterstuetzte_formate() -> str:
-    return ", ".join(p.name for p in PARSER.values())

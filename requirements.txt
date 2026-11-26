@@ -14,4 +14,5 @@ pdfplumber>=0.11
 openpyxl>=3.1
 pypdfium2>=4.30
 weasyprint>=62  # PDF-Reports aus HTML/CSS (services/reports.py)
+pillow>=10  # Kartenbilder (services/kartenbild.py, werkzeuge/kartendetails.py); kommt auch über weasyprint
 cryptography>=42  # selbstsigniertes HTTPS-Zertifikat (app/tls.py)

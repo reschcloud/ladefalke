@@ -25,6 +25,16 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 - Schneller: Aufgaben, Report „Offene Aufgaben“ und Report „Zusammenfassung“ (auch der automatische Versand)
   fragen die Zuordnungen einmal ab statt je Ladevorgang bzw. Tag – bei einem Jahr mit vielen Vorgängen ein
   Vielfaches schneller. Die Liste der unplausiblen AC/DC-Angaben zeigt wie die übrigen höchstens 500 Einträge.
+- Schneller auf jeder Seite: Die Zahlen im Menü (offene Aufgaben, Stammdaten) werden bis zur nächsten Änderung
+  gemerkt statt bei jedem Aufruf neu gezählt. Ladevorgänge: Kartenausschnitt und Sortierung laden nur noch die
+  Liste nach (wenige KB statt bis zu mehreren MB). Programmdateien (Skripte, Stile, Kartendaten) behält der Browser
+  dauerhaft, eine neue Version lädt er trotzdem sofort. Neuer Datenbankindex auf den Ladebeginn.
+- Dunkelmodus: Rollen bei den Benutzer:innen und grüne bzw. gelbe Hinweistexte gut lesbar; gelbe Kennzeichnungen
+  (≈ geschätzt, unplausibel) auch im hellen Modus kontrastreicher.
+- Schmale Bildschirme: Mehrfachauswahl-Filter bleiben im Fenster, lange Befehle (Einstellungen → System) brechen um,
+  Speicherleiste und Meldungen werden vom (umbrochenen) Footer nicht mehr verdeckt, die Quellenangabe der Karte
+  überdeckt die Farblegende nicht mehr.
+- Aufgeräumt: ungenutzter Code und doppelte CSS-Regeln entfernt.
 
 ### Behoben
 
@@ -32,7 +42,7 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
 ### Beim Update beachten
 
-- nichts
+- nichts (Migration 0039 – Index auf den Ladebeginn – läuft beim Start automatisch, vorher wird gesichert).
 
 ## v1.15.0 – 26.11.2026
 

@@ -14,7 +14,6 @@ Netto-Gesamtbetrag und die „Übersicht der Ladevorgänge“ mit Einzelvorgäng
   „Steuerschuldnerschaft des Leistungsempfängers“ (Reverse Charge).
 """
 import re
-from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path

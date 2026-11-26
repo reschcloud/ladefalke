@@ -2,7 +2,7 @@
 Herunterladen (alle Rollen) und Versenden per Mail (Admin und Operator; services/versand.py)."""
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy import extract, func, select
+from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from app.config import heute

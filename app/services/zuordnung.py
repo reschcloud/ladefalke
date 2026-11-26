@@ -370,11 +370,6 @@ def ohne_fahrer_aendern(db: Session, o: FahrzeugOhneFahrer, *, ab: date, bis: da
     return zusammenfassen(db, FahrzeugOhneFahrer, fahrzeug_id=o.fahrzeug_id)
 
 
-def ohne_fahrer_am(db: Session, fahrzeug_id: int, stichtag: date) -> FahrzeugOhneFahrer | None:
-    return db.scalars(select(FahrzeugOhneFahrer).where(
-        FahrzeugOhneFahrer.fahrzeug_id == fahrzeug_id, gueltig_am(FahrzeugOhneFahrer, stichtag))).first()
-
-
 # ------------------------------------------------------------------ Fahrer:in ohne Dienstwagen
 
 def _ohne_dw_perioden(db: Session, fahrer_id: int, ohne_id: int | None = None):

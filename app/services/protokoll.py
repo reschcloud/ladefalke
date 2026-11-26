@@ -51,7 +51,7 @@ AKTIONEN = {"angelegt": "angelegt", "geaendert": "geändert", "geloescht": "gel�
             "erstellt": "erstellt", "wiederhergestellt": "wiederhergestellt"}
 # Ladevorgänge und Gebühren entstehen und verschwinden nur mit Importen (Sammeleintrag dort)
 NUR_AENDERUNGEN = (Ladevorgang, Gebuehr)
-IGNORIERT = {"id", "rohdaten", "kosten", "letzte_anmeldung", "theme", "menue", "angelegt_am", "schluessel", "plz_norm", "name_norm"}
+IGNORIERT = {"id", "rohdaten", "kosten", "letzte_anmeldung", "theme", "angelegt_am", "schluessel", "plz_norm", "name_norm"}
 GEHEIM = {"passwort_hash"}
 GEHEIME_EINSTELLUNGEN = {"mail_passwort", "syslog_ca"}
 FELDNAMEN = {

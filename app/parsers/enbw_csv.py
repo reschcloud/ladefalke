@@ -21,7 +21,6 @@ from app.formatierung import decimal_lesen
 from app.models import KennungTyp
 from app.parsers.basis import CENT, Ergebnis, Gebuehr, ParserFehler, Rechnung, Vorgang, kwh_runden, stromart_normieren
 
-KOPF = ("Rechnungsnummer", "Rechnungsdatum", "Rechnungstyp")
 PFLICHTSPALTEN = {"Rechnungsnummer", "Positionstyp", "Lademedium", "Transaktions ID", "Energie (kWh)"}
 # nicht in die Rohdaten übernehmen (Personen- und Kundendaten)
 OHNE = {"Kundennummer", "Umsatzsteuer-ID", "Fahrer Bezeichnung", "Fahrer Nachname", "Fahrer Vorname",

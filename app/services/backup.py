@@ -27,7 +27,6 @@ import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -36,7 +35,7 @@ from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
-from app.config import einstellungen
+from app.config import einstellungen, jetzt_lokal as _jetzt
 from app.models import Benutzer, Fahrer, Fahrzeug, Import, Ladekarte, Ladevorgang, Msp
 from app.version import version
 
@@ -55,10 +54,6 @@ class BackupFehler(Exception):
 
 def verzeichnis() -> Path:
     return Path(einstellungen().backup_dir)
-
-
-def _jetzt() -> datetime:
-    return datetime.now(ZoneInfo(einstellungen().tz)).replace(tzinfo=None)
 
 
 # ------------------------------------------------------------------ Verschlüsselung

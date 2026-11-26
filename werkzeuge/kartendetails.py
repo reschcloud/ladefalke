@@ -17,8 +17,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from basiskarte import EUROPA, vereinfachen  # noqa: E402
 
-PX_JE_GRAD = 60  # Auflösung des Reliefs (wie die Quelle, ca. 1,8 km je Pixel)
-
 
 def _linien(g):
     if g["type"] == "LineString":

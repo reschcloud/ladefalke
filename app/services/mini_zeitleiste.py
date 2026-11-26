@@ -88,7 +88,8 @@ class Mini:
         return datum(self.bis)
 
 
-def _monatsanfang(tag: date, verschiebung: int = 0) -> date:
+def monatserster(tag: date, verschiebung: int = 0) -> date:
+    """Erster Tag des Monats von `tag`, um `verschiebung` Monate verschoben (auch von services/zeitleiste.py)."""
     index = tag.year * 12 + tag.month - 1 + verschiebung
     return date(index // 12, index % 12 + 1, 1)
 
@@ -97,10 +98,10 @@ def bereich(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None =
             leasing_ende: date | None = None) -> tuple[date, date]:
     """Achse: ab Monatsanfang von Leasingbeginn bzw. erster Zuordnung bis heute + 3 Monate bzw. letztem Ende."""
     starts = [d for d in [leasing_beginn] + [e.ab for e in eintraege] if d]
-    von = _monatsanfang(min(starts) if starts else _monatsanfang(heute, -11))
-    enden = [_monatsanfang(heute, 3) - timedelta(days=1)] + [e.bis for e in eintraege if e.bis] \
+    von = monatserster(min(starts) if starts else monatserster(heute, -11))
+    enden = [monatserster(heute, 3) - timedelta(days=1)] + [e.bis for e in eintraege if e.bis] \
         + ([leasing_ende] if leasing_ende else [])
-    return von, _monatsanfang(max(enden), 1) - timedelta(days=1)
+    return von, monatserster(max(enden), 1) - timedelta(days=1)
 
 
 def berechnen(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None = None,
@@ -147,7 +148,7 @@ def berechnen(eintraege: list[Eintrag], heute: date, leasing_beginn: date | None
         if (monate > 24 and m.month == 1) or (monate <= 24 and m.month in (1, 4, 7, 10)):
             text = str(m.year) if m.month == 1 else f"{('', 'Jan', '', '', 'Apr', '', '', 'Jul', '', '', 'Okt')[m.month]}"
             mini.achse.append((text, lage(m, m)[0]))
-        m = _monatsanfang(m, 1)
+        m = monatserster(m, 1)
     mini.heute = lage(heute, heute)[0] if von <= heute <= bis else None
     if leasing_beginn and von <= leasing_beginn <= bis:
         mini.leasing_beginn = lage(leasing_beginn, leasing_beginn)[0]

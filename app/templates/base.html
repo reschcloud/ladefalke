@@ -728,6 +728,18 @@
     };
     document.addEventListener("DOMContentLoaded", scrollWiederherstellen);
     document.addEventListener("htmx:afterSettle", scrollWiederherstellen);
+    // Mehrfachauswahl (details.mehrfach) rechts in der Zeile: aufgeklappte Liste so weit nach links schieben, dass sie
+    // im Fenster bleibt (toggle steigt nicht auf – darum in der Capture-Phase)
+    document.addEventListener("toggle", (e) => {
+      const d = e.target;
+      if (!d.matches?.("details.mehrfach") || !d.open) return;
+      const liste = d.querySelector(":scope > summary + ul");
+      if (!liste) return;
+      liste.style.translate = "";
+      const r = liste.getBoundingClientRect(), rand = 8;
+      const ueber = r.right - (document.documentElement.clientWidth - rand);
+      if (ueber > 0) liste.style.translate = `-${Math.max(0, Math.min(ueber, r.left - rand))}px 0`;
+    }, true);
     // Meldungs-Karten (rechts unten) mit „×“ schließen
     document.addEventListener("click", (e) => {
       const toast = e.target.closest?.(".toast-zu")?.closest(".toast");
@@ -910,6 +922,15 @@
     </div>
   </footer>
   <script>
+    // Footer klebt unten; schmal bricht sein Inhalt um und er wird höher als --fuss-hoehe. Die tatsächliche Höhe
+    // (0, wenn er ausgeblendet ist) als --fuss-ist, damit Speicherleiste und Meldungen darüber bleiben.
+    (() => {
+      const fuss = document.querySelector("body > footer.fuss");
+      if (!fuss) return;
+      const messen = () => document.documentElement.style.setProperty("--fuss-ist", `${fuss.offsetHeight}px`);
+      messen();
+      if (window.ResizeObserver) new ResizeObserver(messen).observe(fuss);
+    })();
     // Seitentitel kleben oben (app.css „Seitentitel kleben oben“): Abstand = Höhe der Menüleiste, wenn sie oben quer
     // steht (schmales Fenster, kompaktes Menü), sonst 0 (Menü links). Sprungziele (#anker) landen unter dem Titel.
     // Eine Linie unter dem Titel erscheint erst, wenn er tatsächlich klebt.

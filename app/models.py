@@ -307,7 +307,7 @@ class Ladevorgang(Base):
     externe_id: Mapped[str | None] = mapped_column(String(100))
     ladekarte_id: Mapped[int | None] = mapped_column(ForeignKey("ladekarte.id", ondelete="RESTRICT"), index=True)
     roh_kartenkennung: Mapped[str | None] = mapped_column(String(200))
-    start: Mapped[datetime] = mapped_column(DateTime)  # lokale Zeit (Europe/Vienna)
+    start: Mapped[datetime] = mapped_column(DateTime, index=True)  # lokale Zeit (Europe/Vienna)
     ende: Mapped[datetime] = mapped_column(DateTime, index=True)
     kwh: Mapped[Decimal] = mapped_column(Numeric(10, 3))
     kwh_geschaetzt: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")

@@ -52,6 +52,15 @@ def seitencache_leeren():
     yield
 
 
+@pytest.fixture(autouse=True)
+def menuezahlen_frisch(monkeypatch):
+    """Menüzahlen (offen.menue_zahlen) in Tests jedes Mal neu zählen: Tests ändern Daten oft nur per flush() ohne
+    Commit – das zählt den Datenstand nicht hoch (in der App sieht eine andere Anfrage Ungespeichertes ohnehin nicht).
+    Das Merken selbst prüft tests/test_abfragen_anzahl.py."""
+    from app.services import offen
+    monkeypatch.setattr(offen, "MENUE_GUELTIG", -1)
+
+
 @pytest.fixture
 def db():
     """Session in einer äußeren Transaktion; commit() der App wird zum Savepoint, am Ende Rollback."""

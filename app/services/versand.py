@@ -14,12 +14,11 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import einstellungen
+from app.config import jetzt_lokal as _jetzt
 from app.formatierung import geld, zahl
 from app.models import Benutzer, Fahrer, ReportVersand
 from app.services import app_einstellungen, mail, reports
@@ -41,10 +40,6 @@ class Ergebnis:
         if self.fehler:
             teile.append(f"{len(self.fehler)} fehlgeschlagen ({'; '.join(f'{n}: {m}' for n, m in self.fehler)})")
         return ", ".join(teile) + "."
-
-
-def _jetzt() -> datetime:
-    return datetime.now(ZoneInfo(einstellungen().tz)).replace(tzinfo=None)
 
 
 def _protokoll(db: Session, art: str, z: Zeitraum, name: str, an: str, erfolg: bool, fehler: str | None,

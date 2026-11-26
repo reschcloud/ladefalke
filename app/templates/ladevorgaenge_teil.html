@@ -1,0 +1,4 @@
+{# Nur die Liste (Header „X-Teil: liste“): Kartenausschnitt und Sortierköpfe tauschen #liste aus, die Sortierköpfe
+   zusätzlich das Sortierfeld des Filterformulars (hx-select-oob) #}
+{% include "ladevorgaenge_liste.html" %}
+<input type="hidden" id="sortierung-feld" name="sortierung" value="{{ sortierung }}"{{ " disabled" if not sortierung }}>

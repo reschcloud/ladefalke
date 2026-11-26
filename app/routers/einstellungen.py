@@ -19,7 +19,7 @@ from app.models import CpoStromart, Ladevorgang, Spritpreis, Steuersatz
 from app.services import protokoll, stromart
 from app.services import aktualisierung, app_einstellungen, benutzer as benutzer_dienst, backup, geheim, geodaten, kosten, mail, oil_bulletin, syslog
 from app.services.evse import LAENDER
-from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, STICHTAGE, TLP, WOCHENTAGE
+from app.services.app_einstellungen import AUFGABEN_INTERVALLE, BACKUP_ZEITPLAENE, STANDARD, TLP, WOCHENTAGE
 from app.web import meldung, render, weiter
 
 router = APIRouter(prefix="/einstellungen")
@@ -33,7 +33,7 @@ FEATURES = ("feature_fuehrerschein", "feature_vignette", "feature_streckenmaut",
 def _anzeige(e: app_einstellungen.AppEinstellungen) -> dict:
     """Einstellungen als Formularwerte (deutsche Zahlen)."""
     return {
-        "stichtag": e.stichtag, "topliste_m": zahl(e.topliste_m, 1) if e.topliste_m is not None else "",
+        "topliste_m": zahl(e.topliste_m, 1) if e.topliste_m is not None else "",
         "topliste_mindestmenge": zahl(e.topliste_mindestmenge, 1),
         "firmenland": e.firmenland, "vorsteuer_standard": zahl(e.vorsteuer_standard, 0), "sprit_art": e.sprit_art,
         "ust_nachgetragen": datum(date.fromisoformat(e.ust_nachgetragen)) if e.ust_nachgetragen else "",
@@ -70,7 +70,6 @@ def _formular(request: Request, werte: dict, fehler: dict | None = None, status_
               db: Session | None = None):
     return render(request, "einstellungen.html", {"werte": werte, "fehler": fehler or {},
                                                   "standard": _anzeige(app_einstellungen.aus_werten(STANDARD)),
-                                                  "stichtage": list(STICHTAGE.items()),
                                                   "laender": sorted(LAENDER.items(), key=lambda e: e[1]),
                                                   "laender_namen": LAENDER,
                                                   "spritpreise": db.scalars(select(Spritpreis).order_by(

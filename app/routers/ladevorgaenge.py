@@ -220,8 +220,10 @@ def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Qu
     filter_werte, bedingungen, fehler = _filter(datum_von, datum_bis, msp_id, fahrzeug_id, suche, nur_geschaetzt,
                                                 import_id, ladekarte_id, unplausibel, einst, land, betreiber,
                                                 ladeort_id, ladeart, stromart, fahrer)
+    # Nur die Liste (Kartenausschnitt, Sortierkopf): ohne Karte, Histogramm und Auswahlwerte – die bleiben stehen
+    nur_liste = request.headers.get("X-Teil") == "liste"
     pmin, pmax = preis_lesen(preis_min), preis_lesen(preis_max)
-    histogramm = preis_histogramm(db, bedingungen, pmin, pmax)  # ohne den Preisfilter selbst
+    histogramm = None if nur_liste else preis_histogramm(db, bedingungen, pmin, pmax)  # ohne den Preisfilter selbst
     if (b := preis_bedingung(pmin, pmax)) is not None:
         bedingungen.append(b)
     del filter_werte["von"], filter_werte["bis"]
@@ -254,26 +256,34 @@ def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Qu
                if k not in ZEITRAUM_SCHLUESSEL and w}
     # Für „← Ladevorgänge“ im Detail: zurück zur zuletzt angesehenen (gefilterten) Liste
     request.session["ladevorgaenge_liste"] = "/ladevorgaenge" + (f"?{request.url.query}" if request.url.query else "")
-    return render(request, "ladevorgaenge.html", {
-        "z": z, **zeitraum_navigation(db, z, "/ladevorgaenge", urlencode(uebrige, doseq=True)),
-        "zeitraum_versteckt": [(k, x) for k, w in uebrige.items() for x in (w if isinstance(w, list) else [w])],
-        "zeitraum_felder": zeitraum_werte(z), "histogramm": histogramm,
+    liste_kontext = {
         "vorgaenge": vorgaenge, "anzahl": anzahl, "summe_kwh": Decimal(kwh), "summe_kosten": Decimal(kosten),
         "durchschnitt": (Decimal(kosten) / Decimal(kwh)) if kwh else None, "max_zeilen": MAX_ZEILEN,
-        "f": filter_werte, "fehler": fehler, "bereich": bereich,
-        "filter_karte": db.get(Ladekarte, int(ladekarte_id)) if ladekarte_id.isdigit() else None,
-        "filter_import": db.get(Import, int(import_id)) if import_id.isdigit() else None,
+        "bereich": bereich,
         "export_parameter": urlencode({**filter_werte, "bereich": bereich, "sortierung": sortierung}, doseq=True),
         "sortierung": sortierung, "sort_spalte": sort_spalte, "sort_richtung": sort_richtung, "sortier_url": sortier_url,
         "personen": personen_beim_laden(db, vorgaenge),
-        "ladungen": (ladungen := kartendaten.ladungen(db, bedingungen)),
-        "preis_schnitt": kartendaten.preis_schnitt(ladungen),
-        "ohne_ort": kartendaten.ohne_ort_anzahl(db, bedingungen),
-        "ohne_ladeorte": ohne_ladeorte,  # aktuelle Filter ohne Ladeort-Auswahl („Filter aufheben“)
-        # aktuelle Filter ohne einen davon – für „Filter aufheben“ bei Filtern ohne eigenes Feld
-        "ohne_filter": lambda name: urlencode({k: w for k, w in filter_werte.items() if k != name and w}, doseq=True),
-        "gruende": {v.id: g for v in vorgaenge if (g := unplausibel_grund(v, einst))},
-        "optionen": _optionen(db)})
+        "gruende": {v.id: g for v in vorgaenge if (g := unplausibel_grund(v, einst))}}
+    if nur_liste:
+        antwort = render(request, "ladevorgaenge_teil.html", liste_kontext)
+    else:
+        antwort = render(request, "ladevorgaenge.html", liste_kontext | {
+            "z": z, **zeitraum_navigation(db, z, "/ladevorgaenge", urlencode(uebrige, doseq=True)),
+            "zeitraum_versteckt": [(k, x) for k, w in uebrige.items() for x in (w if isinstance(w, list) else [w])],
+            "zeitraum_felder": zeitraum_werte(z), "histogramm": histogramm,
+            "f": filter_werte, "fehler": fehler,
+            "filter_karte": db.get(Ladekarte, int(ladekarte_id)) if ladekarte_id.isdigit() else None,
+            "filter_import": db.get(Import, int(import_id)) if import_id.isdigit() else None,
+            "ladungen": (ladungen := kartendaten.ladungen(db, bedingungen)),
+            "preis_schnitt": kartendaten.preis_schnitt(ladungen),
+            "ohne_ort": kartendaten.ohne_ort_anzahl(db, bedingungen),
+            "ohne_ladeorte": ohne_ladeorte,  # aktuelle Filter ohne Ladeort-Auswahl („Filter aufheben“)
+            # aktuelle Filter ohne einen davon – für „Filter aufheben“ bei Filtern ohne eigenes Feld
+            "ohne_filter": lambda name: urlencode({k: w for k, w in filter_werte.items() if k != name and w},
+                                                  doseq=True),
+            "optionen": _optionen(db)})
+    antwort.headers["Vary"] = "X-Teil"  # gleiche Adresse, anderer Inhalt: nie aus einem Browser-Cache verwechseln
+    return antwort
 
 
 def _optionen(db: Session) -> dict[str, list[tuple[str, str]]]:

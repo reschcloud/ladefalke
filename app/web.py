@@ -79,13 +79,13 @@ def leasing_daten(fahrzeuge, praefix: str = "") -> dict:
 
 
 templates.env.globals["leasing_daten"] = leasing_daten
-# Abkürzung MSP mit Erklärung als Tooltip (für sichtbare Beschriftungen, nicht für Attribute oder Auswahltexte)
 templates.env.filters["landname"] = landname
 templates.env.filters["cpo_land"] = cpo_land
 # Beschriftung des Stichtags: {{ STICHTAG[request.state.stichtag] }} → „Ladeende“ bzw. „Ladebeginn“
 templates.env.globals["STICHTAG"] = {"ende": "Ladeende", "beginn": "Ladebeginn"}
 templates.env.filters["flagge"] = formatierung.flagge
 templates.env.globals["verortung"] = verortung_text
+# Abkürzung MSP mit Erklärung als Tooltip (für sichtbare Beschriftungen, nicht für Attribute oder Auswahltexte)
 templates.env.globals["MSP"] = Markup('<abbr title="Mobility Service Provider = Ladekartenanbieter">MSP</abbr>')
 templates.env.globals["CPO"] = Markup('<abbr title="Charge Point Operator = Betreiber der Ladestation '
                                       '(aus der EVSE-ID, z. B. AT*MER)">CPO</abbr>')

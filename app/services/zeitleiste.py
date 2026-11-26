@@ -16,18 +16,14 @@ from sqlalchemy.orm import Session, selectinload
 from app.formatierung import datum
 from app.models import Fahrer, Fahrzeug, FahrzeugOhneFahrer, ZuordnungFahrerFahrzeug
 from app.services.luecken import _zeitraeume as zeitraeume_ohne
+from app.services.mini_zeitleiste import monatserster
 
 MONATSNAMEN = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 RICHTUNGEN = ("fahrzeug", "fahrer")
 
 
-def _monatserster(tag: date, verschiebung: int = 0) -> date:
-    index = tag.year * 12 + tag.month - 1 + verschiebung
-    return date(index // 12, index % 12 + 1, 1)
-
-
 def bereich_rollierend(heute: date) -> tuple[date, date]:
-    return _monatserster(heute, -11), _monatserster(heute, 3) - timedelta(days=1)
+    return monatserster(heute, -11), monatserster(heute, 3) - timedelta(days=1)
 
 
 def bereich_jahr(jahr: int) -> tuple[date, date]:
@@ -36,7 +32,7 @@ def bereich_jahr(jahr: int) -> tuple[date, date]:
 
 def bereich_5jahre(heute: date) -> tuple[date, date]:
     """Letzte 5 Jahre (60 Monate) plus 3 Monate Vorschau, wie bei den letzten 12 Monaten."""
-    return _monatserster(heute, -59), _monatserster(heute, 3) - timedelta(days=1)
+    return monatserster(heute, -59), monatserster(heute, 3) - timedelta(days=1)
 
 
 def bereich_alles(db: Session, heute: date) -> tuple[date, date]:
@@ -46,8 +42,8 @@ def bereich_alles(db: Session, heute: date) -> tuple[date, date]:
     if erstes is None:
         return bereich_rollierend(heute)
     letztes = db.scalar(select(func.max(ZuordnungFahrerFahrzeug.gueltig_bis)))
-    bis = max(_monatserster(heute, 3) - timedelta(days=1), letztes or heute)
-    return erstes.replace(day=1), _monatserster(bis, 1) - timedelta(days=1)
+    bis = max(monatserster(heute, 3) - timedelta(days=1), letztes or heute)
+    return erstes.replace(day=1), monatserster(bis, 1) - timedelta(days=1)
 
 
 @dataclass
@@ -215,10 +211,10 @@ def berechnen(db: Session, von: date, bis: date, heute: date, status: str = "akt
     monate, m = [], von.replace(day=1)
     if (bis.year - von.year) * 12 + bis.month - von.month < 24:
         while m <= bis:
-            ende = _monatserster(m, 1) - timedelta(days=1)
+            ende = monatserster(m, 1) - timedelta(days=1)
             links, breite = lage(max(m, von), min(ende, bis))
             monate.append((f"{MONATSNAMEN[m.month - 1]} {m:%y}", links, breite))
-            m = _monatserster(m, 1)
+            m = monatserster(m, 1)
     else:
         for jahr in range(von.year, bis.year + 1):
             links, breite = lage(max(date(jahr, 1, 1), von), min(date(jahr, 12, 31), bis))
