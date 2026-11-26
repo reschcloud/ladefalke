@@ -91,7 +91,7 @@ def test_oberflaeche(angemeldet, db, fz_karten):
     karte_zuordnen(db, k1, ab=D(2026, 1, 1), fahrzeug_id=fz.id, heute=HEUTE)
     karte_zuordnen(db, k2, ab=D(2026, 1, 1), bis=D(2026, 3, 31), fahrzeug_id=fz.id, heute=HEUTE)
     seite = angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text
-    assert 'class="mini-zl fzl"' in seite and ">Fahrer:in</span>" in seite and ">Ladekarten</span>" in seite
+    assert 'class="mini-zl fzl"' in seite and "</svg> Fahrer:in</span>" in seite and "</svg> Ladekarten</span>" in seite
     assert 'class="mini-zl-markierung gelb"' in seite and "2 Ladekarten: 01.01.2026 – 31.03.2026" in seite
     assert 'id="ladekarten"' in seite
     aufgaben = angemeldet.get("/aufgaben").text

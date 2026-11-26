@@ -44,8 +44,8 @@
 <div class="abschnitt-karte">
 <div class="mini-zl fzl" aria-hidden="true">
   <div class="fzl-zeile"><span></span><div class="mini-zl-achse">{% for text, links in fahrer.achse %}<span style="left: {{ links }}%">{{ text }}</span>{% endfor %}</div></div>
-  <div class="fzl-zeile"><span class="fzl-titel">Fahrer:in</span>{{ band(fahrer, fahrer_markierungen) }}</div>
-  <div class="fzl-zeile"><span class="fzl-titel">Ladekarten</span>{{ band(karten, markierungen) }}</div>
+  <div class="fzl-zeile"><span class="fzl-titel">{{ m.symbol("person") }} Fahrer:in</span>{{ band(fahrer, fahrer_markierungen) }}</div>
+  <div class="fzl-zeile"><span class="fzl-titel">{{ m.symbol("karte") }} Ladekarten</span>{{ band(karten, markierungen) }}</div>
   <div class="fzl-zeile"><span></span>{{ enden(fahrer) }}</div>
 </div>
 {% if markierungen or fahrer_markierungen %}<ul class="fzl-befunde">{% for mk in fahrer_markierungen + markierungen %}<li class="{{ mk.stufe }}">{{ mk.text }}</li>{% endfor %}</ul>{% endif %}
