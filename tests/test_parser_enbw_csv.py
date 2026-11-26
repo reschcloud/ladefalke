@@ -12,7 +12,6 @@ from app.services.importe import bestaetigen, hochladen, vorschau_berechnen
 
 D = Decimal
 FIXTURES = Path(__file__).parent / "fixtures"
-SAMPLES = Path(__file__).parent.parent / "samples"
 CSV = FIXTURES / "enbw_beispiel.csv"  # erfunden, dieselbe Rechnung wie enbw_beispiel.txt (PDF-Text)
 NAME = "Rechnung_2026_10_AT_180000000001.csv"
 
@@ -82,15 +81,16 @@ def test_pdf_und_csv_keine_doppelten(db, monkeypatch, reihenfolge):
 
 # ------------------------------------------------------------------ echte Beispieldateien
 
-@pytest.mark.parametrize("muster, anzahl_vorgaenge, anzahl_gebuehren", [
-    ("Rechnung_*_09_*.csv", 0, 1), ("Rechnung_*_10_*.csv", 1, 0)])
-def test_beispiel_csv(muster, anzahl_vorgaenge, anzahl_gebuehren):
-    dateien = sorted(SAMPLES.glob(muster))
-    if not dateien:
-        pytest.skip("Beispieldatei nicht vorhanden (samples/ ist nicht im Git)")
-    pdf = sorted(SAMPLES.glob(f"EnBW_{muster.replace('.csv', '.pdf')}"))
-    assert parser_erkennen(dateien[0]) == "enbw"
-    e = PARSER["enbw"].parsen_datei(dateien[0], dateien[0].name)
+# Prüfsummen statt Dateinamen (tests/beispiele.py): CSV und, falls vorhanden, dieselbe Rechnung als PDF
+@pytest.mark.parametrize("csv_praefix, pdf_praefix, anzahl_vorgaenge, anzahl_gebuehren", [
+    ("af984a6a2abb", "54152a7b587e", 0, 1),   # Rechnung 09: nur Grundgebühr
+    ("08421d9ace02", "ca74350c2acc", 1, 0)])  # Rechnung 10: ein Ladevorgang
+def test_beispiel_csv(csv_praefix, pdf_praefix, anzahl_vorgaenge, anzahl_gebuehren):
+    from tests.beispiele import beispiel, finden
+    csv = beispiel(csv_praefix)
+    pdf = [p for p in [finden(pdf_praefix)] if p]
+    assert parser_erkennen(csv) == "enbw"
+    e = PARSER["enbw"].parsen_datei(csv, csv.name)
     assert e.warnungen == []
     assert (len(e.vorgaenge), len(e.gebuehren)) == (anzahl_vorgaenge, anzahl_gebuehren)
     if pdf:  # dieselbe Rechnung als PDF: gleiche Nummer, Zeitraum, Beträge und Transaktions-IDs

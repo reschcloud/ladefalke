@@ -11,7 +11,6 @@ from app.parsers.basis import auf_summe_verteilen
 from app.parsers.wien_energie import parsen_text
 
 FIXTURE = Path(__file__).parent / "fixtures" / "wien_energie_beispiel.txt"
-SAMPLES = sorted((Path(__file__).parent.parent / "samples").glob("*Wien Energie*.pdf"))
 
 
 @pytest.fixture
@@ -90,10 +89,10 @@ def test_auf_summe_verteilen():
     assert auf_summe_verteilen(werte, Decimal("50.00")) is None
 
 
-@pytest.mark.skipif(not SAMPLES, reason="Beispiel-PDF nicht vorhanden (samples/ ist nicht im Git)")
 def test_beispiel_pdf():
     from app.parsers.wien_energie import WienEnergieParser
-    pdf = SAMPLES[0]
+    from tests.beispiele import beispiel
+    pdf = beispiel("bf554bdda32f")  # Wien Energie, Servicerechnung (aktuelles Layout)
     assert parser_erkennen(pdf) == "wien_energie"
     e = WienEnergieParser().parsen(pdf)
     assert e.warnungen == []

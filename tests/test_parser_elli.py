@@ -12,7 +12,6 @@ from app.parsers.elli import ElliParser, parsen_text
 
 D = Decimal
 FIXTURE = Path(__file__).parent / "fixtures" / "elli_beispiel.txt"
-SAMPLES = sorted((Path(__file__).parent.parent / "samples").glob("*Easy Charging*.pdf"))
 
 
 @pytest.fixture
@@ -74,9 +73,9 @@ def test_zahl_flexibel(text, erwartet):
     assert zahl_flexibel(text) == D(erwartet)
 
 
-@pytest.mark.skipif(not SAMPLES, reason="Beispiel-PDF nicht vorhanden (samples/ ist nicht im Git)")
 def test_beispiel_pdf():
-    pdf = SAMPLES[0]
+    from tests.beispiele import beispiel
+    pdf = beispiel("a1f084e122d4")  # Elli, Übersicht über die Ladevorgänge (DE und AT)
     assert parser_erkennen(pdf) == "elli"
     e = ElliParser().parsen(pdf)
     assert e.warnungen == []
@@ -84,6 +83,17 @@ def test_beispiel_pdf():
     assert sum(v.kwh for v in e.vorgaenge) == D("114.610")
     assert sum(v.kosten_netto for v in e.vorgaenge) == e.rechnung.summe_netto == D("72.77")
     assert {v.ladepunkt[:2] for v in e.vorgaenge} == {"DE", "AT"}
+
+
+def test_beispiel_pdf_zwei_vorgaenge():
+    """Zweite Übersicht (11/2026 dazugelegt): erkannt, ohne Warnungen, netto centgenau auf die Summe."""
+    from tests.beispiele import beispiel
+    pdf = beispiel("ef3faefbced6")
+    assert parser_erkennen(pdf) == "elli"
+    e = ElliParser().parsen(pdf)
+    assert e.warnungen == []
+    assert len(e.vorgaenge) == 2
+    assert sum(v.kosten_netto for v in e.vorgaenge) == e.rechnung.summe_netto
 
 
 # ------------------------------------------------------------------ älteres Format: Rechnung „Easy Charging“

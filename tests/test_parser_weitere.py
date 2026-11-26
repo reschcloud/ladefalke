@@ -326,6 +326,16 @@ def test_beispiel_dcs_mit_ungueltiger_uhrzeit():
     assert any(v.start.time() == time(14, 36) for v in e.vorgaenge)  # wie in der Rechnung, nicht 15:36
 
 
+def test_beispiel_dcs_11_2026():
+    """DCS-Rechnung, 11/2026 dazugelegt: erkannt, ohne Warnungen, netto centgenau auf die Rechnungssumme."""
+    pfad = beispiel("a52f8a9d4589")
+    assert parser_erkennen(pfad) == "dcs"
+    e = PARSER["dcs"].parsen(pfad)
+    assert e.warnungen == []
+    assert (len(e.vorgaenge), len(e.gebuehren)) == (11, 2)
+    assert _summe(e) == e.rechnung.summe_netto
+
+
 # ------------------------------------------------------------------ EnBW Privatkonto (gleicher Parser)
 
 def test_enbw_privatkonto():
