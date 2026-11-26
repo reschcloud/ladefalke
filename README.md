@@ -7,7 +7,8 @@ Spezifikation: [SPEC.md](SPEC.md). Entscheidungen mit Begründung: [docs/adr/](d
 
 ### Voraussetzungen
 
-- Ein **Linux-Server oder eine VM** (z. B. Debian, Ubuntu, Fedora) mit **x86-64-Prozessor** (amd64); andere
+- Ein **Linux-Server oder eine VM** (z. B. Debian, Ubuntu, Fedora) mit **x86-64-** (amd64) oder **ARM-64-Prozessor**
+  (arm64, z. B. Raspberry Pi 4/5 mit 64-Bit-System); Docker lädt automatisch das passende Image. Andere
   Architekturen gehen nur mit selbst gebautem Image (siehe [Betrieb](#betrieb)).
 - **Docker Engine mit Compose-Plugin** – oder Podman mit Compose. Fehlt Docker, bietet `setup.sh` an, es über das
   offizielle Skript von get.docker.com zu installieren (braucht root bzw. sudo).
@@ -294,7 +295,7 @@ docker compose ps                   # app „healthy“ = App antwortet und erre
                                     # dann im Browser: „Ersten Admin anlegen“
 ```
 
-**Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64): Repository klonen,
+**Selbst bauen statt laden** (z. B. eigene Änderungen, andere Prozessorarchitektur als amd64 oder arm64): Repository klonen,
 Release auschecken (`git checkout v1.14.0`), `.env` aus `.env.example` anlegen und `docker compose up -d --build`.
 Das selbst gebaute Image trägt den Namen des fertigen – Updates dann immer mit `--build`, nicht mit
 `docker compose pull` (das würde es durch das fertige ersetzen).
@@ -400,7 +401,8 @@ keine Hauptversion.
    ```
 
 4. Der Tag startet die Pipeline [.github/workflows/release.yml](.github/workflows/release.yml) (GitHub → Actions):
-   erst die Tests, dann das Image `ghcr.io/reschcloud/ladefalke` mit den Tags `1.3.0`, `1.3`, `1` und `latest`.
+   erst die Tests, dann das Image `ghcr.io/reschcloud/ladefalke` für amd64 und arm64 mit den Tags `1.3.0`, `1.3`, `1`
+   und `latest`.
    Schlagen die Tests fehl, entsteht kein Image. Beim ersten Mal unter GitHub → Packages → ladefalke →
    Package settings die Sichtbarkeit auf „Public“ stellen, falls das Image nicht öffentlich ist.
 

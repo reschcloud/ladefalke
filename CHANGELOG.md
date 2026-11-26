@@ -3,6 +3,17 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## Unveröffentlicht
+
+### Neu
+
+- Fertiges Image auch für ARM-64 (arm64, z. B. Raspberry Pi 4/5 mit 64-Bit-System, ARM-Server). Docker lädt
+  automatisch das passende Image; Selbstbauen ist auf solchen Rechnern nicht mehr nötig.
+
+### Beim Update beachten
+
+- nichts
+
 ## v1.14.0 – 25.11.2026
 
 ### Neu
