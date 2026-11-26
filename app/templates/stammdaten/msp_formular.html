@@ -96,6 +96,6 @@
   {% if hat_daten %}<small>Löschen ist nicht möglich, weil Ladekarten oder Importe zu diesem {{ MSP }} gehören.</small>
   {% else %}{{ m.loeschen_knopf("/stammdaten/msp/%d/loeschen" % msp.id, "MSP „%s“ endgültig löschen?" % msp.name) }}{% endif %}
 </div>
-  {{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?msp_id=%d" % msp.id, mit_karte=true, mit_fahrzeug=true, art=request.state.stichtag) }}
+  {{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?msp_id=%d" % msp.id, mit_karte=true, mit_fahrzeug=true) }}
 {% endif %}
 {% endblock %}

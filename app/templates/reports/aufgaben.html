@@ -132,10 +132,10 @@
 {% if unplausibel %}
 <h2>Unplausible AC/DC-Angaben</h2>
 <table>
-  <thead><tr><th>{{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }}</th><th>Karte</th><th>Fahrzeug</th><th class="r">kWh</th><th>Grund</th></tr></thead>
+  <thead><tr><th>Ladebeginn</th><th>Karte</th><th>Fahrzeug</th><th class="r">kWh</th><th>Grund</th></tr></thead>
   <tbody>
   {% for v, grund in unplausibel[:max_zeilen] %}
-    <tr><td>{{ (v.start if stichtag == "beginn" else v.ende) | datumzeit }}</td>
+    <tr><td>{{ v.start | datumzeit }}</td>
       <td>{% if v.ladekarte and v.karte_anzeige %}{{ r.karte(v.karte_anzeige) }}{% elif v.ladekarte %}{{ v.ladekarte.kennung }}{% else %}{{ v.roh_kartenkennung or "–" }}{% endif %}</td>
       <td>{{ v.fahrzeug.kennzeichen if v.fahrzeug else "–" }}</td><td class="r">{{ v.kwh | zahl(3) }}</td>
       <td class="klein">{{ grund }}</td></tr>

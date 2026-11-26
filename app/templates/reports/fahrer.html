@@ -8,7 +8,7 @@
 {% set s = zeile.summe %}
 <h1>Dein Ladereport {{ z.label }}</h1>
 <p class="untertitel">{{ person.name }} · {{ z.von | datum }} – {{ z.bis | datum }} · Ladungen nach
-  {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} · nur Ladekosten, ohne Grundgebühren
+  Ladebeginn · nur Ladekosten, ohne Grundgebühren
   {%- if vergleich %} · Vergleich mit deinem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
 
 {% if s.leer %}

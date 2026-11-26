@@ -9,7 +9,7 @@ from app.db import get_db
 from app.models import Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort, Ladevorgang, Msp, ZuordnungQuelle
 from app.routers.ladevorgaenge import ladeort_plz_speichern
 from app.services import app_einstellungen, fristen, kartenanzeige, kartenpruefung, luecken, stromart, zuordnung
-from app.services.aufloesung import fahrzeug_setzen, neu_zuordnen, stichtag_art, stichtag_spalte
+from app.services.aufloesung import fahrzeug_setzen, neu_zuordnen, stichtag_spalte
 from app.services.ladeprofil import leistung, unplausibel_grund, unplausibel_sql
 from app.services.geokodierung import GENAUIGKEIT, alle_geokodieren, verzeichnis_vorhanden, verzichten, wieder_verorten
 from app.services.offen import ladeorte_offen_bedingungen, ohne_fahrzeug_bedingungen, ursache
@@ -41,7 +41,7 @@ def _zurueck(ziel: str, standard: str = "/aufgaben") -> str:
 @zuordnung.vorgeladen_fuer_route  # Ursachen und Personen je Vorgang: Zuordnungen einmal laden statt je Tag/Vorgang
 def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp: str = "",
                db: Session = Depends(get_db)):
-    tag = stichtag_spalte(stichtag_art(db))  # Zeitraum und Sortierung nach dem Stichtag laut Einstellungen
+    tag = stichtag_spalte()  # Zeitraum und Sortierung nach dem Ladebeginn
     gruppen = db.execute(
         select(Ladevorgang.ladekarte_id, Ladevorgang.roh_kartenkennung, Ladevorgang.msp_id,
                func.count(), func.sum(Ladevorgang.kwh), func.sum(Ladevorgang.kosten),
@@ -106,7 +106,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
             select(Ladeort, func.count(Ladevorgang.id)).join(Ladevorgang, Ladevorgang.ladeort_id == Ladeort.id)
             .where(Ladeort.genauigkeit == "verzichtet").group_by(Ladeort.id).order_by(Ladeort.adresse)).all(),
         "unplausible": [(v, unplausibel_grund(v, einst)) for v in unplausible],
-        "_karten": kartenanzeige.fuer_vorgaenge(db, [*vorgaenge, *unplausible], einst.stichtag),
+        "_karten": kartenanzeige.fuer_vorgaenge(db, [*vorgaenge, *unplausible]),
         "gruppen": gruppen, "karten": karten, "ursachen": ursachen, "vorgaenge": vorgaenge, "max_zeilen": MAX_ZEILEN,
         "gefiltert": bool(filter_bed), "gaeste": gaeste, "gebuehren": gebuehren, "karten_je_msp": karten_je_msp,
         "fahrzeuge": db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv).order_by(Fahrzeug.kennzeichen)).all()})

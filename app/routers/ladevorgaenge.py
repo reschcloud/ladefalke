@@ -16,7 +16,7 @@ from app.models import Fahrer, Fahrzeug, Import, Ladeart, Ladekarte, Ladeort, La
 from app.routers.auswertungen import datei_antwort, zeitraum_navigation
 from app.services.auswertung import Zeitraum, vormonat, zeitraum_alles, zeitraum_aus_parametern
 from app.services.aufloesung import (fahrzeug_setzen, person_text, personen_beim_laden, personen_filter,
-                                     stichtag_art, stichtag_spalte, vorgang_aktualisieren)
+                                     stichtag_spalte, vorgang_aktualisieren)
 from app.services import app_einstellungen, karte as kartendaten, kosten as kosten_dienst, stromart as stromart_dienst
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.evse import LAENDER, landname
@@ -113,7 +113,7 @@ def mehrfach_bedingung(spalte, werte: list[str], ohne: str = "-", zahlen: bool =
     return or_(*teile) if teile else None
 
 
-def suche_bedingung(text: str, art: str = "ende"):
+def suche_bedingung(text: str):
     """Freie Suche: jedes Wort muss in mindestens einem Feld vorkommen (Teiltreffer, Groß-/Kleinschreibung egal).
     Felder: Kartenkennung (Rechnung und Stammdaten), Kartenbezeichnung, Standort, Ort/Adresse des Ladeorts, EVSE-ID,
     CPO, MSP, Kennzeichen und Modell, Fahrer:in (Person beim Laden), externe ID, AC/DC, Land (Code und Name)."""
@@ -129,7 +129,7 @@ def suche_bedingung(text: str, art: str = "ende"):
             Ladevorgang.ladeort.has(or_(enthaelt(Ladeort.ort), enthaelt(Ladeort.adresse))),
             Ladevorgang.msp.has(enthaelt(Msp.name)),
             Ladevorgang.fahrzeug.has(or_(enthaelt(Fahrzeug.kennzeichen), enthaelt(Fahrzeug.modell))),
-            personen_filter(select(Fahrer.id).where(enthaelt(Fahrer.name)).scalar_subquery(), art=art),
+            personen_filter(select(Fahrer.id).where(enthaelt(Fahrer.name)).scalar_subquery()),
             Ladevorgang.land.in_(laender)))
     return teile
 
@@ -141,7 +141,6 @@ def _filter(von: str, bis: str, msp_id: list[str], fahrzeug_id: list[str], suche
             stromart: list[str] = (), fahrer: list[str] = ()) -> tuple[dict, list, str | None]:
     """(Filterwerte für das Formular, SQL-Bedingungen, Fehlermeldung). MSP, Land, CPO, Fahrzeug, Art und Ladeort
     (aus der Karte): Mehrfachauswahl."""
-    art = einst.stichtag if einst is not None else "ende"  # Stichtag für Datumsfilter und Person beim Laden
     msp_id, fahrzeug_id, land, betreiber, ladeort_id = (
         [w for w in x if w] for x in (msp_id, fahrzeug_id, land, betreiber, ladeort_id))
     ladeart = [w for w in ladeart if w in Ladeart.__members__]
@@ -155,9 +154,9 @@ def _filter(von: str, bis: str, msp_id: list[str], fahrzeug_id: list[str], suche
     bedingungen, fehler = [], None
     try:
         if d := datum_lesen(von):
-            bedingungen.append(stichtag_spalte(art) >= d)
+            bedingungen.append(stichtag_spalte() >= d)
         if d := datum_lesen(bis):
-            bedingungen.append(stichtag_spalte(art) < d + timedelta(days=1))  # Datum des Stichtags
+            bedingungen.append(stichtag_spalte() < d + timedelta(days=1))  # Datum des Stichtags
     except ValueError as e:
         fehler = str(e)
     for b in (mehrfach_bedingung(Ladevorgang.msp_id, msp_id, zahlen=True),
@@ -170,10 +169,10 @@ def _filter(von: str, bis: str, msp_id: list[str], fahrzeug_id: list[str], suche
             bedingungen.append(b)
     if ladeart:
         bedingungen.append(Ladevorgang.ladeart.in_([Ladeart(w) for w in ladeart]))
-    if (b := personen_filter([int(w) for w in fahrer if w.isdigit()], "gaeste" in fahrer, "ohne" in fahrer,
-                             art)) is not None:
+    if (b := personen_filter([int(w) for w in fahrer if w.isdigit()], "gaeste" in fahrer,
+                             "ohne" in fahrer)) is not None:
         bedingungen.append(b)
-    bedingungen += suche_bedingung(suche, art)
+    bedingungen += suche_bedingung(suche)
     if nur_geschaetzt:
         bedingungen.append(Ladevorgang.kwh_geschaetzt)
     if import_id.isdigit():
@@ -185,15 +184,15 @@ def _filter(von: str, bis: str, msp_id: list[str], fahrzeug_id: list[str], suche
     return filter_werte, bedingungen, fehler
 
 
-def _abfrage(bedingungen, art: str = "ende", sortierung: str = ""):
+def _abfrage(bedingungen, sortierung: str = ""):
     spalte, richtung = sortierung_lesen(sortierung)
-    ausdruck = {"zeit": stichtag_spalte(art), "dauer": Ladevorgang.ende - Ladevorgang.start, "kwh": Ladevorgang.kwh, "kosten": Ladevorgang.kosten,
+    ausdruck = {"zeit": stichtag_spalte(), "dauer": Ladevorgang.ende - Ladevorgang.start, "kwh": Ladevorgang.kwh, "kosten": Ladevorgang.kosten,
                 "preis": Ladevorgang.kosten / func.nullif(Ladevorgang.kwh, 0)}[spalte]
     reihenfolge = (ausdruck.desc() if richtung == "ab" else ausdruck.asc()).nulls_last()  # 0 kWh: kein Preis → ans Ende
     return (select(Ladevorgang).where(*bedingungen)
             .options(selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.fahrzeug),
                      selectinload(Ladevorgang.msp))
-            .order_by(reihenfolge, stichtag_spalte(art).desc(), Ladevorgang.id.desc()))
+            .order_by(reihenfolge, stichtag_spalte().desc(), Ladevorgang.id.desc()))
 
 
 @router.get("")
@@ -240,8 +239,8 @@ def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Qu
                                func.coalesce(func.sum(Ladevorgang.kosten), 0))
                         .where(*bedingungen_liste)).one()
     sortierung = "-".join(sortierung_lesen(sortierung)) if sortierung else ""
-    vorgaenge = db.scalars(_abfrage(bedingungen_liste, einst.stichtag, sortierung).limit(MAX_ZEILEN)).all()
-    kartenanzeige.fuer_vorgaenge(db, vorgaenge, einst.stichtag)  # Karte als Person/Fahrzeug am Ladetag
+    vorgaenge = db.scalars(_abfrage(bedingungen_liste, sortierung).limit(MAX_ZEILEN)).all()
+    kartenanzeige.fuer_vorgaenge(db, vorgaenge)  # Karte als Person/Fahrzeug am Ladetag
     sort_spalte, sort_richtung = sortierung_lesen(sortierung)
 
     def sortier_url(spalte: str) -> str:
@@ -323,7 +322,7 @@ def export(format_: str, von: str = "", bis: str = "", msp_id: list[str] = Query
         bedingungen.append(b)
     if bereich and (b := kartendaten.im_bereich(bereich)) is not None:  # wie die Liste: nur der Kartenausschnitt
         bedingungen.append(b)
-    vorgaenge = db.scalars(_abfrage(bedingungen, einst.stichtag, sortierung)).all()
+    vorgaenge = db.scalars(_abfrage(bedingungen, sortierung)).all()
     personen = personen_beim_laden(db, vorgaenge)
     k = kosten_dienst.kontext(db)
     ust = {v.id: kosten_dienst.fuer_vorgang(k, v) for v in vorgaenge}
@@ -358,7 +357,7 @@ def detail(request: Request, vorgang_id: int, db: Session = Depends(get_db)):
 def _detail(request: Request, db: Session, v: Ladevorgang, status_code: int = 200, ladeort_werte: dict | None = None,
             ladeort_fehler: str | None = None):
     """`ladeort_werte`/`ladeort_fehler`: Formular PLZ/Ort nach einem Fehler – mit den Eingaben."""
-    kartenanzeige.fuer_vorgaenge(db, [v], stichtag_art(db))
+    kartenanzeige.fuer_vorgaenge(db, [v])
     fahrzeuge = db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv | (Fahrzeug.id == v.fahrzeug_id))
                            .order_by(Fahrzeug.kennzeichen)).all()
     return render(request, "ladevorgang_detail.html", {

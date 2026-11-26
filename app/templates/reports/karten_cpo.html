@@ -15,7 +15,7 @@
 {%- endmacro %}
 <h1>Karten und Preise je CPO {{ z.label }}</h1>
 <p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · nur öffentliche Ladungen, nur Ladekosten (ohne
-  Grundgebühren) · Ladevorgänge nach {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }}</p>
+  Grundgebühren) · Ladevorgänge nach Ladebeginn</p>
 
 {% set oeff_kosten = details | sum(attribute="summe.kosten") %}
 {% set mit_potenzial = details | selectattr("ersparnis") | list %}

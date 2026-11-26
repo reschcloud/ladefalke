@@ -145,7 +145,7 @@
 <h3>Nach Karte</h3>
 <div class="tabelle">
 <table class="striped">
-  <thead><tr><th>Karte</th><th>{{ MSP }}</th><th>Zeitraum ({{ STICHTAG[request.state.stichtag] }})</th><th class="rechts">Ladevorgänge</th>
+  <thead><tr><th>Karte</th><th>{{ MSP }}</th><th>Zeitraum (Ladebeginn)</th><th class="rechts">Ladevorgänge</th>
              <th class="rechts">kWh</th><th class="rechts">Kosten</th><th></th></tr></thead>
   <tbody>
   {% for karte_id, roh, msp_id, anzahl, kwh, kosten, von, bis in gruppen %}
@@ -203,12 +203,12 @@
   <table class="striped">
     <thead><tr><th><input type="checkbox" aria-label="alle auswählen"
                           onclick="for (const c of this.form.querySelectorAll('input[name=vorgang_ids]')) c.checked = this.checked"></th>
-               <th>{{ STICHTAG[request.state.stichtag] }}</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th><th class="rechts">Kosten</th></tr></thead>
+               <th>Ladebeginn</th><th>Karte</th><th>Standort</th><th class="rechts">kWh</th><th class="rechts">Kosten</th></tr></thead>
     <tbody>
     {% for v in vorgaenge %}
       <tr>
         <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="auswählen"></td>
-        <td><a href="/ladevorgaenge/{{ v.id }}">{{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</a></td>
+        <td><a href="/ladevorgaenge/{{ v.id }}">{{ v.start | datumzeit }}</a></td>
         <td>{{ m.karte_vorgang(v, msp=false) }}</td>
         <td>{{ v.standort or "" }}</td>
         <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>
@@ -264,12 +264,12 @@
   kWh bleiben in allen Auswertungen erhalten. Grenzen: <a href="/einstellungen#datenqualitaet">Einstellungen</a>.</p>
 <div class="tabelle">
 <table class="striped">
-  <thead><tr><th>{{ STICHTAG[request.state.stichtag] }}</th><th>{{ MSP }}</th><th>Karte</th><th>Fahrzeug</th><th class="rechts">kWh</th>
+  <thead><tr><th>Ladebeginn</th><th>{{ MSP }}</th><th>Karte</th><th>Fahrzeug</th><th class="rechts">kWh</th>
              <th>Grund</th><th></th></tr></thead>
   <tbody>
   {% for v, grund in unplausible %}
     <tr>
-      <td><a href="/ladevorgaenge/{{ v.id }}">{{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</a></td>
+      <td><a href="/ladevorgaenge/{{ v.id }}">{{ v.start | datumzeit }}</a></td>
       <td>{{ v.msp.name }}</td>
       <td>{{ m.karte_vorgang(v, msp=false) }}</td>
       <td>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}</td>
@@ -350,7 +350,7 @@
   <table class="striped">
     <thead><tr><th><input type="checkbox" aria-label="alle auswählen"
                           onclick="for (const c of this.form.querySelectorAll('input[name=vorgang_ids]')) c.checked = this.checked"></th>
-               <th>{{ STICHTAG[request.state.stichtag] }}</th><th>{{ MSP }}</th><th>Standort</th><th>{{ CPO }}</th>
+               <th>Ladebeginn</th><th>{{ MSP }}</th><th>Standort</th><th>{{ CPO }}</th>
                <th class="rechts">kWh</th><th class="rechts">Dauer</th>
                <th class="rechts">Ø Leistung {{ m.hilfe("kWh / angesteckte Dauer – die tatsächliche Ladeleistung war mindestens so hoch. Ab " ~ (einst.plausibel_ac_max_kw | zahl(0)) ~ " kW ist AC unplausibel (Vorschlag DC), unter " ~ (einst.plausibel_dc_min_kw | zahl(0)) ~ " kW DC (Vorschlag AC) – Grenzen aus den Einstellungen. Dazwischen kein Vorschlag; wenige kW über Stunden können auch DC sein, wenn das Auto lange angesteckt blieb.") }}</th>
                <th class="rechts">Kosten</th><th class="rechts">€/kWh</th>
@@ -360,7 +360,7 @@
       <tr>
         <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="auswählen"
                    data-vorschlag="{{ vorschlag or '' }}"></td>
-        <td><a href="/ladevorgaenge/{{ v.id }}">{{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</a></td>
+        <td><a href="/ladevorgaenge/{{ v.id }}">{{ v.start | datumzeit }}</a></td>
         <td>{{ v.msp.name }}</td>
         <td>{{ v.standort or "" }}</td>
         <td>{{ v.betreiber_id or "–" }}</td>

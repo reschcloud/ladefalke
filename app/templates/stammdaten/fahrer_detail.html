@@ -91,7 +91,7 @@
 {{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine Karten – weder persönlich noch über ein Fahrzeug.") }}
 {{ zo.karte_zuordnen(karten_auswahl, "fahrer:%d" % fahrer.id, "/stammdaten/fahrer/%d" % fahrer.id) }}
 
-{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrer=%d" % fahrer.id, mit_karte=true, mit_fahrzeug=true, mit_fahrer=false, art=request.state.stichtag) }}
+{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrer=%d" % fahrer.id, mit_karte=true, mit_fahrzeug=true, mit_fahrer=false) }}
 {{ m.verlauf_abschnitt(verlauf) }}
 {% endif %}
 {% endblock %}

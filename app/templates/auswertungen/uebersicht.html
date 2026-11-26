@@ -6,7 +6,7 @@
 <div class="kopf"><h1>Auswertungen</h1>
   {{ m.nav_knopf("/reports?" ~ parameter, "Reports →", "PDF-Reports für " ~ a.zeitraum.label ~ " (Seite „Reports“)") }}</div>
 {{ b.zeitraumwahl(a, zurueck, vor, arten, arten_links, basis, teile=teile, jahre=jahre) }}
-<p><small>Zeitraum {{ a.zeitraum.von | datum }} – {{ a.zeitraum.bis | datum }}, Ladevorgänge nach {{ stichtag }}.
+<p><small>Zeitraum {{ a.zeitraum.von | datum }} – {{ a.zeitraum.bis | datum }}, Ladevorgänge nach Ladebeginn.
   Kosten = tatsächliche Kosten (netto plus nicht abziehbare USt.). <abbr class="geschaetzt">≈</abbr> = enthält geschätzte kWh.</small></p>
 <nav class="einstellungen-nav" aria-label="Abschnitte">
   <a href="#gesamt">Gesamt</a><a href="#dc-oeffentlich">DC öffentlich</a><a href="#topliste">Topliste</a><a href="#topliste-oeffentlich">Topliste öffentlich</a>

@@ -144,7 +144,7 @@ def eindeutig_machen(anzeigen) -> None:
             a.zusatz = _ende(a.karte.kennung)
 
 
-def fuer_zeitraum(db: Session, karten, von: date, bis: date, art: str = "ende") -> dict[int, Anzeige]:
+def fuer_zeitraum(db: Session, karten, von: date, bis: date) -> dict[int, Anzeige]:
     """Anzeige je Karten-ID für einen Zeitraum; Hauptzuordnung = die mit den meisten Ladevorgängen darin."""
     karten = {k.id: k for k in karten if k is not None}
     daten = _Daten(db, set(karten), von, bis)
@@ -153,7 +153,7 @@ def fuer_zeitraum(db: Session, karten, von: date, bis: date, art: str = "ende") 
     if mehrfach:
         for kid, start, ende in db.execute(select(Ladevorgang.ladekarte_id, Ladevorgang.start, Ladevorgang.ende)
                                            .where(Ladevorgang.ladekarte_id.in_(mehrfach))):
-            tag = stichtag(start, ende, art)
+            tag = stichtag(start)
             if von <= tag <= bis:
                 for z in daten.karten[kid]:
                     if _ueberlappt(z.gueltig_ab, z.gueltig_bis, tag, tag):
@@ -163,12 +163,12 @@ def fuer_zeitraum(db: Session, karten, von: date, bis: date, art: str = "ende") 
     return ergebnis
 
 
-def fuer_vorgaenge(db: Session, vorgaenge, art: str = "ende") -> dict[int, Anzeige]:
-    """Anzeige je Ladevorgang (Zuordnung am Ladetag laut Stichtag); setzt zusätzlich `v.karte_anzeige`."""
+def fuer_vorgaenge(db: Session, vorgaenge) -> dict[int, Anzeige]:
+    """Anzeige je Ladevorgang (Zuordnung am Ladetag, Stichtag Ladebeginn); setzt zusätzlich `v.karte_anzeige`."""
     vorgaenge = [v for v in vorgaenge if v.ladekarte is not None]
     if not vorgaenge:
         return {}
-    tage = {v.id: stichtag(v.start, v.ende, art) for v in vorgaenge}
+    tage = {v.id: stichtag(v.start) for v in vorgaenge}
     daten = _Daten(db, {v.ladekarte_id for v in vorgaenge}, min(tage.values()), max(tage.values()))
     ergebnis = {}
     for v in vorgaenge:

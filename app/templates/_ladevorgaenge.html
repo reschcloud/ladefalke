@@ -1,13 +1,12 @@
-{# Tabelle „Letzte Ladevorgänge“ für Detailseiten; zeilen = [(Ladevorgang, [Fahrer:innen beim Laden])];
-   art: Stichtag („ende“/„beginn“) – bestimmt, welches Datum vorne steht und verlinkt ist #}
+{# Tabelle „Letzte Ladevorgänge“ für Detailseiten; zeilen = [(Ladevorgang, [Fahrer:innen beim Laden])] #}
 {% import "_makros.html" as mk %}
 {% macro letzte_ladevorgaenge(zeilen, alle_link=none, mit_karte=false, mit_fahrzeug=false, mit_fahrer=true,
-                              anzahl=15, art="ende") %}
+                              anzahl=15) %}
 {% call mk.titel("ladevorgaenge", id="ladevorgaenge") %}Letzte Ladevorgänge{% endcall %}
 {% if zeilen %}
 <div class="tabelle">
 <table class="striped">
-  <thead><tr>{{ mk.zeit_kopf(art) }}{% if mit_karte %}<th>Karte</th>{% endif %}<th>Standort</th>
+  <thead><tr>{{ mk.zeit_kopf() }}{% if mit_karte %}<th>Karte</th>{% endif %}<th>Standort</th>
              <th class="rechts">kWh</th><th class="rechts">Kosten</th><th class="rechts">€/kWh</th>
              {% if mit_fahrzeug or mit_fahrer %}<th>{% if mit_fahrzeug %}Fahrzeug{% endif %}
                {%- if mit_fahrzeug and mit_fahrer %} <small>· Fahrer:in beim Laden</small>
@@ -15,7 +14,7 @@
   <tbody>
   {% for v, fahrer in zeilen %}
     <tr>
-      {{ mk.zeit_zellen(v, art) }}
+      {{ mk.zeit_zellen(v) }}
       {% if mit_karte %}
       <td>{{ mk.karte_vorgang(v) }}</td>
       {% endif %}

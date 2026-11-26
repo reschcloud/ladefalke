@@ -72,7 +72,7 @@
   <table>
     <thead><tr><th></th><th class="rechts">Ladevorgänge</th><th class="rechts">Ø kWh je Vorgang</th>
                <th class="rechts">Ø Ladeleistung</th><th class="rechts">95 % der Vorgänge bis</th>
-               <th>Zeitraum ({{ STICHTAG[request.state.stichtag] }})</th><th>Schätzung rechnet mit</th></tr></thead>
+               <th>Zeitraum (Ladebeginn)</th><th>Schätzung rechnet mit</th></tr></thead>
     <tbody>
     {% for art in ("AC", "DC") %}{% set p = profil.get(art) %}{% set w = schaetzwerte[art] %}
       <tr><td>{{ m.stromart(art) }}</td>
@@ -149,7 +149,7 @@
 {{ zo.abschnitt(karten_mini, MSP, "Karte", leer="Keine direkt zugeordneten Karten.", grafik=false) }}
 {{ zo.karte_zuordnen(karten_auswahl, "fahrzeug:%d" % fahrzeug.id, "/stammdaten/fahrzeuge/%d" % fahrzeug.id) }}
 
-{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrzeug_id=%d" % fahrzeug.id, mit_karte=true, art=request.state.stichtag) }}
+{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?fahrzeug_id=%d" % fahrzeug.id, mit_karte=true) }}
 {{ m.verlauf_abschnitt(verlauf) }}
 {% endif %}
 {% endblock %}

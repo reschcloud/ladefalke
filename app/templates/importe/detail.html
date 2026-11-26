@@ -39,12 +39,12 @@
 <h2>Ladevorgänge</h2>
 <div class="tabelle">
 <table class="striped">
-  <thead><tr>{{ m.zeit_kopf(request.state.stichtag) }}<th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
+  <thead><tr>{{ m.zeit_kopf() }}<th>Karte</th><th>Standort</th><th class="rechts">kWh</th>
              <th class="rechts">Kosten netto</th><th>Fahrzeug</th></tr></thead>
   <tbody>
   {% for v in vorgaenge %}
     <tr>
-      {{ m.zeit_zellen(v, request.state.stichtag) }}
+      {{ m.zeit_zellen(v) }}
       <td>{{ m.karte_vorgang(v, msp=false) }}</td>
       <td>{{ v.standort or "" }}</td>
       <td class="rechts">{% if v.kwh_geschaetzt %}<abbr class="geschaetzt" title="geschätzt">≈</abbr>&nbsp;{% endif %}{{ v.kwh | zahl(3) }}</td>

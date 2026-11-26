@@ -310,13 +310,13 @@ class DcOeffentlich:
     ohne_uhrzeit: int = 0  # Beginn genau 00:00:00 – nur bei der Dauer, nicht bei der Uhrzeit
 
 
-def dc_oeffentlich(db: Session, z: Zeitraum, stichtag: str, *bedingungen) -> DcOeffentlich:
+def dc_oeffentlich(db: Session, z: Zeitraum, *bedingungen) -> DcOeffentlich:
     """Öffentliche DC-Ladungen mit kWh im Zeitraum (Stichtag wie die Auswertung): Verteilung der Dauer
     (angesteckt, Start bis Ende) in Klassen zu DAUER_KLASSE Minuten und der Uhrzeit des Ladebeginns (Ortszeit;
     ohne Ladungen, deren Beginn genau 00:00:00 ist – dort ist die Uhrzeit unbekannt)."""
     zeiten = db.execute(select(Ladevorgang.start, Ladevorgang.ende).where(
         Ladevorgang.stromart == "DC", Ladevorgang.ladeart == Ladeart.oeffentlich, Ladevorgang.kwh > 0,
-        Ladevorgang.ende >= Ladevorgang.start, zeitbedingung(stichtag_spalte(stichtag), z), *bedingungen)).all()
+        Ladevorgang.ende >= Ladevorgang.start, zeitbedingung(stichtag_spalte(), z), *bedingungen)).all()
     minuten = sorted((ende - start).total_seconds() / 60 for start, ende in zeiten)
     anzahl_klassen = DAUER_GRENZE // DAUER_KLASSE + 1
     dauer = [0] * anzahl_klassen

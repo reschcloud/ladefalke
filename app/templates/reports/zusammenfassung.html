@@ -4,7 +4,7 @@
 {% block kopf %}Zusammenfassung {{ z.label }}{% endblock %}
 {% block inhalt %}
 <h1>Zusammenfassung {{ z.label }}</h1>
-<p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · Ladevorgänge nach {{ "Ladebeginn" if stichtag == "beginn" else "Ladeende" }} ·
+<p class="untertitel">{{ z.von | datum }} – {{ z.bis | datum }} · Ladevorgänge nach Ladebeginn ·
   Kosten inkl. nicht abziehbarer USt.{% if vergleich %} · Vergleich mit dem Durchschnitt von {{ vergleich.basis }}{% endif %}</p>
 
 {{ r.kennzahlen(a.gesamt, vergleich, z, dc=dc, drei=true, schnitt=a.schnitt_je_auto) }}

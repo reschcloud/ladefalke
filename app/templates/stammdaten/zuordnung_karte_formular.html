@@ -14,7 +14,7 @@
     {{ m.feld("bis", "Gültig bis (leer = offen)", werte, {}, typ="date") }}
   </div>
   {{ m.leasing_knoepfe(leasing_daten(fahrzeug_liste, "fahrzeug:"), "ziel") }}
-  {{ m.ladung_knoepfe(erster, letzter, request.state.stichtag) }}
+  {{ m.ladung_knoepfe(erster, letzter) }}
   {{ m.neu_zuordnen_haken(werte, vorsatz="Beim Speichern:") }}
   <button type="submit">Speichern</button>
 </form>

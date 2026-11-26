@@ -16,20 +16,16 @@ from app.services.zuordnung import (fahrer_von_fahrzeug_am, fahrzeug_von_fahrer_
                                     karten_zuordnung_am)
 
 
-def stichtag_art(db: Session) -> str:
-    """„ende“ (Standard) oder „beginn“ laut Einstellungen – gilt für Zuordnung, Auswertung, Filter und Sortierung."""
-    from app.services.app_einstellungen import laden  # hier: app_einstellungen importiert models, nicht umgekehrt
-    return laden(db).stichtag
+# Stichtag eines Ladevorgangs ist fest der Ladebeginn (ADR 0008) – für Zuordnung, Auswertung, Filter und Sortierung.
+
+def stichtag(start: datetime) -> date:
+    """Stichtag eines Ladevorgangs: Datum des Ladebeginns."""
+    return start.date()
 
 
-def stichtag(start: datetime, ende: datetime, art: str = "ende") -> date:
-    """Stichtag eines Ladevorgangs: Datum von Ladeende bzw. Ladebeginn (`art` aus `stichtag_art`)."""
-    return (start if art == "beginn" else ende).date()
-
-
-def stichtag_spalte(art: str = "ende"):
-    """Spalte des Stichtags für SQL (Filter, Sortierung, Zeiträume)."""
-    return Ladevorgang.start if art == "beginn" else Ladevorgang.ende
+def stichtag_spalte():
+    """Spalte des Stichtags für SQL (Filter, Sortierung, Zeiträume): der Ladebeginn."""
+    return Ladevorgang.start
 
 
 def fahrzeug_fuer_karte(db: Session, karte: Ladekarte | None, tag: date) -> Fahrzeug | None:
@@ -60,24 +56,23 @@ def personen_beim_laden(db: Session, vorgaenge) -> dict[int, list[Fahrer] | None
     mehrere = Poolfahrzeug ohne personengebundene Karte."""
     cache: dict[tuple, list[Fahrer]] = {}
     ergebnis: dict[int, list[Fahrer] | None] = {}
-    art = stichtag_art(db)
     for v in vorgaenge:
         if v.ladekarte is not None and v.ladekarte.ist_gastkarte:
             ergebnis[v.id] = None
             continue
-        schluessel = (v.ladekarte_id, v.fahrzeug_id, stichtag(v.start, v.ende, art))
+        schluessel = (v.ladekarte_id, v.fahrzeug_id, stichtag(v.start))
         if schluessel not in cache:
             cache[schluessel] = fahrer_beim_laden(db, v.ladekarte, v.fahrzeug, schluessel[2])
         ergebnis[v.id] = cache[schluessel]
     return ergebnis
 
 
-def personen_filter(fahrer_ids, gaeste: bool = False, ohne: bool = False, art: str = "ende"):
+def personen_filter(fahrer_ids, gaeste: bool = False, ohne: bool = False):
     """SQL-Bedingung auf Ladevorgang nach Person beim Laden – gleiche Regel wie `fahrer_beim_laden`
-    (Stichtag laut `art`): personengebundene Karte → deren Person, sonst die Fahrer:innen des Fahrzeugs (Pool: jede).
+    (Stichtag Ladebeginn): personengebundene Karte → deren Person, sonst die Fahrer:innen des Fahrzeugs (Pool: jede).
     `fahrer_ids`: Liste von IDs oder Unterabfrage (z. B. Namenssuche); `gaeste`: Gastkarten; `ohne`: keine Person
     ermittelbar. None, wenn nichts gewählt ist."""
-    tag = cast(stichtag_spalte(art), Date)
+    tag = cast(stichtag_spalte(), Date)
     gast = Ladevorgang.ladekarte.has(Ladekarte.ist_gastkarte)
     kein_gast = not_(gast)
 
@@ -116,12 +111,12 @@ def fahrzeug_setzen(v: Ladevorgang, fahrzeug: Fahrzeug | None, quelle: Zuordnung
     v.zuordnung_quelle = quelle
 
 
-def vorgang_aktualisieren(db: Session, v: Ladevorgang, art: str | None = None) -> bool:
+def vorgang_aktualisieren(db: Session, v: Ladevorgang) -> bool:
     """Fahrzeug automatisch neu ermitteln (außer bei manueller Zuordnung). True, wenn sich etwas geändert hat."""
     if v.zuordnung_quelle == ZuordnungQuelle.manuell:
         return False
     vorher = (v.fahrzeug_id, v.zuordnung_quelle)
-    fahrzeug = fahrzeug_fuer_karte(db, v.ladekarte, stichtag(v.start, v.ende, art or stichtag_art(db)))
+    fahrzeug = fahrzeug_fuer_karte(db, v.ladekarte, stichtag(v.start))
     fahrzeug_setzen(v, fahrzeug, ZuordnungQuelle.automatisch if fahrzeug else ZuordnungQuelle.keine)
     return (v.fahrzeug_id, v.zuordnung_quelle) != vorher
 
@@ -147,17 +142,16 @@ def neu_zuordnen(db: Session, *bedingungen) -> int:
     Im Änderungsprotokoll ein Sammeleintrag statt eines Eintrags je Vorgang."""
     from app.services import protokoll
     with protokoll.still(db, Ladevorgang):
-        art = stichtag_art(db)
-        anzahl = sum(vorgang_aktualisieren(db, v, art) for v in db.scalars(select(Ladevorgang).where(*bedingungen)))
+        anzahl = sum(vorgang_aktualisieren(db, v) for v in db.scalars(select(Ladevorgang).where(*bedingungen)))
     if anzahl:
         protokoll.eintragen(db, "geaendert", "ladevorgang", f"{anzahl} Ladevorgänge automatisch neu zugeordnet",
                             felder={"Fahrzeug": [None, "neu ermittelt"]})
     return anzahl
 
 
-def im_zeitraum(von: date, bis: date | None, art: str = "ende"):
+def im_zeitraum(von: date, bis: date | None):
     """Bedingungen: Stichtag liegt im Zeitraum [von, bis] (bis inklusive, None = offen)."""
-    spalte = stichtag_spalte(art)
+    spalte = stichtag_spalte()
     bedingungen = [spalte >= datetime.combine(von, datetime.min.time())]
     if bis is not None:
         bedingungen.append(spalte < datetime.combine(bis + timedelta(days=1), datetime.min.time()))
@@ -171,11 +165,11 @@ def zeitraum_vereinigen(a: tuple[date, date | None], b: tuple[date, date | None]
 
 
 def neu_zuordnen_karte(db: Session, karte_id: int, von: date, bis: date | None) -> int:
-    return neu_zuordnen(db, Ladevorgang.ladekarte_id == karte_id, *im_zeitraum(von, bis, stichtag_art(db)))
+    return neu_zuordnen(db, Ladevorgang.ladekarte_id == karte_id, *im_zeitraum(von, bis))
 
 
 def neu_zuordnen_fahrer(db: Session, fahrer_id: int, von: date, bis: date | None) -> int:
     """Vorgänge aller Karten, die (irgendwann) dieser Person zugeordnet waren – die Auflösung entscheidet je Tag."""
     karten = select(ZuordnungKarte.ladekarte_id).where(ZuordnungKarte.fahrer_id == fahrer_id)
-    return neu_zuordnen(db, Ladevorgang.ladekarte_id.in_(karten), *im_zeitraum(von, bis, stichtag_art(db)))
+    return neu_zuordnen(db, Ladevorgang.ladekarte_id.in_(karten), *im_zeitraum(von, bis))
 

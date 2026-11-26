@@ -112,7 +112,7 @@ def pruefen(db: Session, z: Zeitraum, einst: AppEinstellungen, heute: date | Non
     # ---------------------------------------------------------------- Eintragsmonate (gesamter Datenbestand)
     msp_monate: dict[int, set[date]] = defaultdict(set)
     karten_monate: dict[int, set[date]] = defaultdict(set)
-    spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
+    spalte = Ladevorgang.start
     for msp_id, karte_id, zeit in db.execute(select(Ladevorgang.msp_id, Ladevorgang.ladekarte_id, spalte)):
         m = _erster(zeit.date())
         msp_monate[msp_id].add(m)
@@ -146,12 +146,12 @@ def pruefen(db: Session, z: Zeitraum, einst: AppEinstellungen, heute: date | Non
     ohne_fahrzeug: dict[date, int] = defaultdict(int)
     personen_cache: dict[tuple, list[Fahrer]] = {}
     for v in vorgaenge:
-        m = _erster((v.start if einst.stichtag == "beginn" else v.ende).date())
+        m = _erster(v.start.date())
         if v.fahrzeug_id is not None:
             fz_geladen[m].add(v.fahrzeug_id)
         elif not (v.ladekarte and v.ladekarte.ist_gastkarte):
             ohne_fahrzeug[m] += 1
-        tag = stichtag(v.start, v.ende, einst.stichtag)
+        tag = stichtag(v.start)
         schluessel = (v.ladekarte_id, v.fahrzeug_id, tag)
         if schluessel not in personen_cache:
             personen_cache[schluessel] = fahrer_beim_laden(db, v.ladekarte, v.fahrzeug, tag)
@@ -185,7 +185,7 @@ def pruefen(db: Session, z: Zeitraum, einst: AppEinstellungen, heute: date | Non
                     from app.services.kartenanzeige import fuer_zeitraum
                     ende = m.replace(day=monthrange(m.year, m.month)[1])
                     st.luecken.append(MspLuecke(msp, fehlend, len(erwartet),
-                                                fuer_zeitraum(db, fehlend, m, ende, einst.stichtag)))
+                                                fuer_zeitraum(db, fehlend, m, ende)))
             elif msp_monate.get(msp.id) and min(msp_monate[msp.id]) <= m and m not in msp_monate[msp.id]:
                 st.luecken.append(MspLuecke(msp))
 

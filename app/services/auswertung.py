@@ -8,7 +8,7 @@
 - Kosten sind tatsächliche Kosten (netto + nicht abziehbare USt., services/kosten.py); Pauschalen ohne USt.
 - Ø €/kWh ist immer Σ Kosten / Σ kWh (gewichtet), nie ein Mittel von Mittelwerten.
 - Pro Fahrer:in und Topliste: Ladevorgänge zählen für die Person, die zum Ladezeitpunkt gefahren ist
-  (personengebundene Karte → deren Person, sonst Fahrer:in des Fahrzeugs; Stichtag laut Einstellungen). Nur
+  (personengebundene Karte → deren Person, sonst Fahrer:in des Fahrzeugs; Stichtag Ladebeginn). Nur
   Ladekosten, keine Gebühren. Vorgänge mit mehreren möglichen Personen (Poolfahrzeug) zählen hier nicht.
 - Pro CPO nach Fahrer:in und Ladekarte (`cpo_personen`): nur öffentliche Ladungen, nur Ladekosten; Person wie oben,
   dazu Sammelzeilen für Poolfahrzeuge (Person nicht eindeutig), Ladungen ohne ermittelbare Person und Gastkarten.
@@ -27,7 +27,7 @@ from app.formatierung import datum, monat
 from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, Ladeart, Ladekarte, Ladeort, Ladevorgang, Pauschale,
                         Spritpreis, ZuordnungFahrerFahrzeug)
 from app.services.app_einstellungen import AppEinstellungen
-from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art, stichtag_spalte
+from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_spalte
 from app.services import kosten as kosten_dienst
 from app.services.zuordnung import (fahrer_von_fahrzeug_am, karten_zuordnung_am, mit_vorgeladenen_zuordnungen,
                                     ohne_dienstwagen_am)
@@ -171,9 +171,9 @@ def art_wechseln(z: Zeitraum, art: str, standard: Zeitraum) -> Zeitraum:
 
 
 def zeitraum_alles(db: Session) -> Zeitraum:
-    """„Alles“: vom Monat der ersten bis zum Monat der letzten Ladung (Stichtag laut Einstellungen);
+    """„Alles“: vom Monat der ersten bis zum Monat der letzten Ladung (Stichtag Ladebeginn);
     ohne Ladevorgänge der Vormonat."""
-    spalte = stichtag_spalte(stichtag_art(db))
+    spalte = stichtag_spalte()
     erstes, letztes = db.execute(select(func.min(spalte), func.max(spalte))).one()
     if erstes is None:
         v = vormonat()
@@ -464,7 +464,6 @@ class Monatsteil:
 @dataclass
 class Auswertung:
     zeitraum: Zeitraum
-    stichtag: str
     fahrzeuge: list[FahrzeugZeile]
     msp: list[tuple[str, Summe]]
     fahrzeuge_summe: Summe
@@ -654,17 +653,17 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
     # Ladevorgänge (Kosten: tatsächliche Kosten, services/kosten.py)
     k = kosten_dienst.kontext(db)
     sprit = tankkosten_rechner(db, einst)
-    spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
+    spalte = Ladevorgang.start
     for v in db.scalars(select(Ladevorgang).where(zeitbedingung(spalte, z))
                         .options(selectinload(Ladevorgang.fahrzeug), selectinload(Ladevorgang.msp),
                                  selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.ladeort))):
         erg = kosten_dienst.fuer_vorgang(k, v)
         werte = (v.kwh, erg.kosten, v.ladeart, v.kwh_geschaetzt, erg.geschaetzt_in_kosten,
-                 sprit(v.kwh, stichtag(v.start, v.ende, einst.stichtag)) if sprit else NULL)
+                 sprit(v.kwh, stichtag(v.start)) if sprit else NULL)
         msp[v.msp.name].vorgang(*werte)
         laender[v.land].vorgang(*werte)
         cpo[v.betreiber_id].vorgang(*werte)
-        monat_tag = stichtag(v.start, v.ende, einst.stichtag)
+        monat_tag = stichtag(v.start)
         monat = monat_tag.replace(day=1)
         if ganze_monate:
             m_msp[monat][v.msp.name].vorgang(*werte)
@@ -692,8 +691,8 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         if not mit_personen:
             continue
 
-        # Person zum Ladezeitpunkt (Stichtag laut Einstellungen, wie bei der Fahrzeugzuordnung)
-        schluessel = (v.ladekarte_id, v.fahrzeug_id, stichtag(v.start, v.ende, einst.stichtag))
+        # Person zum Ladezeitpunkt (Stichtag Ladebeginn, wie bei der Fahrzeugzuordnung)
+        schluessel = (v.ladekarte_id, v.fahrzeug_id, stichtag(v.start))
         if schluessel not in personen_cache:
             personen_cache[schluessel] = fahrer_beim_laden(db, v.ladekarte, v.fahrzeug, schluessel[2])
         fahrer = personen_cache[schluessel]
@@ -784,7 +783,7 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         alle_karten = {kz.karte for kz in karten_nutzung.values()}
         alle_karten |= {k for g in cpo_gruppen.values() for p in g.values() for k, _ in p.karten.values() if k}
         alle_karten |= {k for pz in personen.values() for k in pz.karten_roh if k}
-        karten_anzeige = kartenanzeige.fuer_zeitraum(db, alle_karten, z.von, z.bis, einst.stichtag)
+        karten_anzeige = kartenanzeige.fuer_zeitraum(db, alle_karten, z.von, z.bis)
         for pz in personen.values():
             for k, s in sorted(pz.karten_roh.items(), key=lambda e: -e[1].kosten):
                 if k is None:
@@ -812,7 +811,7 @@ def auswerten(db: Session, z: Zeitraum, einst: AppEinstellungen, mit_personen: b
         d.massstab_berechnen()
         cpo_details[code] = d
     return Auswertung(
-        zeitraum=z, stichtag=einst.stichtag, fahrzeuge=fahrzeug_zeilen, co2e_je_kwh=einst.co2e_ersparnis_je_kwh,
+        zeitraum=z, fahrzeuge=fahrzeug_zeilen, co2e_je_kwh=einst.co2e_ersparnis_je_kwh,
         tank=sprit is not None,
         msp=sorted(msp.items(), key=lambda e: e[0].lower()),
         fahrzeuge_summe=sum((r.summe for r in fahrzeug_zeilen), Summe()),

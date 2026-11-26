@@ -1,7 +1,7 @@
 """Kartendaten (Raumbezug Phase 4): Ladevorgänge je Ladeort.
 
 - Dashboard: reine Heatmap der öffentlichen Ladevorgänge im Zeitraum (`berechnen`); zeitliche Zuordnung wie in den
-  Auswertungen (Stichtag Ladeende bzw. Ladebeginn laut Einstellungen).
+  Auswertungen (Stichtag Ladebeginn).
 - Ladevorgänge: interaktive Karte mit Symbolen je Ort und Stromart (`ladungen`: jede Ladung mit den Angaben für
   Symbol und Tooltip); die Liste darunter folgt dem Kartenausschnitt (`im_bereich`).
 Nur Ladeorte mit Koordinaten aus PLZ, Ortsname oder manueller Angabe; Vorgänge ohne Ladeort oder nur mit Landesmitte
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import Ladeart, Ladeort, Ladevorgang
 from app.services.app_einstellungen import AppEinstellungen
-from app.services.aufloesung import personen_beim_laden, stichtag, stichtag_art, stichtag_spalte
+from app.services.aufloesung import personen_beim_laden, stichtag, stichtag_spalte
 from app.services.auswertung import Zeitraum, zeitbedingung
 from app.services.evse import landname
 
@@ -80,15 +80,14 @@ def im_bereich(bereich: str):
 def ladungen(db: Session, bedingungen: list) -> list[list]:
     """Verortete Ladungen für die Karte bei den Ladevorgängen, je Ladung
     [id, lat, lon, land, ort, stromart, kwh, kosten, kwh_geschaetzt, datum, cpo, person, kennzeichen, dauer_min]."""
-    art = stichtag_art(db)
     vorgaenge = db.scalars(
         select(Ladevorgang).where(*bedingungen, Ladevorgang.ladeort.has(_verortet()))
         .options(selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.fahrzeug),
                  selectinload(Ladevorgang.ladeort))
-        .order_by(stichtag_spalte(art).desc())).all()
+        .order_by(stichtag_spalte().desc())).all()
     personen = personen_beim_laden(db, vorgaenge)
     return [[v.id, float(v.ladeort.lat), float(v.ladeort.lon), v.ladeort.land, _ort_text(v.ladeort), v.stromart,
-             float(v.kwh), float(v.kosten if v.kosten is not None else v.kosten_netto), v.kwh_geschaetzt, stichtag(v.start, v.ende, art).strftime("%d.%m.%y"),
+             float(v.kwh), float(v.kosten if v.kosten is not None else v.kosten_netto), v.kwh_geschaetzt, stichtag(v.start).strftime("%d.%m.%y"),
              v.betreiber_id or "", _person(personen[v.id]), v.fahrzeug.kennzeichen if v.fahrzeug else "",
              max(0, round((v.ende - v.start).total_seconds() / 60))] for v in vorgaenge]
 
@@ -120,5 +119,5 @@ def aus_bedingungen(db: Session, bedingungen: list) -> Karte:
 
 def berechnen(db: Session, z: Zeitraum, einst: AppEinstellungen) -> Karte:
     """Dashboard: öffentliche Ladevorgänge im Zeitraum."""
-    spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
+    spalte = Ladevorgang.start
     return aus_bedingungen(db, [and_(Ladevorgang.ladeart == Ladeart.oeffentlich, zeitbedingung(spalte, z))])

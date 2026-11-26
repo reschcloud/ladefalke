@@ -201,9 +201,10 @@ def test_gebuehr_ohne_zeitraum_nach_rechnungsdatum(db, daten):
 
 def test_stichtag_ladebeginn(db, daten):
     """Stichtag fest Ladebeginn – ein gespeicherter anderer Wert (früher wählbar) zählt nicht."""
-    app_einstellungen.speichern(db, {"stichtag": "ende"})
+    from app.models import Einstellung
+    db.merge(Einstellung(schluessel="stichtag", wert="ende"))  # wie eine alte Installation
+    db.flush()
     a = auswerten(db, zeitraum("monat", 2026, 9), app_einstellungen.laden(db))
-    assert a.stichtag == "beginn"
     assert a.fahrzeug(daten["fz2"].id).summe.kwh == D(30)  # Ladung ab 1.10. 0:30 zählt zum Oktober
 
 
@@ -465,7 +466,7 @@ def test_einstellungen(angemeldet, db):
     assert antwort.status_code == 422
     angemeldet.post("/einstellungen", data={"stichtag": "beginn", "topliste_m": "75", "topliste_mindestmenge": "10"})
     e = app_einstellungen.laden(db)
-    assert (e.stichtag, e.topliste_m, e.topliste_mindestmenge) == ("beginn", D(75), D(10))
+    assert (e.topliste_m, e.topliste_mindestmenge) == (D(75), D(10))
     angemeldet.post("/einstellungen", data={"stichtag": "ende", "topliste_m": "", "topliste_mindestmenge": "20"})
     assert app_einstellungen.laden(db).topliste_m is None
 

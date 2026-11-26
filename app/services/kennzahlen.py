@@ -8,7 +8,7 @@ from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Ladeart, Ladevorgang
-from app.services.aufloesung import personen_filter, stichtag_art, stichtag_spalte
+from app.services.aufloesung import personen_filter, stichtag_spalte
 
 
 @dataclass
@@ -33,7 +33,7 @@ class Gesamt:
 
 
 def _summen(db: Session, *bedingungen) -> Gesamt:
-    spalte = stichtag_spalte(stichtag_art(db))
+    spalte = stichtag_spalte()
     oeffentlich = case((Ladevorgang.ladeart == Ladeart.oeffentlich, Ladevorgang.kwh), else_=0)
     ist_dc = and_(Ladevorgang.stromart == "DC", Ladevorgang.kwh > 0)
     dc_dauer = case((ist_dc, func.extract("epoch", Ladevorgang.ende - Ladevorgang.start)), else_=None)
@@ -51,7 +51,7 @@ def ladekarte(db: Session, karte_id: int) -> Gesamt:
 
 def erster_und_letzter(db: Session, *bedingungen) -> tuple[Ladevorgang | None, Ladevorgang | None]:
     """Erster und letzter Ladevorgang (nach Stichtag, wie die Auswertungen) – für Links auf der Detailseite."""
-    spalte = stichtag_spalte(stichtag_art(db))
+    spalte = stichtag_spalte()
     q = select(Ladevorgang).where(*bedingungen)
     return (db.scalars(q.order_by(spalte, Ladevorgang.id).limit(1)).first(),
             db.scalars(q.order_by(spalte.desc(), Ladevorgang.id.desc()).limit(1)).first())
@@ -59,7 +59,7 @@ def erster_und_letzter(db: Session, *bedingungen) -> tuple[Ladevorgang | None, L
 
 def letzte_je_karte(db: Session) -> dict[int, datetime]:
     """Letzter Ladevorgang (Stichtag) je Ladekarte – für die Kartenliste."""
-    spalte = stichtag_spalte(stichtag_art(db))
+    spalte = stichtag_spalte()
     return dict(db.execute(select(Ladevorgang.ladekarte_id, func.max(spalte))
                            .where(Ladevorgang.ladekarte_id.is_not(None)).group_by(Ladevorgang.ladekarte_id)).all())
 
@@ -71,7 +71,7 @@ def fahrzeug(db: Session, fahrzeug_id: int) -> Gesamt:
 def fahrer(db: Session, fahrer_id: int) -> Gesamt:
     """Ladungen, bei denen die Person gefahren ist (Regel wie überall: Karte der Person, sonst Fahrer:in des
     Fahrzeugs am Stichtag; Poolfahrzeug zählt für jede)."""
-    return _summen(db, personen_filter([fahrer_id], art=stichtag_art(db)))
+    return _summen(db, personen_filter([fahrer_id]))
 
 
 # ------------------------------------------------------------------ Ø Ladedauer DC (Dashboard, Auswertungen, Reports)
@@ -90,32 +90,31 @@ class LadedauerDc:
         return getattr(self, schluessel)
 
 
-def _dc(db: Session, von_bis, stichtag: str, *bedingungen) -> tuple[int | None, int]:
+def _dc(db: Session, von_bis, *bedingungen) -> tuple[int | None, int]:
     from app.services.auswertung import zeitbedingung
-    spalte = stichtag_spalte(stichtag)
+    spalte = stichtag_spalte()
     dauer = func.avg(func.extract("epoch", Ladevorgang.ende - Ladevorgang.start))
     schnitt, anzahl = db.execute(select(dauer, func.count()).where(
         Ladevorgang.stromart == "DC", Ladevorgang.kwh > 0, zeitbedingung(spalte, von_bis), *bedingungen)).one()
     return (round(float(schnitt) / 60) if schnitt is not None else None), anzahl
 
 
-def ladedauer_dc(db: Session, z, stichtag: str | None = None, fahrer_id: int | None = None,
+def ladedauer_dc(db: Session, z, fahrer_id: int | None = None,
                  fahrzeug_id: int | None = None, vorperioden: int = 0) -> LadedauerDc:
     """Ø DC-Ladedauer im Zeitraum `z` – der Flotte, eines Fahrzeugs oder einer Person (dann mit Flottenschnitt).
     `vorperioden`: zusätzlich der Ø über so viele Vorperioden (wie der Vergleich im Dashboard)."""
     from app.services.auswertung import zeitraum_frei
-    stichtag = stichtag or stichtag_art(db)
     bedingungen = []
     if fahrer_id is not None:
-        bedingungen.append(personen_filter([fahrer_id], art=stichtag))
+        bedingungen.append(personen_filter([fahrer_id]))
     if fahrzeug_id is not None:
         bedingungen.append(Ladevorgang.fahrzeug_id == fahrzeug_id)
-    eigen, anzahl = _dc(db, z, stichtag, *bedingungen)
+    eigen, anzahl = _dc(db, z, *bedingungen)
     ergebnis = LadedauerDc(eigen, anzahl)
     if bedingungen:
-        ergebnis.flotte = _dc(db, z, stichtag)[0]
+        ergebnis.flotte = _dc(db, z)[0]
     if vorperioden and z.art != "alles":
         erste, letzte = z.verschoben(-vorperioden), z.verschoben(-1)
-        ergebnis.vorher = _dc(db, zeitraum_frei(erste.von, letzte.bis), stichtag, *bedingungen)[0]
+        ergebnis.vorher = _dc(db, zeitraum_frei(erste.von, letzte.bis), *bedingungen)[0]
         ergebnis.vorher_text = erste.label if vorperioden == 1 else f"{erste.label} – {letzte.label}"
     return ergebnis

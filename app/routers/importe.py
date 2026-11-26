@@ -24,7 +24,6 @@ from app.services.importe import (BereitsImportiert, ImportFehler, KartenEntsche
                                   loeschen, naechste_vorschau, offene_vorschauen, vorschau_berechnen, wieder_pruefen,
                                   zurueckstellen)
 from app.services import kartenanzeige, stromart
-from app.services.aufloesung import stichtag_art
 from app.services.offen import ohne_fahrzeug_bedingungen
 from app.web import meldung, render, weiter
 
@@ -254,7 +253,7 @@ def anzeigen(request: Request, import_id: int, db: Session = Depends(get_db)):
     gebuehren = db.scalars(select(Gebuehr).where(Gebuehr.import_id == imp.id).order_by(Gebuehr.id)).all()
     return render(request, "importe/detail.html", {
         "imp": imp, "vorgaenge": vorgaenge, "gebuehren": gebuehren,
-        "_karten": kartenanzeige.fuer_vorgaenge(db, vorgaenge, stichtag_art(db)),
+        "_karten": kartenanzeige.fuer_vorgaenge(db, vorgaenge),
         "summe_kwh": sum((v.kwh for v in vorgaenge), Decimal(0)),
         "summe_kosten": sum((v.kosten_netto for v in vorgaenge), Decimal(0)),
         "summe_gebuehren": sum((g.betrag_netto for g in gebuehren), Decimal(0)),

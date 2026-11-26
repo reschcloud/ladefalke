@@ -46,10 +46,10 @@ def _heatmap(k: karte.Karte, breite: int = 1600, hoehe: int = 950) -> dict:
             "ladungen": k.anzahl, "orte": len(k.punkte), "ohne_ort": k.ohne_ort}
 
 
-def _ladedauer_dc(db: Session, z: Zeitraum, stichtag: str, fahrer_id: int | None = None):
+def _ladedauer_dc(db: Session, z: Zeitraum, fahrer_id: int | None = None):
     """Ø DC-Ladedauer (services/kennzahlen.py) – der Person mit Flottenschnitt bzw. der Flotte."""
     from app.services import kennzahlen
-    return kennzahlen.ladedauer_dc(db, z, stichtag, fahrer_id=fahrer_id)
+    return kennzahlen.ladedauer_dc(db, z, fahrer_id=fahrer_id)
 
 
 def _vorperioden(z: Zeitraum) -> list[Zeitraum]:
@@ -80,9 +80,9 @@ def zusammenfassung(db: Session, z: Zeitraum) -> bytes:
     return _pdf("reports/zusammenfassung.html", a=a, z=z, vergleich=vergleich, dia=diagramme,
                 verteilung=diagramme.berechnen(db, a, einst, monate), cpo_verteilung=diagramme.cpo_verteilung(monate),
                 msp_verteilung=diagramme.msp_verteilung(db, monate),
-                vollstaendigkeit=vollstaendigkeit_pruefen(db, z, einst), stichtag=einst.stichtag,
-                dc=_ladedauer_dc(db, z, einst.stichtag), tlp=einst.report_tlp,
-                dc_oeffentlich=diagramme.dc_oeffentlich(db, z, einst.stichtag),
+                vollstaendigkeit=vollstaendigkeit_pruefen(db, z, einst),
+                dc=_ladedauer_dc(db, z), tlp=einst.report_tlp,
+                dc_oeffentlich=diagramme.dc_oeffentlich(db, z),
                 heatmap=_heatmap(karte.berechnen(db, z, einst)))
 
 
@@ -92,7 +92,7 @@ def flottenbilanz(db: Session, z: Zeitraum) -> bytes:
     Seite 2 die drei günstigsten Öffentlich-Lader:innen auf dem Siegertreppchen (mit Namen, ohne Kennzeichen)."""
     einst = app_einstellungen.laden(db)
     a = auswerten(db, z, einst)
-    spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
+    spalte = Ladevorgang.start
     fahrzeuge = db.scalar(select(func.count(func.distinct(Ladevorgang.fahrzeug_id))).where(
         zeitbedingung(spalte, z), Ladevorgang.fahrzeug_id.is_not(None), Ladevorgang.kwh > 0)) or 0
     return _pdf("reports/flottenbilanz.html", a=a, z=z, g=a.gesamt, fahrzeuge=fahrzeuge,
@@ -101,7 +101,7 @@ def flottenbilanz(db: Session, z: Zeitraum) -> bytes:
                 tank=a.tank_ersparnis(a.gesamt),  # ersetzt Ø kWh je Fahrzeug, wenn eingeschaltet
                 kwh_je_fahrzeug=(a.fahrzeuge_summe.kwh / fahrzeuge) if fahrzeuge else None,
                 laender=len([c for c, s in a.laender if s.kwh > 0]), cpo_anzahl=len([c for c, _ in a.cpo if c]),
-                topliste=a.topliste_oeffentlich, dc=_ladedauer_dc(db, z, einst.stichtag), stichtag=einst.stichtag,
+                topliste=a.topliste_oeffentlich, dc=_ladedauer_dc(db, z),
                 tlp="", heatmap=_heatmap(karte.berechnen(db, z, einst), 1300, 1230))  # rechte Hälfte der Titelseite
 
 
@@ -138,7 +138,7 @@ def karten_cpo(db: Session, z: Zeitraum) -> bytes:
     a = auswerten(db, z, einst)
     details = sorted(a.cpo_personen.values(), key=lambda d: (d.code is None, -d.summe.kosten))
     return _pdf("reports/karten_cpo.html", a=a, z=z, details=details, potenziale=a.sparpotenziale(),
-                mindest=SPAR_MINDEST_KWH, stichtag=einst.stichtag, tlp=einst.report_tlp, MSP_TEXT="MSP")
+                mindest=SPAR_MINDEST_KWH, tlp=einst.report_tlp, MSP_TEXT="MSP")
 
 
 def offene_aufgaben(db: Session) -> bytes:
@@ -149,7 +149,7 @@ def offene_aufgaben(db: Session) -> bytes:
     einst = app_einstellungen.laden(db)
     tag = heute()
     return _pdf("reports/aufgaben.html", z=zeitraum_frei(tag, tag), stand=tag, tlp=einst.report_tlp,
-                stichtag=einst.stichtag, **offen.fuer_report(db))
+                **offen.fuer_report(db))
 
 
 @dataclass
@@ -179,15 +179,15 @@ def fahrer(db: Session, z: Zeitraum, fahrer_id: int, g: Grundlage | None = None)
     for vz, alt_a in g.vorher:
         alt = alt_a.fahrer_zeile(fahrer_id)
         vorher.append((vz, alt.summe if alt else FahrerZeile(person).summe))
-    spalte = Ladevorgang.start if einst.stichtag == "beginn" else Ladevorgang.ende
+    spalte = Ladevorgang.start
     eigene_orte = karte.aus_bedingungen(db, [and_(Ladevorgang.ladeart == Ladeart.oeffentlich, zeitbedingung(spalte, z)),
-                                             personen_filter([fahrer_id], art=einst.stichtag)])
+                                             personen_filter([fahrer_id])])
     return _pdf("reports/fahrer.html", z=z, zeile=zeile, person=person, vergleich=vergleichen(zeile.summe, vorher),
                 sortiert=lambda d, n=None: sorted(d.items(), key=lambda e: -e[1].kosten)[:n],
-                stichtag=einst.stichtag, dia=diagramme, heatmap=_heatmap(eigene_orte),
-                flottenschnitt=flotte, dc=_ladedauer_dc(db, z, einst.stichtag, fahrer_id), tlp=einst.report_tlp,
-                dc_oeffentlich=diagramme.dc_oeffentlich(db, z, einst.stichtag,
-                                                        personen_filter([fahrer_id], art=einst.stichtag)),
+                dia=diagramme, heatmap=_heatmap(eigene_orte),
+                flottenschnitt=flotte, dc=_ladedauer_dc(db, z, fahrer_id), tlp=einst.report_tlp,
+                dc_oeffentlich=diagramme.dc_oeffentlich(db, z,
+                                                        personen_filter([fahrer_id])),
                 gegen_flotte=(zeile.summe.preis / flotte - 1) if flotte and zeile.summe.preis is not None else None,
                 rang=oeffentlich.rang(fahrer_id) if oeffentlich else None, topliste=oeffentlich,
                 msp_verteilung=diagramme.aus_summen(list(zeile.msp.items())),

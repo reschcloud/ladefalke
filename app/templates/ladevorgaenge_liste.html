@@ -24,14 +24,13 @@
 
 <div class="tabelle">
 <table class="striped">
-  {% set beginn = request.state.stichtag == "beginn" %}
-  <thead><tr>{{ sortkopf("zeit", "Ladebeginn" if beginn else "Ladeende", "Nach Datum sortieren", rechts=false) }}{{ sortkopf("dauer", "Dauer", "Nach Ladedauer (angesteckt) sortieren; darunter " ~ ("das Ladeende" if beginn else "der Ladebeginn"), rechts=false) }}<th>Karte {{ m.hilfe("Wer die Karte am Ladetag hatte (Person bzw. Fahrzeug mit Fahrer:in), daneben der " ~ "MSP. Kennung im Tooltip.") }}</th><th>Standort</th><th>Land</th><th>{{ CPO }}</th>{{ sortkopf("kwh", "kWh", "Nach kWh sortieren") }}
+  <thead><tr>{{ sortkopf("zeit", "Ladebeginn", "Nach Datum sortieren", rechts=false) }}{{ sortkopf("dauer", "Dauer", "Nach Ladedauer (angesteckt) sortieren; darunter das Ladeende", rechts=false) }}<th>Karte {{ m.hilfe("Wer die Karte am Ladetag hatte (Person bzw. Fahrzeug mit Fahrer:in), daneben der " ~ "MSP. Kennung im Tooltip.") }}</th><th>Standort</th><th>Land</th><th>{{ CPO }}</th>{{ sortkopf("kwh", "kWh", "Nach kWh sortieren") }}
              {{ sortkopf("kosten", "Kosten", "Nach Kosten sortieren") }}{{ sortkopf("preis", "€/kWh", "Nach Preis je kWh sortieren (Vorgänge ohne kWh am Ende)") }}<th title="AC/DC laut Rechnung bzw. manuell korrigiert">AC/DC</th>
-             <th>Art</th><th>Fahrzeug {{ m.hilfe("Darunter die Person, die zum Ladezeitpunkt (" ~ STICHTAG[request.state.stichtag] ~ ") gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. „Pool“: Fahrzeug mit mehreren Fahrer:innen und Fahrzeugkarte.") }}</th></tr></thead>
+             <th>Art</th><th>Fahrzeug {{ m.hilfe("Darunter die Person, die zum Ladezeitpunkt (Ladebeginn) gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. „Pool“: Fahrzeug mit mehreren Fahrer:innen und Fahrzeugkarte.") }}</th></tr></thead>
   <tbody>
   {% for v in vorgaenge %}
     <tr>
-      {{ m.zeit_zellen(v, request.state.stichtag) }}
+      {{ m.zeit_zellen(v) }}
       <td>{{ m.karte_vorgang(v) }}</td>
       <td>{{ v.standort or "" }}</td>
       <td class="land">{% if v.land %}<span class="flagge" title="{{ v.land | landname }} ({{ v.land }})" role="img"

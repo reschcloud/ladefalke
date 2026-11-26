@@ -4,7 +4,7 @@
 {% block inhalt %}
 <p class="nav-leiste"><a href="{{ liste_url }}" role="button" class="outline secondary klein nav-knopf">← Ladevorgänge</a>
   {%- if von_aufgaben %} <a href="/aufgaben" role="button" class="outline secondary klein nav-knopf">← Aufgaben</a>{% endif %}</p>
-<h1>Ladevorgang {{ (v.start if request.state.stichtag == "beginn" else v.ende) | datumzeit }}</h1>
+<h1>Ladevorgang {{ v.start | datumzeit }}</h1>
 
 {# Die wichtigsten Werte als kleine Kacheln (wie im Dashboard); was hier steht, steht nicht noch einmal in der Liste #}
 {% set stromart_quelle = {"manuell": "manuell gesetzt (Rechnung: " ~ (v.rohdaten.get("stromart_rechnung") or "keine Angabe") ~ ")",

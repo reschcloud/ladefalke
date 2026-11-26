@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.services import app_einstellungen, diagramme, kennzahlen
-from app.services.app_einstellungen import STICHTAGE
 from app.config import heute
 from app.models import Fahrer, Fahrzeug
 from app.services.auswertung import (ARTEN, SPAR_MINDEST_KWH, TEILE, Auswertung, CpoDetail, FahrerZeile, Zeitraum, FahrzeugZeile, art_wechseln, auswerten,
@@ -42,7 +41,7 @@ def zeitraum_navigation(db: Session, z: Zeitraum, basis: str, extra: str = "") -
 
 
 def navigation(db: Session, a: Auswertung, basis: str) -> dict:
-    return {**zeitraum_navigation(db, a.zeitraum, basis), "stichtag": STICHTAGE[a.stichtag]}
+    return zeitraum_navigation(db, a.zeitraum, basis)
 
 
 @router.get("")
@@ -52,9 +51,9 @@ def uebersicht(request: Request, art: str = Depends(art_vorgabe), jahr: str = ""
     """`karten=alle`: Ladekarten-Nutzung als vollständige Rangliste statt Top 10; `ladeorte=alle` ebenso."""
     a = _auswertung(db, art, jahr, nr, von, bis)
     return render(request, "auswertungen/uebersicht.html", {"a": a, "karten_alle": karten == "alle",
-                                                           "dc": kennzahlen.ladedauer_dc(db, a.zeitraum, a.stichtag),
+                                                           "dc": kennzahlen.ladedauer_dc(db, a.zeitraum),
                                                            "dc_oeffentlich": diagramme.dc_oeffentlich(
-                                                               db, a.zeitraum, a.stichtag),
+                                                               db, a.zeitraum),
                                                            "ladeorte_alle": ladeorte == "alle",
                                                            "karten_top": 10, **navigation(db, a, "/auswertungen")})
 
@@ -71,7 +70,7 @@ def fahrzeug(request: Request, fahrzeug_id: int, art: str = Depends(art_vorgabe)
             raise HTTPException(404, "Fahrzeug nicht gefunden")
         zeile = FahrzeugZeile(fz, fahrer_aktuell=[f.name for f in fahrer_von_fahrzeug_am(db, fz.id, heute())])
     return render(request, "auswertungen/fahrzeug.html", {
-        "a": a, "z": zeile, "dc": kennzahlen.ladedauer_dc(db, a.zeitraum, a.stichtag, fahrzeug_id=zeile.fahrzeug.id), **navigation(db, a, f"/auswertungen/fahrzeug/{fahrzeug_id}"),
+        "a": a, "z": zeile, "dc": kennzahlen.ladedauer_dc(db, a.zeitraum, fahrzeug_id=zeile.fahrzeug.id), **navigation(db, a, f"/auswertungen/fahrzeug/{fahrzeug_id}"),
         "msp": sorted(zeile.msp.items(), key=lambda e: -e[1].kosten),
         "standorte": sorted(zeile.standorte.items(), key=lambda e: -e[1].kwh)})
 
@@ -88,7 +87,7 @@ def fahrer(request: Request, fahrer_id: int, art: str = Depends(art_vorgabe), ja
             raise HTTPException(404, "Fahrer:in nicht gefunden")
         zeile = FahrerZeile(person)
     return render(request, "auswertungen/fahrer.html", {
-        "a": a, "z": zeile, "dc": kennzahlen.ladedauer_dc(db, a.zeitraum, a.stichtag, fahrer_id=zeile.fahrer.id), **navigation(db, a, f"/auswertungen/fahrer/{fahrer_id}"),
+        "a": a, "z": zeile, "dc": kennzahlen.ladedauer_dc(db, a.zeitraum, fahrer_id=zeile.fahrer.id), **navigation(db, a, f"/auswertungen/fahrer/{fahrer_id}"),
         "fahrzeuge": sorted(zeile.fahrzeuge.items(), key=lambda e: -e[1].kwh),
         "msp": sorted(zeile.msp.items(), key=lambda e: -e[1].kosten),
         "standorte": sorted(zeile.standorte.items(), key=lambda e: -e[1].kwh)})

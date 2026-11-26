@@ -9,10 +9,10 @@
 {% call m.titel("karte", "h1") %}{{ "Ladekarte " ~ karte.kennung if karte else "Neue Ladekarte" }}{% endcall %}
 {% if karte %}{{ m.gesamt_kacheln(gesamt, "dieser Karte") }}
 {{ m.offene_punkte(offen, "/stammdaten/ladekarten/%d" % karte.id) }}{# Meldungen immer unter den Kacheln #}
-{% if erster %}<p class="erster-letzter"><small title="Zeitpunkt nach {{ STICHTAG[request.state.stichtag] }} (Einstellungen)">
-  Erster Ladevorgang <a href="/ladevorgaenge/{{ erster.id }}">{{ (erster.start if request.state.stichtag == "beginn" else erster.ende) | datumzeit }}</a>
-  · letzter Ladevorgang <a href="/ladevorgaenge/{{ letzter.id }}">{{ (letzter.start if request.state.stichtag == "beginn" else letzter.ende) | datumzeit }}</a>
-  ({{ (letzter.start if request.state.stichtag == "beginn" else letzter.ende) | vor_tagen }})</small></p>{% endif %}
+{% if erster %}<p class="erster-letzter"><small title="Zeitpunkt des Ladebeginns (Stichtag)">
+  Erster Ladevorgang <a href="/ladevorgaenge/{{ erster.id }}">{{ erster.start | datumzeit }}</a>
+  · letzter Ladevorgang <a href="/ladevorgaenge/{{ letzter.id }}">{{ letzter.start | datumzeit }}</a>
+  ({{ letzter.start | vor_tagen }})</small></p>{% endif %}
 {% endif %}
 
 <form method="post" class="formular" action="{{ '/stammdaten/ladekarten/%d' % karte.id if karte else '/stammdaten/ladekarten/neu' }}">
@@ -52,14 +52,14 @@
       {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
     </div>
     {{ m.leasing_knoepfe(leasing_daten(fahrzeug_liste, "fahrzeug:"), "ziel") }}
-    {{ m.ladung_knoepfe(erster, letzter, request.state.stichtag) }}
+    {{ m.ladung_knoepfe(erster, letzter) }}
     {{ m.neu_zuordnen_haken(zuordnung_werte) }}
     <p class="zuordnung-hinweis"><small>Eine offene bisherige Zuordnung wird automatisch zum Vortag beendet.</small></p>
     <div class="formular-fuss"><button type="submit" class="knopf-mittel">Zuordnen</button></div>
   </form>
 </article>
 {% endif %}
-{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?ladekarte_id=%d" % karte.id, mit_fahrzeug=true, art=request.state.stichtag) }}
+{{ lv.letzte_ladevorgaenge(vorgaenge, "/ladevorgaenge?ladekarte_id=%d" % karte.id, mit_fahrzeug=true) }}
 {{ m.verlauf_abschnitt(verlauf) }}
 {% endif %}
 {% endblock %}

@@ -81,8 +81,6 @@ def leasing_daten(fahrzeuge, praefix: str = "") -> dict:
 templates.env.globals["leasing_daten"] = leasing_daten
 templates.env.filters["landname"] = landname
 templates.env.filters["cpo_land"] = cpo_land
-# Beschriftung des Stichtags: {{ STICHTAG[request.state.stichtag] }} → „Ladeende“ bzw. „Ladebeginn“
-templates.env.globals["STICHTAG"] = {"ende": "Ladeende", "beginn": "Ladebeginn"}
 templates.env.filters["flagge"] = formatierung.flagge
 templates.env.globals["verortung"] = verortung_text
 # Abkürzung MSP mit Erklärung als Tooltip (für sichtbare Beschriftungen, nicht für Attribute oder Auswahltexte)

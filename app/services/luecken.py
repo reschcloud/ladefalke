@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import heute
 from app.formatierung import datum
 from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
-from app.services.aufloesung import stichtag_art, stichtag_spalte
+from app.services.aufloesung import stichtag_spalte
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ def _zeitraeume(von: date, bis: date, zuordnungen: list[tuple[date, date | None]
 
 def ermitteln(db: Session, tag: date | None = None) -> list[Luecke]:
     tag = tag or heute()
-    spalte = stichtag_spalte(stichtag_art(db))
+    spalte = stichtag_spalte()
     zuordnungen: dict[int, list[tuple[date, date | None]]] = {}
     for z in [*db.scalars(select(ZuordnungFahrerFahrzeug)), *db.scalars(select(FahrzeugOhneFahrer))]:
         zuordnungen.setdefault(z.fahrzeug_id, []).append((z.gueltig_ab, z.gueltig_bis))

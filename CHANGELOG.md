@@ -34,7 +34,8 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 - Schmale Bildschirme: Mehrfachauswahl-Filter bleiben im Fenster, lange Befehle (Einstellungen → System) brechen um,
   Speicherleiste und Meldungen werden vom (umbrochenen) Footer nicht mehr verdeckt, die Quellenangabe der Karte
   überdeckt die Farblegende nicht mehr.
-- Aufgeräumt: ungenutzter Code und doppelte CSS-Regeln entfernt.
+- Aufgeräumt: ungenutzter Code und doppelte CSS-Regeln entfernt; Reste des früher wählbaren Stichtags (Ladeende)
+  entfernt – es gilt überall fest der Ladebeginn, am Verhalten ändert sich nichts.
 
 ### Behoben
 

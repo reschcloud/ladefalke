@@ -19,7 +19,7 @@ from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, Kennung
 from app.parsers import PARSER
 from app.parsers import basis
 from app.services import app_einstellungen, protokoll, stromart
-from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag, stichtag_art
+from app.services.aufloesung import fahrer_beim_laden, fahrzeug_fuer_karte, stichtag
 from app.services import evse
 from app.services.geokodierung import geokodieren
 from app.services.ladeorte import ladeort_fuer
@@ -211,7 +211,6 @@ def vorschau_berechnen(db: Session, imp: Import) -> Vorschau:
         return Vorschau(fehler=f"Die Datei konnte nicht gelesen werden: {e}")
     except Exception as e:  # z. B. falscher Parser für diese Datei
         return Vorschau(fehler=f"Die Datei passt nicht zum gewählten Parser ({type(e).__name__}: {e}).")
-    art = stichtag_art(db)
 
     vs = Vorschau(ergebnis=ergebnis, warnungen=list(ergebnis.warnungen))
     if imp.msp_id is None:
@@ -245,7 +244,7 @@ def vorschau_berechnen(db: Session, imp: Import) -> Vorschau:
         else:
             kosten, ohne_preis = Decimal(0), ohne_preis + 1
 
-        tag = stichtag(v.start, v.ende, art)
+        tag = stichtag(v.start)
         schluessel = (karte.id if karte else None, tag)
         if schluessel not in fahrzeug_cache:
             fz = fahrzeug_fuer_karte(db, karte, tag)
@@ -363,7 +362,6 @@ def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsc
     db.flush()
     karten = {info.kennung: info.karte for info in vs.karten}
     grundlage = schaetzgrundlage(db)  # nach dem Commit wird mit den neuen Daten ohnehin neu geschätzt
-    art = stichtag_art(db)
     ladeorte: dict = {}
     msp = db.get(Msp, imp.msp_id)
     cpo_vorgabe = msp.cpo_standard if msp else None  # für Vorgänge, deren Datei keinen CPO liefert
@@ -373,7 +371,7 @@ def _bestaetigen(db: Session, imp: Import, entscheidungen: dict[str, KartenEntsc
             continue
         v = x.v
         karte = karten.get(v.kartenkennung) if v.kartenkennung else None
-        fahrzeug = fahrzeug_fuer_karte(db, karte, stichtag(v.start, v.ende, art))
+        fahrzeug = fahrzeug_fuer_karte(db, karte, stichtag(v.start))
         kwh = kwh_schaetzen(v.schaetzbasis, grundlage.fuer(fahrzeug.id if fahrzeug else None)) if v.schaetzbasis else v.kwh
         ort = evse.ermitteln(imp.parser_key, v.ladepunkt, v.rohdaten)
         rohdaten = v.rohdaten

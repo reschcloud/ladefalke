@@ -62,7 +62,7 @@ def test_fest_ladebeginn(angemeldet, db):
     assert db.get(Einstellung, "stichtag").wert == "beginn"
     db.refresh(v)
     assert v.fahrzeug_id == fz_a.id
-    assert app_einstellungen.laden(db).stichtag == "beginn"
+    assert not hasattr(app_einstellungen.laden(db), "stichtag")  # keine Einstellung mehr (ADR 0008)
     assert "e-stichtag" not in angemeldet.get("/einstellungen").text  # nicht mehr wählbar
     assert _anzahl(angemeldet.get("/ladevorgaenge?von=2026-09-01&bis=2026-09-30").text) == 1
     assert _anzahl(angemeldet.get("/ladevorgaenge?von=2026-10-01&bis=2026-10-31").text) == 0

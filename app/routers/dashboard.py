@@ -36,7 +36,7 @@ def _dashboard(request: Request, db: Session, z):
     vorher = [(vz, auswerten(db, vz, einst, mit_personen=False).gesamt) for vz in (z.verschoben(-i) for i in (1, 2, 3))
               if z.art != "alles"]  # bei „Alles“ gibt es keine Vorperioden
     vergleich = vergleichen(a.gesamt, vorher)
-    dc = kennzahlen.ladedauer_dc(db, z, einst.stichtag, vorperioden=3)  # mit Vergleich wie die übrigen Kacheln
+    dc = kennzahlen.ladedauer_dc(db, z, vorperioden=3)  # mit Vergleich wie die übrigen Kacheln
     return render(request, "dashboard.html", {"a": a, "vergleich": vergleich, "dc": dc,
                                               "vollstaendigkeit": vollstaendigkeit_pruefen(db, z, einst),
                                               **_verteilungen(db, a, einst), "dia": diagramme,

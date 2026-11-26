@@ -97,22 +97,21 @@ def bestand(db: Session) -> dict[str, int]:
 # MENUE_GUELTIG Sekunden (Änderungen von außerhalb der App) und nur am selben Tag (Fristen) – sonst kostete jede
 # Anfrage rund 20 Abfragen, auch Seiten aus dem Seitencache, Exporte und nachgeladene Teilstücke.
 MENUE_GUELTIG = 60
-_menue: tuple | None = None  # (Datenstand, Tag, Zeitpunkt, OffenePunkte, Bestand, Stichtag)
+_menue: tuple | None = None  # (Datenstand, Tag, Zeitpunkt, OffenePunkte, Bestand)
 
 
-def menue_zahlen(db: Session) -> tuple[OffenePunkte, dict[str, int], str]:
+def menue_zahlen(db: Session) -> tuple[OffenePunkte, dict[str, int]]:
     global _menue
     stand, tag, jetzt = seitencache.datenstand(), heute(), time.monotonic()
     m = _menue
     if m is None or m[0] != stand or m[1] != tag or jetzt - m[2] > MENUE_GUELTIG:
-        m = _menue = (stand, tag, jetzt, zaehlen(db), bestand(db), einstellungen_laden(db).stichtag)
-    return m[3], m[4], m[5]
+        m = _menue = (stand, tag, jetzt, zaehlen(db), bestand(db))
+    return m[3], m[4]
 
 
 def offene_punkte_laden(request: Request, db: Session = Depends(get_db)) -> None:
-    """Dependency für alle angemeldeten Seiten: Zahlen für die Menüleiste, den Stichtag (Ladeende/Ladebeginn,
-    für Beschriftungen) und das Theme in request.state ablegen."""
-    request.state.offen, request.state.bestand, request.state.stichtag = menue_zahlen(db)
+    """Dependency für alle angemeldeten Seiten: Zahlen für die Menüleiste und das Theme in request.state ablegen."""
+    request.state.offen, request.state.bestand = menue_zahlen(db)
     request.state.theme = request.state.benutzer.theme  # je Benutzer; base.html: data-theme am <html>
 
 
@@ -159,7 +158,7 @@ def _fuer_report(db: Session, max_zeilen: int) -> dict:
     from app.services.ladeprofil import unplausibel_grund
     from sqlalchemy.orm import selectinload
     e = app_einstellungen.laden(db)
-    tag = stichtag_spalte(e.stichtag)
+    tag = stichtag_spalte()
     gruppen = db.execute(
         select(Ladevorgang.ladekarte_id, Ladevorgang.roh_kartenkennung, Msp.name, func.count(), func.sum(Ladevorgang.kwh),
                func.sum(Ladevorgang.kosten), func.min(tag), func.max(tag))
@@ -171,7 +170,7 @@ def _fuer_report(db: Session, max_zeilen: int) -> dict:
     unplausibel = db.scalars(select(Ladevorgang).where(unplausibel_sql(e))
                              .options(selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.msp),
                                       selectinload(Ladevorgang.fahrzeug)).order_by(tag.desc())).all()
-    kartenanzeige.fuer_vorgaenge(db, unplausibel[:max_zeilen], e.stichtag)
+    kartenanzeige.fuer_vorgaenge(db, unplausibel[:max_zeilen])
     ladeorte = db.execute(
         select(Ladeort, func.count(Ladevorgang.id)).join(Ladevorgang, Ladevorgang.ladeort_id == Ladeort.id)
         .where(*ladeorte_offen_bedingungen()).group_by(Ladeort.id)

@@ -145,7 +145,7 @@ def test_dc_oeffentlich_histogramme(db, angemeldet):
     lv(tag, 33)  # Beginn genau 00:00:00 (Uhrzeit unbekannt, z. B. Elli): zählt für die Dauer, nicht für die Uhrzeit
     db.flush()
 
-    d = dc_oeffentlich(db, zeitraum("monat", 2031, 3), "beginn")
+    d = dc_oeffentlich(db, zeitraum("monat", 2031, 3))
     assert d.dauer.anzahl == 5 and d.stunde.anzahl == 4 and d.ohne_uhrzeit == 1
     assert d.stunde.klassen[0][2] == 0
     assert [n for *_, n in d.dauer.klassen] == [1, 0, 2, 1, 0, 0, 0, 0, 0, 1]

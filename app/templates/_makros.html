@@ -152,7 +152,7 @@
 {% macro hilfe(text) %}<abbr class="hilfe" tabindex="0" title="{{ text }}">?</abbr>{% endmacro %}
 {% macro hilfe_symbol(text) %}{{ hilfe(text) }}{% endmacro %}{# für Makros mit einem Parameter „hilfe“ #}
 {# Die eine Erklärung, wem eine Ladung zählt (Auswertungen pro Fahrer:in, Dashboard, Reports) #}
-{% macro zurechnung() %}{{ hilfe("Eine Ladung zählt für die Person, die zum Ladezeitpunkt (Stichtag laut Einstellungen) gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. Keiner Person zugerechnet: Poolfahrzeuge mit Fahrzeugkarte und mehreren Fahrer:innen, Gäste, Gebühren und Pauschalen.") }}{% endmacro %}
+{% macro zurechnung() %}{{ hilfe("Eine Ladung zählt für die Person, die zum Ladezeitpunkt (Stichtag Ladebeginn) gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. Keiner Person zugerechnet: Poolfahrzeuge mit Fahrzeugkarte und mehreren Fahrer:innen, Gäste, Gebühren und Pauschalen.") }}{% endmacro %}
 
 {% macro mehrfach(name, label, optionen, gewaehlt) %}
 {# Mehrfachauswahl als aufklappbare Liste mit Haken (Pico-Dropdown); nichts gewählt = alle. Gesetzte Filter sind
@@ -194,18 +194,15 @@
 {%- else %}<span class="marker stromart-ohne" title="{{ ohne }}" aria-label="{{ ohne }}">?</span>{% if text %} {{ ohne }}{% endif %}{% endif -%}
 {% endmacro %}
 
-{# Zeit-Spalten einer Ladevorgangsliste nach dem Stichtag (art = request.state.stichtag): zuerst das Datum laut
-   Stichtag (verlinkt auf die Detailseite), dann das andere #}
-{# Zeitspalten der Ladevorgangslisten: vorne der Zeitpunkt laut Stichtag (verlinkt), daneben die Dauer (angesteckt)
-   mit der anderen Uhrzeit klein darunter (am selben Tag nur die Uhrzeit). #}
-{% macro zeit_kopf(art) -%}
-<th>{{ "Ladebeginn" if art == "beginn" else "Ladeende" }}</th><th>Dauer</th>
+{# Zeitspalten der Ladevorgangslisten: vorne der Ladebeginn (Stichtag, verlinkt), daneben die Dauer (angesteckt)
+   mit dem Ladeende klein darunter (am selben Tag nur die Uhrzeit). #}
+{% macro zeit_kopf() -%}
+<th>Ladebeginn</th><th>Dauer</th>
 {%- endmacro %}
-{% macro zeit_zellen(v, art) -%}
-{%- set erst, dann = (v.start, v.ende) if art == "beginn" else (v.ende, v.start) -%}
-<td><a href="/ladevorgaenge/{{ v.id }}">{{ erst | datumzeit }}</a></td>
-<td class="dauer">{{ v.start | dauer(v.ende) }}<br><small>{{ "bis" if art == "beginn" else "ab" }}
-  {{ dann.strftime("%H:%M") if dann.date() == erst.date() else dann | datumzeit }}</small></td>
+{% macro zeit_zellen(v) -%}
+<td><a href="/ladevorgaenge/{{ v.id }}">{{ v.start | datumzeit }}</a></td>
+<td class="dauer">{{ v.start | dauer(v.ende) }}<br><small>bis
+  {{ v.ende.strftime("%H:%M") if v.ende.date() == v.start.date() else v.ende | datumzeit }}</small></td>
 {%- endmacro %}
 
 {# Adresse in Google Maps bzw. Apple Maps suchen (neuer Tab, nur auf Klick – die App selbst ruft keine externen Dienste
@@ -235,10 +232,10 @@
 {# Karten-Zuordnung: „Gültig ab = erste Ladung“ / „Gültig bis = letzte Ladung“ der Karte (Skript in base.html) –
    Tag des ersten bzw. letzten Ladevorgangs nach Stichtag (kennzahlen.erster_und_letzter). Ohne Ladevorgang
    ausgegraut. #}
-{% macro ladung_knoepfe(erster, letzter, art) %}
+{% macro ladung_knoepfe(erster, letzter) %}
 <p class="ladung-uebernehmen">
 {%- for vorgang, feld, text in [(erster, "ab", "„Gültig ab“ = erste Ladung"), (letzter, "bis", "„Gültig bis“ = letzte Ladung")] %}
-  {% set tag = ((vorgang.start if art == "beginn" else vorgang.ende).date()) if vorgang else none %}
+  {% set tag = vorgang.start.date() if vorgang else none %}
   <button type="button" class="outline secondary klein{{ ' ausgegraut' if not tag }}" data-datum-uebernehmen="{{ feld }}"
     {%- if tag %} data-datum="{{ tag.isoformat() }}" title="Tag des {{ 'ersten' if feld == 'ab' else 'letzten' }} Ladevorgangs dieser Karte"
     {%- else %} aria-disabled="true" title="Mit dieser Karte gibt es noch keine Ladevorgänge"{% endif %}>

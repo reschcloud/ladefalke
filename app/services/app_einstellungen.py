@@ -7,10 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.models import Einstellung
 
-STICHTAGE = {"ende": "Ladeende", "beginn": "Ladebeginn"}
-
+# Der Stichtag ist fest der Ladebeginn (ADR 0008); eine früher gespeicherte Einstellung „stichtag“ stellt
+# aufloesung.stichtag_festlegen beim Start einmal um.
 STANDARD = {
-    "stichtag": "beginn",  # fest: ein Ladevorgang zählt nach seinem Ladebeginn (früher wählbar, siehe stichtag_festlegen)
     "topliste_m": "",  # leer = Median der Fahrzeug-kWh im Zeitraum
     "topliste_mindestmenge": "20",
     # Kosten und Umsatzsteuer (services/kosten.py): Land des Unternehmens (inländische USt.), Vorsteuerabzug in Prozent
@@ -128,7 +127,6 @@ WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samsta
 
 @dataclass(frozen=True)
 class AppEinstellungen:
-    stichtag: str  # "ende" | "beginn" – ordnet Ladevorgänge den Auswertungszeiträumen zu
     topliste_m: Decimal | None  # Gewichtungskonstante in kWh; None = Median
     topliste_mindestmenge: Decimal
     firmenland: str = "AT"  # ISO-Code; USt. dieses Landes ist als Vorsteuer abziehbar (je Fahrzeug)
@@ -244,7 +242,6 @@ def _tag(text: str, standard: int) -> int:
 def aus_werten(werte: dict[str, str]) -> AppEinstellungen:
     """Gespeicherte Texte → Einstellungen; `aus_werten(STANDARD)` liefert die Standardwerte."""
     return AppEinstellungen(
-        stichtag="beginn",  # fest (seit 11/2026); gespeicherte Werte zählen nicht mehr
         topliste_m=Decimal(werte["topliste_m"]) if werte["topliste_m"] else None,
         topliste_mindestmenge=Decimal(werte["topliste_mindestmenge"]),
         firmenland=(werte["firmenland"] or "AT").upper()[:2],

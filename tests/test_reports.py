@@ -86,7 +86,7 @@ def test_ladedauer_dc(db, daten):
                                                   Ladevorgang.ladeart == Ladeart.oeffentlich)):
         v.stromart = "DC"  # alle 1 h angesteckt
     db.flush()
-    dc = reports._ladedauer_dc(db, zeitraum("monat", 2026, 9), "ende", daten["anna"].id)
+    dc = reports._ladedauer_dc(db, zeitraum("monat", 2026, 9), daten["anna"].id)
     assert dc["eigen"] == 60 and dc["anzahl"] == 2 and dc["flotte"] == 60  # Anna: 2 DC; Pool-Ladung zählt nur zur Flotte
     text, _ = _text(reports.fahrer(db, zeitraum("monat", 2026, 9), daten["anna"].id))
     assert "1:00 h" in text and "2 DC-Ladungen" in text
@@ -108,7 +108,7 @@ def test_ladedauer_dc_im_web(angemeldet, db, daten):
         v.stromart = "DC"
     db.flush()
     fz = db.scalar(select(Ladevorgang.fahrzeug_id).where(Ladevorgang.stromart == "DC").limit(1))
-    dc = kennzahlen.ladedauer_dc(db, zeitraum("monat", 2026, 9), "ende", fahrzeug_id=fz)
+    dc = kennzahlen.ladedauer_dc(db, zeitraum("monat", 2026, 9), fahrzeug_id=fz)
     assert dc.eigen == 60 and dc.flotte == 60 and dc.anzahl >= 1
     for url in (f"/?{SEP}", f"/auswertungen?{SEP}", f"/auswertungen/fahrer/{daten['anna'].id}?{SEP}",
                 f"/auswertungen/fahrzeug/{fz}?{SEP}"):

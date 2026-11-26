@@ -91,7 +91,7 @@ def unplausibel_sql(e: AppEinstellungen):
 def _profil_abfrage(db: Session, *gruppen):
     """Kennzahlen je Gruppe (Gruppenspalten zuerst), nur Vorgänge, die ins Ladeprofil einfließen."""
     e = einstellungen_laden(db)
-    tag = Ladevorgang.start if e.stichtag == "beginn" else Ladevorgang.ende  # Zeitraum der Vorgänge laut Stichtag
+    tag = Ladevorgang.start  # Zeitraum der Vorgänge laut Stichtag
     return (select(*gruppen, func.count(), func.sum(Ladevorgang.kwh),
                    func.sum(extract("epoch", Ladevorgang.ende - Ladevorgang.start)) / 3600,
                    func.min(tag), func.max(tag),
