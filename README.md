@@ -3,6 +3,12 @@
 Webanwendung zur Erfassung und Auswertung der Ladevorgänge der Firmenflotte.
 Spezifikation: [SPEC.md](SPEC.md). Entscheidungen mit Begründung: [docs/adr/](docs/adr/README.md).
 
+## Bildschirmfotos
+
+| Dashboard | Ladevorgänge | Auswertungen |
+|---|---|---|
+| [![Dashboard mit Kennzahlen, Verteilung auf Fahrer:innen, MSP und CPO sowie Heatmap](docs/bilder/dashboard.webp)](docs/bilder/dashboard.webp) | [![Ladevorgänge mit Filtern, Karte nach Preis und Liste](docs/bilder/ladevorgaenge.webp)](docs/bilder/ladevorgaenge.webp) | [![Auswertungen mit Gesamtübersicht, öffentlichem DC-Laden und Topliste](docs/bilder/auswertungen.webp)](docs/bilder/auswertungen.webp) |
+
 ## Installation
 
 ### Voraussetzungen
