@@ -128,6 +128,7 @@
 
 <article data-schreiben>
   <header><strong>Ohne Fahrer:in</strong> {{ m.hilfe("Das Fahrzeug ist im Zeitraum bewusst niemandem zugeordnet (z. B. Werkstatt, Reserve) – das ist dann keine Lücke.") }}</header>
+  {% if zuordnung_fehler %}<p class="meldung meldung-fehler" role="alert">{{ zuordnung_fehler }}</p>{% endif %}
   <form method="post" action="/stammdaten/fahrzeuge/{{ fahrzeug.id }}/ohne-fahrer" id="ohne-fahrer">
     <div class="grid">
       {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
@@ -135,7 +136,7 @@
     </div>
     {{ m.leasing_knoepfe({"*": leasing_daten([fahrzeug]).get(fahrzeug.id | string, [none, none])}) }}
     <label class="haken">
-      <input type="checkbox" name="bisherige_austragen" checked aria-describedby="ohne-austragen-hinweis">
+      <input type="checkbox" name="bisherige_austragen" {{ "checked" if zuordnung_werte.get("bisherige_austragen", "on") }} aria-describedby="ohne-austragen-hinweis">
       Bisherige Fahrer:in(nen) zum Vortag austragen
     </label>
     <small id="ohne-austragen-hinweis" class="haken-hinweis">Sonst muss der Zeitraum frei von Fahrer:innen sein.</small>

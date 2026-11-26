@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.db import get_db
 from app.models import Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort, Ladevorgang, Msp, ZuordnungQuelle
 from app.routers.ladevorgaenge import ladeort_plz_speichern
-from app.services import app_einstellungen, fristen, kartenanzeige, kartenpruefung, luecken, stromart
+from app.services import app_einstellungen, fristen, kartenanzeige, kartenpruefung, luecken, stromart, zuordnung
 from app.services.aufloesung import fahrzeug_setzen, neu_zuordnen, stichtag_art, stichtag_spalte
 from app.services.ladeprofil import leistung, unplausibel_grund, unplausibel_sql
 from app.services.geokodierung import GENAUIGKEIT, alle_geokodieren, verzeichnis_vorhanden, verzichten, wieder_verorten
@@ -38,6 +38,7 @@ def _zurueck(ziel: str, standard: str = "/aufgaben") -> str:
 
 
 @router.get("")
+@zuordnung.vorgeladen_fuer_route  # Ursachen und Personen je Vorgang: Zuordnungen einmal laden statt je Tag/Vorgang
 def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp: str = "",
                db: Session = Depends(get_db)):
     tag = stichtag_spalte(stichtag_art(db))  # Zeitraum und Sortierung nach dem Stichtag laut Einstellungen
@@ -76,7 +77,7 @@ def uebersicht(request: Request, karte_id: str = "", roh: str = "", stromart_msp
     unplausible = db.scalars(select(Ladevorgang).where(unplausibel_sql(einst))
                              .options(selectinload(Ladevorgang.ladekarte), selectinload(Ladevorgang.msp),
                                       selectinload(Ladevorgang.fahrzeug))
-                             .order_by(tag.desc())).all()
+                             .order_by(tag.desc()).limit(MAX_ZEILEN)).all()  # Anzahl: request.state.offen
 
     ladeorte = db.execute(
         select(Ladeort, func.count(Ladevorgang.id), func.min(Ladevorgang.id))  # min: Link bei einem Vorgang
@@ -158,7 +159,8 @@ def ladeort_plz(request: Request, ladeort_id: int, plz: str = Form(""), ort: str
     ladeort = db.get(Ladeort, ladeort_id)
     if ladeort is None:
         raise HTTPException(404, "Ladeort nicht gefunden")
-    ladeort_plz_speichern(request, db, ladeort, plz, ort)
+    if fehler := ladeort_plz_speichern(request, db, ladeort, plz, ort):
+        meldung(request, fehler, "fehler")
     return weiter("/aufgaben#ladeorte")
 
 

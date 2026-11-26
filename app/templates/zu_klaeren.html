@@ -30,7 +30,7 @@
   {{ aufgabe("ohne-fahrzeug", request.state.offen.ohne_fahrzeug, "Ladevorgänge ohne Fahrzeug",
              "Karte bzw. Fahrzeug zuordnen oder Vorgänge manuell zuweisen") }}
   {{ aufgabe("gebuehren", gebuehren | length, "Gebühren ohne Ladekarte", "einer Ladekarte zuweisen") }}
-  {{ aufgabe("unplausibel", unplausible | length, "Unplausible AC/DC-Angaben",
+  {{ aufgabe("unplausibel", request.state.offen.unplausibel, "Unplausible AC/DC-Angaben",
              "Stromart korrigieren oder ausnehmen") }}
   {{ aufgabe("stromart", request.state.offen.ohne_stromart, "Ladevorgänge ohne AC/DC-Angabe",
              "Stromart je MSP setzen") }}
@@ -287,6 +287,7 @@
   </tbody>
 </table>
 </div>
+{% if request.state.offen.unplausibel > unplausible | length %}<p><small>Nur die neuesten {{ max_zeilen }} von {{ request.state.offen.unplausibel | zahl(0) }} angezeigt – abarbeiten, dann erscheinen die nächsten.</small></p>{% endif %}
 {% endif %}
 
 {% if request.state.offen.ohne_stromart or stromart_msp %}

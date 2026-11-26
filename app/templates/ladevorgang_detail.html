@@ -88,13 +88,16 @@
   </form>
   <small id="land-hinweis">Aus EVSE-ID bzw. Rechnung – nur ändern, wenn das nicht stimmt {{ m.hilfe("Zum Beispiel ein ausländischer Betreiber an einem Ladepunkt in Österreich.") }}</small>
 {% if v.ladeort %}
+  {% if ladeort_fehler %}<p class="meldung meldung-fehler" role="alert" id="ladeort-fehler">{{ ladeort_fehler }}</p>{% endif %}
+  {% set lw = ladeort_werte or {"plz": v.ladeort.plz_wirksam, "ort": v.ladeort.ort_manuell} %}
   <form method="post" action="/ladevorgaenge/{{ v.id }}/ladeort" class="filterzeile">
     <label>PLZ
-      <input type="text" name="plz" value="{{ v.ladeort.plz_wirksam or '' }}" maxlength="12" size="8"
-             placeholder="{{ v.ladeort.plz or '' }}" aria-describedby="ladeort-hinweis">
+      <input type="text" name="plz" value="{{ lw.plz or '' }}" maxlength="12" size="8"
+             placeholder="{{ v.ladeort.plz or '' }}" aria-describedby="ladeort-hinweis"
+             {%- if ladeort_fehler %} aria-invalid="true" aria-errormessage="ladeort-fehler"{% endif %}>
     </label>
     <label>oder Ort
-      <input type="text" name="ort" value="{{ v.ladeort.ort_manuell or '' }}" maxlength="120"
+      <input type="text" name="ort" value="{{ lw.ort or '' }}" maxlength="120"
              placeholder="{{ v.ladeort.ort or '' }}" aria-describedby="ladeort-hinweis">
     </label>
     <button type="submit" class="outline">Speichern</button>

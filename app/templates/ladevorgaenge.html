@@ -49,7 +49,8 @@
   {% if f.import_id %}<input type="hidden" name="import_id" value="{{ f.import_id }}">{% endif %}
   {% if f.ladekarte_id %}<input type="hidden" name="ladekarte_id" value="{{ f.ladekarte_id }}">{% endif %}
   {% for x in f.ladeort_id %}<input type="hidden" name="ladeort_id" value="{{ x }}">{% endfor %}
-  {% if sortierung %}<input type="hidden" name="sortierung" value="{{ sortierung }}">{% endif %}
+  {# Immer vorhanden (leer: gesperrt, also nicht gesendet) – die Sortierköpfe tauschen es mit (hx-select-oob) #}
+  <input type="hidden" id="sortierung-feld" name="sortierung" value="{{ sortierung }}"{{ " disabled" if not sortierung }}>
 
   <button type="submit" class="unsichtbar" tabindex="-1">Filtern</button>{# für Enter im Suchfeld #}
   <a href="/ladevorgaenge" role="button" class="outline secondary klein">Filter zurücksetzen</a>
@@ -112,7 +113,7 @@
 {%- set aktiv = sort_spalte == spalte -%}
 <th class="{{ 'rechts ' if rechts }}sortierbar"{% if aktiv %} aria-sort="{{ 'descending' if sort_richtung == 'ab' else 'ascending' }}"{% endif %}>
   <a href="{{ sortier_url(spalte) }}" hx-get="{{ sortier_url(spalte) }}" hx-target="#liste" hx-select="#liste" hx-swap="outerHTML"
-     hx-push-url="true" title="{{ titel }}">{{ text }}<span class="sortpfeil" aria-hidden="true">{{ ("▼" if sort_richtung == "ab" else "▲") if aktiv else "↕" }}</span></a></th>
+     hx-select-oob="#sortierung-feld" hx-push-url="true" title="{{ titel }}">{{ text }}<span class="sortpfeil" aria-hidden="true">{{ ("▼" if sort_richtung == "ab" else "▲") if aktiv else "↕" }}</span></a></th>
 {%- endmacro %}
 
 <div class="tabelle">

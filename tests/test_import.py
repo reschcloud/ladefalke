@@ -226,7 +226,7 @@ def test_oberflaeche_ablauf(angemeldet, db):
     db.refresh(msp)
     assert msp.strompreis == Decimal("0.32")
     assert hochladen(db, "november.csv", CSV.replace(b"2026", b"2027")).strompreis_netto_kwh == Decimal("0.32")
-    assert 'data-ausblenden="20"' in abschluss.split(">")[0] + ">"  # blendet sich nach 20 s aus
+    assert "data-ausblenden" not in abschluss.split(">")[0]  # mit „Jetzt zuordnen“: bleibt stehen (nur „×“)
     # nur einmal: beim Neuladen ist der Abschluss weg; Ausblenden-Link schadet nicht
     assert 'id="abschluss"' not in angemeldet.get("/import").text
     assert 'id="abschluss"' not in angemeldet.get("/import?abschluss=aus").text

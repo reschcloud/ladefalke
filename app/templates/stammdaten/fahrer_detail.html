@@ -69,13 +69,14 @@
 {# Zeitraum ohne Dienstwagen: Ladungen mit der persönlichen Karte sind dann begründet ohne Fahrzeug (keine Aufgabe) #}
 <article data-schreiben id="ohne-dienstwagen">
   <header><strong>Ohne Dienstwagen</strong> {{ m.hilfe("Für Zeiten, in denen die Person bewusst keinen Dienstwagen hatte (z. B. vor dem ersten Auto oder zwischen zwei Autos) und trotzdem mit der persönlichen Karte geladen hat. Diese Ladungen zählen weiter bei der Person, sind aber keine Aufgabe mehr und stehen in den Auswertungen unter „Ohne Dienstwagen“. Gab es ein konkretes Ersatz- oder Mietauto: besser als Fahrzeug anlegen (Häkchen „Ersatz-/Mietfahrzeug“) und oben zuordnen.") }}</header>
+  {% if ohne_fehler %}<p class="meldung meldung-fehler" role="alert">{{ ohne_fehler }}</p>{% endif %}
   <form method="post" action="/stammdaten/fahrer/{{ fahrer.id }}/ohne-dienstwagen">
     {% if zurueck %}<input type="hidden" name="zurueck" value="{{ zurueck }}">{% endif %}
     <div class="grid">
-      {{ m.feld("ab", "Gültig ab", zuordnung_werte, {}, typ="date", pflicht=true) }}
-      {{ m.feld("bis", "Gültig bis (leer = offen)", zuordnung_werte, {}, typ="date") }}
+      {{ m.feld("ab", "Gültig ab", ohne_werte, {}, typ="date", pflicht=true) }}
+      {{ m.feld("bis", "Gültig bis (leer = offen)", ohne_werte, {}, typ="date") }}
       <label>Grund <small>(optional)</small>
-        <input type="text" name="grund" maxlength="200" list="ohne-dienstwagen-gruende" placeholder="z. B. noch kein Dienstwagen">
+        <input type="text" name="grund" value="{{ ohne_werte.get('grund') or '' }}" maxlength="200" list="ohne-dienstwagen-gruende" placeholder="z. B. noch kein Dienstwagen">
       </label>
     </div>
     <datalist id="ohne-dienstwagen-gruende">

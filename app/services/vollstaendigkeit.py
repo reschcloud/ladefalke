@@ -24,6 +24,7 @@ from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, Ladekar
 from app.services.app_einstellungen import AppEinstellungen
 from app.services.aufloesung import fahrer_beim_laden, stichtag
 from app.services.auswertung import Zeitraum, gebuehr_stichtag
+from app.services.zuordnung import mit_vorgeladenen_zuordnungen
 
 
 
@@ -99,6 +100,7 @@ class Vollstaendigkeit:
         return "offen" if all(m.offen for m in self.monate) else "ok"
 
 
+@mit_vorgeladenen_zuordnungen  # fahrer_beim_laden je Vorgang: sonst eine Abfrage pro Ladevorgang
 def pruefen(db: Session, z: Zeitraum, einst: AppEinstellungen, heute: date | None = None) -> Vollstaendigkeit:
     heute = heute or heute_()
     laufend = _erster(heute)

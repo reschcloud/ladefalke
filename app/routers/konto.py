@@ -42,7 +42,8 @@ def email_aendern(request: Request, email: str = Form(""), db: Session = Depends
     """Eigene E-Mail-Adresse – Admin und Operator; die Adresse eines Viewers pflegt ein Admin (Benutzerverwaltung)."""
     b = request.state.benutzer
     if not benutzer_service.darf(b, "schreiben"):
-        return _seite(request, {"email": "Unzureichende Berechtigungen – die Adresse pflegt ein Admin."}, 403)
+        # 422 statt 403: htmx tauscht nur 2xx/422 ein – sonst erschiene die Meldung am Feld nie
+        return _seite(request, {"email": "Unzureichende Berechtigungen – die Adresse pflegt ein Admin."}, 422)
     try:
         b.email = email_lesen(email)
     except ValueError as e:

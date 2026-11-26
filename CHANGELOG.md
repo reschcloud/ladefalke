@@ -3,6 +3,37 @@
 Versionen nach `HAUPT.NEBEN.FIX` (siehe README „Betrieb → Release erstellen“). Je Release: was neu ist und was beim
 Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
 
+## Unveröffentlicht
+
+### Geändert
+
+- Fehler werden sichtbar: Schlägt eine Aktion fehl (z. B. Eintrag inzwischen gelöscht, Fehler auf dem Server, keine
+  Verbindung), erscheint rechts unten eine Fehlermeldung – bisher tat ein Klick dann scheinbar nichts. Auch die
+  Meldung beim Ändern der eigenen E-Mail-Adresse ohne Berechtigung (Konto) erscheint jetzt am Feld.
+- Kein doppeltes Absenden mehr: Der Knopf ist bis zur Antwort gesperrt (z. B. Report-Mail, Import bestätigen,
+  Hochladen).
+- Einstellungen: Knöpfe wie „Entfernen“, „Hinzufügen“, „Jetzt laden“ sind bei ungespeicherten Änderungen ausgegraut,
+  statt diese ohne Rückfrage zu verwerfen.
+- Ladevorgänge: Die per Spaltenkopf gewählte Sortierung bleibt beim Filtern erhalten.
+- Eingaben bleiben bei Fehlern stehen: „Ohne Dienstwagen“ (Person), „Ohne Fahrer:in“ (Fahrzeug) und PLZ/Ort
+  (Ladevorgang) zeigen den Fehler im Formular, statt es zu leeren.
+- Viewer: „Karte zuordnen →“ und „Fahrer:in zuordnen →“ sind wie die übrigen Änderungen ausgegraut.
+- Import: Der Abschlusskasten blendet sich nicht mehr selbst aus, solange er Knöpfe zum Zuordnen enthält.
+- Zeitleiste des Fahrzeugs: Symbole vor „Fahrer:in“ und „Ladekarten“.
+- Schmale Bildschirme: Einstellungen mit Tabellen, lange Ladekarten- und Personennamen in Auswahlfeldern und
+  große Beträge in den kleinen Kacheln laufen nicht mehr über den Rand bzw. brechen nicht mehr mitten in der Zahl um.
+- Schneller: Aufgaben, Report „Offene Aufgaben“ und Report „Zusammenfassung“ (auch der automatische Versand)
+  fragen die Zuordnungen einmal ab statt je Ladevorgang bzw. Tag – bei einem Jahr mit vielen Vorgängen ein
+  Vielfaches schneller. Die Liste der unplausiblen AC/DC-Angaben zeigt wie die übrigen höchstens 500 Einträge.
+
+### Behoben
+
+- Benutzer:innen: „Letzte Anmeldung“ wurde in UTC statt in Ortszeit angezeigt.
+
+### Beim Update beachten
+
+- nichts
+
 ## v1.15.0 – 26.11.2026
 
 ### Neu

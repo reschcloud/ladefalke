@@ -108,10 +108,13 @@ def test_sortierung_ladevorgaenge(angemeldet, daten):
     assert 'aria-sort="descending"' in ab and 'aria-sort="ascending"' in auf
     assert "sortierung=preis-auf" in ab  # Klick kehrt um
     assert ab.index(">0,70</td>") < ab.index(">0,40</td>") and auf.index(">0,30</td>") < auf.index(">0,70</td>")
-    assert '<input type="hidden" name="sortierung" value="preis-ab">' in ab
+    # Feld im Filterformular: die Sortierköpfe tauschen es mit (hx-select-oob), damit Filtern die Sortierung behält
+    assert '<input type="hidden" id="sortierung-feld" name="sortierung" value="preis-ab">' in ab
+    assert 'hx-select-oob="#sortierung-feld"' in ab
     assert "sortierung=preis-ab" in ab.split('href="/ladevorgaenge/export.csv')[1].split('"')[0]
     standard = angemeldet.get(basis).text
     assert "aria-sort" in standard and "sortierung=zeit-auf" in standard  # Standard: Datum absteigend
+    assert '<input type="hidden" id="sortierung-feld" name="sortierung" value="" disabled>' in standard  # nicht gesendet
     assert angemeldet.get(basis + "&sortierung=unsinn").status_code == 200
     dashboard = angemeldet.get("/?art=monat&jahr=2026&nr=9").text
     assert 'data-sortierbar' in dashboard and 'data-sort="zahl"' in dashboard

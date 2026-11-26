@@ -92,7 +92,7 @@
       {% for e in c.eintraege %}
         <tr><td>{{ e.name }}</td><td>{{ e.kennungen | join(", ") or "–" }}</td><td>{{ m.stromart(e.stromart) }}</td>
           <td class="rechts">{{ c.treffer.get(e.id, 0) }}</td>
-          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="cpo-stromart-loeschen-{{ e.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="cpo-stromart-loeschen-{{ e.id }}" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
       {% endfor %}
       {% if not nur_lesen %}
         <tr><td><input type="text" name="name" form="cpo-stromart-neu" aria-label="Name des CPO" placeholder="z. B. Ionity" maxlength="60" required></td>
@@ -100,7 +100,7 @@
                      placeholder="IOY, AT*ION" list="cpo-vorschlaege" autocomplete="off"></td>
           <td><select name="art" form="cpo-stromart-neu" aria-label="Stromart"><option value="DC">DC</option><option value="AC">AC</option></select></td>
           <td></td>
-          <td class="rechts"><button type="submit" form="cpo-stromart-neu" class="klein">Speichern</button></td></tr>
+          <td class="rechts"><button type="submit" form="cpo-stromart-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Speichern</button></td></tr>
       {% elif not c.eintraege %}
         <tr><td colspan="5">Noch keine Einträge.</td></tr>
       {% endif %}
@@ -113,7 +113,7 @@
     {% endif %}
     <p class="gruppe-text"><small>Automatisch bestimmt wird für {{ c.betroffen }} Ladevorgänge ohne AC/DC der Rechnung
       (beim Import und nach jeder Änderung hier oder an den Grenzen oben).</small>
-      {% if not nur_lesen %}<button type="submit" form="stromart-neu-bestimmen" class="outline secondary klein">AC/DC jetzt neu bestimmen</button>{% endif %}</p>
+      {% if not nur_lesen %}<button type="submit" form="stromart-neu-bestimmen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">AC/DC jetzt neu bestimmen</button>{% endif %}</p>
     </fieldset>
     <fieldset class="versand-block">
       <legend>kWh-Schätzung – Ersatzwerte</legend>
@@ -154,20 +154,20 @@
       {% for s in steuersaetze %}
         <tr><td>{{ laender_namen.get(s.land, s.land) }} <small>({{ s.land }})</small></td><td>{{ s.gueltig_ab | datum }}</td>
           <td class="rechts">{{ s.satz | zahl(1 if s.satz % 1 else 0) }} %</td>
-          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="steuersatz-loeschen-{{ s.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="steuersatz-loeschen-{{ s.id }}" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
       {% endfor %}
       {% if not nur_lesen %}
         <tr><td><select name="land" form="steuersatz-neu" aria-label="Land">{% for code, name in laender %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></td>
           <td><input type="date" name="gueltig_ab" form="steuersatz-neu" aria-label="gültig ab" required></td>
           <td><input type="text" name="satz" form="steuersatz-neu" inputmode="decimal" aria-label="Satz in Prozent" placeholder="%" required class="kurz"></td>
-          <td class="rechts"><button type="submit" form="steuersatz-neu" class="klein">Hinzufügen</button></td></tr>
+          <td class="rechts"><button type="submit" form="steuersatz-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Hinzufügen</button></td></tr>
       {% endif %}
       </tbody>
     </table></div>
     <p class="gruppe-text"><small>Rechnungen, die vor der USt.-Erfassung (11/2026) importiert wurden, liest die App
       einmal nach dem Update erneut und übernimmt die USt.{% if werte.get("ust_nachgetragen") %} (zuletzt am
       {{ werte.ust_nachgetragen }}){% endif %}.</small>
-      {% if not nur_lesen %}<button type="submit" form="ust-nachtragen" class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button>{% endif %}</p>
+      {% if not nur_lesen %}<button type="submit" form="ust-nachtragen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button>{% endif %}</p>
     </fieldset>
   </details>
 
@@ -237,9 +237,9 @@
           am {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}: {{ st.text }}</small></p>{% endif %}
         {% if not nur_lesen %}
         <div class="oil-knoepfe">
-          <button type="submit" form="oil-laden" class="outline secondary klein">Jetzt laden</button>
+          <button type="submit" form="oil-laden" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Jetzt laden</button>
           <input type="file" name="datei" form="oil-hochladen" accept=".xlsx" aria-label="Datei des Oil Bulletin">
-          <button type="submit" form="oil-hochladen" class="outline secondary klein">Datei übernehmen</button>
+          <button type="submit" form="oil-hochladen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Datei übernehmen</button>
         </div>
         {% endif %}
         <label>Spritpreise {{ m.hilfe("Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet, ab dem jeweiligen Datum. Vor dem ersten Eintrag gilt der früheste. Einträge aus dem Oil Bulletin gelten je Monat ab dem 1.") }}</label>
@@ -248,14 +248,14 @@
           <tbody>
           {% for p in spritpreise %}
             <tr><td>{{ p.gueltig_ab | datum }}{% if p.quelle == "oil_bulletin" %} <small>Oil Bulletin</small>{% endif %}</td><td class="rechts">{{ p.preis | zahl(3) }} €/l</td>
-              <td class="rechts">{% if not nur_lesen %}<button type="submit" form="spritpreis-loeschen-{{ p.id }}" class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+              <td class="rechts">{% if not nur_lesen %}<button type="submit" form="spritpreis-loeschen-{{ p.id }}" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
           {% else %}
             <tr><td colspan="3"><small>Noch kein Spritpreis – ohne Preis bleibt die Schätzung aus.</small></td></tr>
           {% endfor %}
           {% if not nur_lesen %}
             <tr><td><input type="date" name="gueltig_ab" form="spritpreis-neu" aria-label="gültig ab" required></td>
               <td><input type="text" name="preis" form="spritpreis-neu" inputmode="decimal" aria-label="Preis je Liter" placeholder="€/l" required class="kurz"></td>
-              <td class="rechts"><button type="submit" form="spritpreis-neu" class="klein">Hinzufügen</button></td></tr>
+              <td class="rechts"><button type="submit" form="spritpreis-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Hinzufügen</button></td></tr>
           {% endif %}
           </tbody>
         </table></div>
@@ -597,7 +597,7 @@
     {% set st = sy.release %}
     {% if st.zeit %}<p class="system-status"><small>{{ icon("ok" if st.ok else "warnung") }} Zuletzt nachgesehen am
       {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}{% if st.ok %}{% if st.neueste %}: neuestes Release {{ st.neueste }}{% endif %}{% else %}: {{ st.fehler }}{% endif %}</small></p>{% endif %}
-    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="update-pruefen" class="outline secondary klein">Jetzt nachsehen</button></div>{% endif %}
+    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="update-pruefen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Jetzt nachsehen</button></div>{% endif %}
 
     <h3>Geodaten</h3>
     <p class="gruppe-text"><small>Postleitzahlen und Orte von GeoNames (CC-BY 4.0, © GeoNames) für die Verortung der
@@ -616,7 +616,7 @@
       {% elif st.anzahl %}{{ icon("ok") }} {{ st.anzahl | zahl(0) }} Postleitzahlen vorhanden.
       {% else %}{{ icon("warnung") }} Noch keine Geodaten{% if werte.get("geodaten_auto") %} – werden kurz nach dem Start geladen{% endif %}.{% endif %}
       {% if st.zeit and not st.ok and st.anzahl %}Es gilt weiter der bisherige Stand ({{ st.anzahl | zahl(0) }} Postleitzahlen).{% endif %}</small></p>
-    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="geodaten-laden" class="outline secondary klein"
+    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="geodaten-laden" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein"
       {% if st.laeuft %}disabled{% endif %}>Jetzt aktualisieren</button></div>{% endif %}
   </details>
 </fieldset>

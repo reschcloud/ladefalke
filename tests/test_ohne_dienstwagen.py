@@ -100,8 +100,14 @@ def test_seiten_eintragen_bearbeiten_loeschen(angemeldet, db, lisa):
     assert o.gueltig_bis == date(2026, 10, 10) and o.grund == "noch kein Dienstwagen"
     angemeldet.post(f"/stammdaten/zuordnungen/ohne-dienstwagen/{o.id}/loeschen")
     assert db.scalar(select(FahrerOhneFahrzeug).where(FahrerOhneFahrzeug.fahrer_id == lisa.id)) is None
-    fehler = angemeldet.post(f"/stammdaten/fahrer/{lisa.id}/ohne-dienstwagen", data={"ab": ""})
-    assert "Beginndatum" in fehler.text
+    fehler = angemeldet.post(f"/stammdaten/fahrer/{lisa.id}/ohne-dienstwagen",
+                             data={"ab": "", "bis": "2026-12-24", "grund": "Werkstatt"})
+    # Fehler im Kasten, Eingaben bleiben stehen (422 tauscht htmx ein) – nur in diesem Formular
+    assert fehler.status_code == 422 and "Beginndatum" in fehler.text
+    kasten = fehler.text.split('id="ohne-dienstwagen"')[1].split("</article>")[0]
+    assert 'meldung-fehler' in kasten and 'name="grund" value="Werkstatt"' in kasten
+    assert 'name="bis" value="2026-12-24"' in kasten
+    assert 'value="2026-12-24"' not in fehler.text.split('id="ohne-dienstwagen"')[0]  # „Neue Zuordnung“ unberührt
 
 
 def test_aufgaben_bieten_ohne_dienstwagen_an(angemeldet, lisa):

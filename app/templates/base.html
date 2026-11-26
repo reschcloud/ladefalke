@@ -67,7 +67,9 @@
     };
     const nurLesen = () => {
       if (!istViewer()) return;
-      document.querySelectorAll('form[method="post"]:not([data-immer])').forEach((f) => {
+      // POST-Formulare und GET-Formulare, die zu einer Änderung führen (data-schreiben am Formular oder am Kasten,
+      // z. B. „Karte zuordnen →“, „Fahrer:in zuordnen →“)
+      document.querySelectorAll('form[method="post"]:not([data-immer]), form[data-schreiben], article[data-schreiben] form').forEach((f) => {
         f.querySelectorAll("input:not([type=hidden]), select, textarea").forEach((x) => { x.disabled = true; x.title = NUR_LESEN; });
         f.querySelectorAll("button, [type=submit]").forEach(sperren);  // nicht disabled: Tooltip bleibt sichtbar
       });
@@ -645,6 +647,55 @@
       ladeTimer = setTimeout(() => document.documentElement.classList.add("laedt"), 300);
     });
     for (const ereignis of ["htmx:afterRequest", "htmx:sendError", "htmx:timeout"]) document.addEventListener(ereignis, ladenEnde);
+    // Fehlerantworten (4xx/5xx außer 422) tauscht htmx nicht ein – ohne Rückmeldung täte ein Klick sichtbar nichts.
+    // Darum als Fehler-Karte rechts unten; Text aus der Antwort ({"detail": "…"} von HTTPException), sonst je Status.
+    const fehlerZeigen = (text) => {
+      const vorlage = document.getElementById("fehler-toast");
+      const toast = vorlage?.content.firstElementChild.cloneNode(true);
+      if (!toast) return;
+      toast.querySelector(".toast-text").textContent = text;
+      document.querySelector(".toasts")?.append(toast);
+    };
+    const STATUS_TEXT = { 403: "Keine Berechtigung für diese Aktion.", 404: "Nicht gefunden – der Eintrag wurde vielleicht gelöscht.",
+                          409: "Das geht im aktuellen Zustand nicht mehr – bitte Seite neu laden." };
+    document.addEventListener("htmx:responseError", (e) => {
+      const xhr = e.detail.xhr;
+      let text = null;
+      try { const d = JSON.parse(xhr.responseText).detail; if (typeof d === "string") text = d; } catch { /* kein JSON */ }
+      fehlerZeigen(text || STATUS_TEXT[xhr.status]
+        || (xhr.status >= 500 ? `Fehler auf dem Server (${xhr.status}) – bitte erneut versuchen.` : `Anfrage abgelehnt (${xhr.status}).`));
+    });
+    document.addEventListener("htmx:sendError", () => fehlerZeigen("Keine Verbindung zum Server – bitte erneut versuchen."));
+    // Doppeltes Absenden verhindern (z. B. Mail doppelt, Import doppelt): Absendeknopf bis zur Antwort sperren.
+    // htmx-Formulare: erst bei htmx:beforeRequest (nach Rückfragen wie hx-confirm, Werte sind dann schon gelesen),
+    // Freigabe nach der Antwort. Klassische Formulare (hx-boost="false", z. B. Upload – bei htmx-Formularen ruft htmx
+    // selbst preventDefault): nach dem Absenden, Freigabe, wenn die Seite aus dem Browser-Cache zurückkommt.
+    // GET-Formulare (Filter) bleiben frei.
+    const knopfSperren = (knopf) => {
+      knopf.dataset.sendet = "1";
+      knopf.setAttribute("aria-busy", "true");
+      knopf.disabled = true;
+    };
+    document.addEventListener("htmx:beforeRequest", (e) => {
+      const form = e.detail.elt;
+      if (e.detail.requestConfig?.verb !== "post" || form.tagName !== "FORM") return;
+      const knopf = e.detail.requestConfig.triggeringEvent?.submitter;
+      if (knopf && !knopf.dataset.sendet) knopfSperren(knopf);
+    });
+    document.addEventListener("submit", (e) => {
+      const form = e.target;
+      if (e.defaultPrevented || (form.getAttribute("method") || "get").toLowerCase() !== "post" || form.target === "_blank") return;
+      const knopf = e.submitter;
+      // nach dem Absenden sperren: ein schon gesperrter Knopf schickte seinen name/value nicht mehr mit
+      if (knopf && !knopf.dataset.sendet) setTimeout(() => knopfSperren(knopf), 0);
+    });
+    const knoepfeFreigeben = () => document.querySelectorAll("[data-sendet]").forEach((k) => {
+      delete k.dataset.sendet;
+      k.removeAttribute("aria-busy");
+      k.disabled = false;
+    });
+    document.addEventListener("htmx:afterRequest", knoepfeFreigeben);
+    window.addEventListener("pageshow", knoepfeFreigeben);
     // Zurück-Navigation aus dem Browser-Cache: keine hängende Animation
     window.addEventListener("pageshow", () => { ladeAnfragen = 0; clearTimeout(ladeTimer); document.documentElement.classList.remove("laedt"); });
     // Hinweise mit data-ausblenden="<Sekunden>" blenden sich aus (Maus darüber hält sie an); Warnungen/Fehler bleiben
@@ -836,6 +887,14 @@
       </div>
     {% endfor %}
   </div>
+  {# Vorlage für Fehler-Karten aus dem Skript (htmx:responseError/sendError) #}
+  <template id="fehler-toast">
+    <div class="toast meldung meldung-fehler" role="alert">
+      <span class="toast-symbol">{{ icon("warnung") }}</span>
+      <div class="toast-text"></div>
+      <button type="button" class="toast-zu" aria-label="Meldung schließen" title="Schließen">×</button>
+    </div>
+  </template>
   <main class="container">
     {% block inhalt %}{% endblock %}
   </main>

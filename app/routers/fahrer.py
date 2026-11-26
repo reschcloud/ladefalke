@@ -61,13 +61,17 @@ def _pruefen(werte: dict, mit_fuehrerschein: bool = True) -> tuple[dict, dict]:
 
 
 def _detail(request, db, fahrer, werte, fehler=None, status_code=200, zuordnung_werte=None, zuordnung_fehler=None,
-            zurueck=""):
+            zurueck="", ohne_werte=None, ohne_fehler=None):
+    """`ohne_werte`/`ohne_fehler`: Formular „Ohne Dienstwagen“ nach einem Fehler; sonst wie „Neue Zuordnung“
+    vorbelegt (z. B. aus einer Lücke der Zeitleiste – passt für beide)."""
     e = app_einstellungen.laden(db)
+    zuordnung_werte = zuordnung_werte or {"ab": heute().isoformat(), "neu_zuordnen": "on"}  # Vorauswahl
     kontext = {"fahrer": fahrer, "werte": werte, "fehler": fehler or {},
                "intervall": e.fuehrerschein_intervall_monate, "fuehrerschein_an": e.feature_fuehrerschein,
                "naechste_kontrolle": naechste_kontrolle(fahrer, e) if fahrer else None,
-               "zuordnung_werte": zuordnung_werte or {"ab": heute().isoformat(), "neu_zuordnen": "on"},  # Vorauswahl
-               "zuordnung_fehler": zuordnung_fehler, "zurueck": _lokal(zurueck),
+               "zuordnung_werte": zuordnung_werte, "zuordnung_fehler": zuordnung_fehler, "zurueck": _lokal(zurueck),
+               "ohne_werte": ohne_werte or {k: zuordnung_werte.get(k) for k in ("ab", "bis")},
+               "ohne_fehler": ohne_fehler,
                "referenziert": fahrer is not None and _ist_referenziert(db, fahrer.id)}
     if fahrer is not None:
         kontext["fahrzeug_historie"] = db.scalars(
@@ -199,9 +203,13 @@ def detail(request: Request, fahrer_id: int, ab: str = "", bis: str = "", fahrze
     zuordnung_werte = zuordnung_vorbelegung(ab, bis) if ab else None
     if fahrzeug.isdigit():
         zuordnung_werte = (zuordnung_werte or {"ab": heute().isoformat(), "neu_zuordnen": "on"}) | {"fahrzeug_id": fahrzeug}
-    return _detail(request, db, fahrer, zuordnung_werte=zuordnung_werte, zurueck=zurueck, werte={"name": fahrer.name, "aktiv": fahrer.aktiv, "fuehrerschein_kontrolle":
-                                         fahrer.fuehrerschein_kontrolle.isoformat() if fahrer.fuehrerschein_kontrolle
-                                         else "", "email": fahrer.email or ""})
+    return _detail(request, db, fahrer, _werte(fahrer), zuordnung_werte=zuordnung_werte, zurueck=zurueck)
+
+
+def _werte(fahrer) -> dict:
+    """Gespeicherte Stammdaten fürs Formular (auch, wenn ein anderes Formular der Seite mit Fehler zurückkommt)."""
+    return {"name": fahrer.name, "aktiv": fahrer.aktiv, "email": fahrer.email or "",
+            "fuehrerschein_kontrolle": fahrer.fuehrerschein_kontrolle.isoformat() if fahrer.fuehrerschein_kontrolle else ""}
 
 
 @router.post("/{fahrer_id}")
@@ -268,7 +276,7 @@ def fahrzeug_zuordnen(request: Request, fahrer_id: int, fahrzeug_id: str = Form(
         hinweise += weitere
     except ValueError as e:  # ZuordnungsFehler oder ungültiges Datum
         db.rollback()
-        return _detail(request, db, fahrer, {"name": fahrer.name, "aktiv": fahrer.aktiv}, status_code=422,
+        return _detail(request, db, fahrer, _werte(fahrer), status_code=422,
                        zuordnung_werte=zuordnung_werte, zuordnung_fehler=str(e), zurueck=zurueck)
     if neu_zuordnen:
         n = neu_zuordnen_fahrer(db, fahrer.id, ab_datum, bis_datum)
@@ -300,10 +308,9 @@ def ohne_dienstwagen(request: Request, fahrer_id: int, ab: str = Form(""), bis: 
         bis_datum = datum_lesen(bis)
         hinweise = ohne_dienstwagen_eintragen(db, fahrer, ab=ab_datum, bis=bis_datum, grund=grund)
     except ValueError as e:
-        db.rollback()
-        meldung(request, str(e), "fehler")
-        return weiter(f"/stammdaten/fahrer/{fahrer.id}?" + urlencode(
-            {k: w for k, w in {"ab": ab, "bis": bis, "zurueck": _lokal(zurueck)}.items() if w}) + "#ohne-dienstwagen")
+        db.rollback()  # Formular mit Fehler und den Eingaben neu zeigen (422 tauscht htmx ein)
+        return _detail(request, db, fahrer, _werte(fahrer), status_code=422, zurueck=zurueck,
+                       ohne_werte={"ab": ab, "bis": bis, "grund": grund}, ohne_fehler=str(e))
     db.commit()
     von_bis = f"ab {ab_datum:%d.%m.%Y}" if bis_datum is None else f"vom {ab_datum:%d.%m.%Y} bis {bis_datum:%d.%m.%Y}"
     meldung(request, f"{fahrer.name} ist {von_bis} ohne Dienstwagen – Ladungen mit der persönlichen Karte sind in "

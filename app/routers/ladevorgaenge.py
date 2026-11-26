@@ -342,6 +342,12 @@ def detail(request: Request, vorgang_id: int, db: Session = Depends(get_db)):
     v = db.get(Ladevorgang, vorgang_id)
     if v is None:
         raise HTTPException(404, "Ladevorgang nicht gefunden")
+    return _detail(request, db, v)
+
+
+def _detail(request: Request, db: Session, v: Ladevorgang, status_code: int = 200, ladeort_werte: dict | None = None,
+            ladeort_fehler: str | None = None):
+    """`ladeort_werte`/`ladeort_fehler`: Formular PLZ/Ort nach einem Fehler – mit den Eingaben."""
     kartenanzeige.fuer_vorgaenge(db, [v], stichtag_art(db))
     fahrzeuge = db.scalars(select(Fahrzeug).where(Fahrzeug.aktiv | (Fahrzeug.id == v.fahrzeug_id))
                            .order_by(Fahrzeug.kennzeichen)).all()
@@ -356,7 +362,8 @@ def detail(request: Request, vorgang_id: int, db: Session = Depends(get_db)):
         "rohdaten": json.dumps(v.rohdaten, ensure_ascii=False, indent=2),
         "verlauf": protokoll.verlauf(request, db, "ladevorgang", v.id),
         "liste_url": request.session.get("ladevorgaenge_liste", "/ladevorgaenge"),
-        "von_aufgaben": "/aufgaben" in request.headers.get("referer", "")})
+        "von_aufgaben": "/aufgaben" in request.headers.get("referer", ""),
+        "ladeort_werte": ladeort_werte, "ladeort_fehler": ladeort_fehler}, status_code)
 
 
 @router.post("/{vorgang_id}")
@@ -388,18 +395,19 @@ def ladeort_plz(request: Request, vorgang_id: int, plz: str = Form(""), ort: str
     v = db.get(Ladevorgang, vorgang_id)
     if v is None or v.ladeort is None:
         raise HTTPException(404, "Ladeort nicht gefunden")
-    ladeort_plz_speichern(request, db, v.ladeort, plz, ort)
+    if fehler := ladeort_plz_speichern(request, db, v.ladeort, plz, ort):
+        return _detail(request, db, v, 422, {"plz": plz, "ort": ort}, fehler)  # Eingaben bleiben stehen
     return weiter(f"/ladevorgaenge/{v.id}")
 
 
-def ladeort_plz_speichern(request: Request, db: Session, ort, plz: str, ortsname: str = "") -> None:
-    """PLZ und/oder Ortsnamen prüfen, setzen, neu verorten und das Ergebnis melden (auch von „Aufgaben“ aus)."""
+def ladeort_plz_speichern(request: Request, db: Session, ort, plz: str, ortsname: str = "") -> str | None:
+    """PLZ und/oder Ortsnamen prüfen, setzen, neu verorten und das Ergebnis melden (auch von „Aufgaben“ aus).
+    Ungültige Eingabe: nichts geändert, Rückgabe ist der Fehlertext (der Aufrufer zeigt ihn an)."""
     neu = " ".join(plz.split()).upper() or None
     name = " ".join(ortsname.split())[:120] or None
     muster = PLZ_MUSTER.get(ort.land or "")
     if neu and muster and not re.fullmatch(muster, neu):
-        meldung(request, f"„{neu}“ ist keine gültige PLZ für {landname(ort.land)}.", "fehler")
-        return
+        return f"„{neu}“ ist keine gültige PLZ für {landname(ort.land)}."
     plz_setzen(db, ort, neu, name)
     db.commit()
     angaben = [(f"PLZ {ort.plz_wirksam}" + (" (manuell)" if ort.plz_manuell else " (aus der Adresse)"))

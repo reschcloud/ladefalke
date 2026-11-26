@@ -113,16 +113,17 @@ class Ursache:
 
 def ursache(db: Session, karte_id: int, tag) -> Ursache:
     """`tag`: Spalte des Stichtags (aufloesung.stichtag_spalte)."""
-    from app.services.zuordnung import karten_zuordnung_am
+    from app.services.zuordnung import karten_zuordnung_am, vorgeladen
     tage = sorted({t.date() for t in db.scalars(select(tag).where(*ohne_fahrzeug_bedingungen(), Ladevorgang.ladekarte_id == karte_id))})
     ohne: list[date] = []
     je_person: dict[int, list[date]] = {}
-    for t in tage:
-        zo = karten_zuordnung_am(db, karte_id, t)
-        if zo is None:
-            ohne.append(t)
-        elif zo.fahrer_id is not None:
-            je_person.setdefault(zo.fahrer_id, []).append(t)
+    with vorgeladen(db):  # je Tag eine Frage – aus dem Speicher statt je eine Abfrage (Aufrufer laden meist schon vor)
+        for t in tage:
+            zo = karten_zuordnung_am(db, karte_id, t)
+            if zo is None:
+                ohne.append(t)
+            elif zo.fahrer_id is not None:
+                je_person.setdefault(zo.fahrer_id, []).append(t)
     u = Ursache(ohne_zuordnung=(ohne[0], ohne[-1]) if ohne else None)
     for fahrer_id, liste in je_person.items():
         u.personen.append((db.get(Fahrer, fahrer_id), liste[0], liste[-1]))
@@ -131,6 +132,12 @@ def ursache(db: Session, karte_id: int, tag) -> Ursache:
 
 def fuer_report(db: Session, max_zeilen: int = 30) -> dict:
     """Alles, was unter „Aufgaben“ offen ist, als Daten für den PDF-Report (Stand heute)."""
+    from app.services.zuordnung import vorgeladen
+    with vorgeladen(db):  # Ursachen und Personen je Vorgang: Zuordnungen einmal laden
+        return _fuer_report(db, max_zeilen)
+
+
+def _fuer_report(db: Session, max_zeilen: int) -> dict:
     from app.models import Msp
     from app.services import app_einstellungen, kartenanzeige, luecken
     from app.services.aufloesung import stichtag_spalte

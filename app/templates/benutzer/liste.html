@@ -16,7 +16,7 @@
       <td><a href="/benutzer/{{ b.id }}">{{ b.name }}</a>{% if b.id == request.state.benutzer.id %} <small>(du)</small>{% endif %}</td>
       <td>{{ b.benutzername }}</td>
       <td><span class="marker rolle-{{ b.rolle }}">{{ rollen[b.rolle] }}</span></td>
-      <td>{{ b.letzte_anmeldung | datumzeit if b.letzte_anmeldung else "noch nie" }}</td>
+      <td>{{ b.letzte_anmeldung | datumzeit_lokal if b.letzte_anmeldung else "noch nie" }}</td>
       <td>{% if b.aktiv %}<span class="marker">aktiv</span>{% else %}<span class="marker inaktiv">deaktiviert</span>{% endif %}</td>
     </tr>
   {% endfor %}

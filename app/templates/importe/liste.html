@@ -8,7 +8,8 @@
 
 {% if abschluss %}
 {% set a = abschluss %}
-<article id="abschluss" class="import-abschluss" role="status" data-ausblenden="20">
+{# Blendet sich nur ohne offene Aktionen selbst aus – Knöpfe sollen nicht unter der Hand verschwinden #}
+<article id="abschluss" class="import-abschluss" role="status"{% if not a.spaeter_zuordnen %} data-ausblenden="20"{% endif %}>
   <header class="kopf">
     <strong>{{ icon("ok") }} Import abgeschlossen</strong>
     <a href="/import?abschluss=aus" class="filter-weg" title="Ausblenden" aria-label="Meldung ausblenden"><svg viewBox="0 0 10 10"

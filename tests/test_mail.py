@@ -73,7 +73,7 @@ def test_email_bei_fahrer_und_benutzer(rollen, db):  # noqa: F811
     operator.post("/konto/email", data={"email": "olga.neu@example.com"})
     db.refresh(olga)
     assert olga.email == "olga.neu@example.com"
-    assert viewer.post("/konto/email", data={"email": "v@example.com"}).status_code == 403
+    assert viewer.post("/konto/email", data={"email": "v@example.com"}).status_code == 422
     assert 'disabled title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin"' in viewer.get("/konto").text
 
 

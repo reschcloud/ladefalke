@@ -164,3 +164,19 @@ def test_oberflaeche(angemeldet, db, fz_anna):
     assert antwort.status_code == 422
     angemeldet.post(f"/stammdaten/zuordnungen/ohne/{o.id}/loeschen")
     assert _ohne(db, fz) == []
+
+
+def test_formular_fehler_behaelt_eingaben(angemeldet, db, fz_anna):
+    """Fehler im Formular der Fahrzeugseite: 422 mit Meldung im Kasten und den Eingaben; vom Knopf an einer Lücke
+    (mit `zurueck`) bleibt es bei Meldung und Weiterleitung."""
+    fz, _ = fz_anna
+    db.commit()  # der Fehlerpfad macht rollback() – nur geflushte Testdaten wären danach weg
+    antwort = angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/ohne-fahrer", data={"ab": "", "bis": "2026-12-24"})
+    assert antwort.status_code == 422
+    kasten = antwort.text.split("<strong>Ohne Fahrer:in</strong>")[1].split("</article>")[0]
+    assert "Bitte ein Beginndatum angeben." in kasten and 'name="bis" value="2026-12-24"' in kasten
+    haken = kasten.split('name="bisherige_austragen"')[1].split(">")[0]
+    assert "checked" not in haken  # nicht angehakt gesendet → bleibt leer (Standard sonst: angehakt)
+    assert "checked" in angemeldet.get(f"/stammdaten/fahrzeuge/{fz.id}").text.split('name="bisherige_austragen"')[1].split(">")[0]
+    weiter = angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/ohne-fahrer", data={"ab": "", "zurueck": "/aufgaben"})
+    assert weiter.status_code == 200 and str(weiter.url).endswith("/aufgaben")

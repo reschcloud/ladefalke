@@ -303,8 +303,13 @@ def ohne_fahrer(request: Request, fahrzeug_id: int, ab: str = Form(""), bis: str
                                                       bisherige_austragen=bool(bisherige_austragen))
     except ValueError as e:
         db.rollback()
-        meldung(request, str(e), "fehler")
-        return weiter(ziel)
+        if zurueck:  # Knopf an einer Lücke (Zuordnungen, Aufgaben): dort bleiben, Fehler als Meldung
+            meldung(request, str(e), "fehler")
+            return weiter(ziel)
+        # Formular der Fahrzeugseite: mit Fehler und den Eingaben neu zeigen (422 tauscht htmx ein)
+        return _detail(request, db, fz, _werte_von(fz), status_code=422, zuordnung_fehler=str(e),
+                       zuordnung_werte={"ab": ab, "bis": bis, "bisherige_austragen": bisherige_austragen,
+                                        "neu_zuordnen": neu_zuordnen})
     n = sum(neu_zuordnen_fahrer(db, fid, ab_datum, None) for fid in ausgetragen) if neu_zuordnen else 0
     db.commit()
     meldung(request, f"Fahrzeug {fz.kennzeichen} ist {zeitraum(ab_datum, bis_datum)} ohne Fahrer:in.")

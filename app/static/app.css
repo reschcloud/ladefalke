@@ -21,7 +21,12 @@ td.rechts, th.rechts { text-align: right; white-space: nowrap; }
 .filterleiste > .filter, .filterleiste > .filterzeile { margin-bottom: 0; }
 .filterleiste select { width: auto; }
 .filterzeile { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; margin-bottom: 1rem; }
-.filterzeile > * { width: auto; margin-bottom: 0; }
+.filterzeile > * { width: auto; margin-bottom: 0; max-width: 100%; min-width: 0; }
+/* Auswahl mit langen Einträgen (z. B. „Bezeichnung (Kennung) · MSP“) wird sonst so breit wie der längste Eintrag */
+.filterzeile select { max-width: 100%; text-overflow: ellipsis; }
+/* fieldset ist sonst mindestens so breit wie sein Inhalt (min-inline-size: min-content) – eine breite Tabelle darin
+   (Einstellungen) drückte die ganze Gruppe über den Bildschirmrand, statt in .tabelle zu scrollen */
+fieldset { min-width: 0; }
 .filterzeile label { margin-bottom: 0; }
 .filterzeile label > select, .filterzeile label > input:not([type=checkbox]) { margin-bottom: 0; }
 /* mehrere kleine Formulare nebeneinander, unten bündig */
@@ -46,7 +51,7 @@ td.rechts, th.rechts { text-align: right; white-space: nowrap; }
 @media (max-width: 900px) { .kacheln.kennzahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .kachel { display: flex; flex-direction: column; padding: 1rem; border: 1px solid var(--pico-muted-border-color);
   border-radius: var(--pico-border-radius); text-decoration: none; }
-.kachel-zahl { font-size: 2rem; font-weight: bold; }
+.kachel-zahl { font-size: 2rem; font-weight: bold; white-space: nowrap; }  /* Zahlen nie mitten in den Ziffern umbrechen */
 
 article.login { max-width: 24rem; margin: 4rem auto; }
 
@@ -1028,9 +1033,10 @@ td.dauer small { color: var(--pico-muted-color); }
 .karte-sperre-hinweis.sichtbar { opacity: 1; }
 .karte.karte-gesperrt { cursor: pointer; }
 /* Kleine Kacheln (Ladevorgangs-Detailseite) */
-.kacheln.kacheln-klein { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .6rem; margin-bottom: 1.5rem; }
+.kacheln.kacheln-klein { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .6rem; margin-bottom: 1.5rem; }
 .kacheln-klein .kachel { padding: .55rem .8rem; }
 .kacheln-klein .kachel-zahl { font-size: 1.35rem; line-height: 1.2; }
+@media (max-width: 600px) { .kacheln-klein .kachel-zahl { font-size: 1.15rem; } }
 .kacheln-klein .kachel > span:last-child { font-size: .8rem; color: var(--pico-muted-color); }
 /* Sparpotenzial je CPO */
 .ersparnis { white-space: nowrap; font-variant-numeric: tabular-nums; }

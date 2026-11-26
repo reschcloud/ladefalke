@@ -54,8 +54,10 @@ def test_ladeort_fuer_und_manuelle_plz(angemeldet, db):
     db.commit()
     text = angemeldet.get(f"/ladevorgaenge/{v.id}").text
     assert "Erkannt: keine PLZ, „" in text
-    antwort = angemeldet.post(f"/ladevorgaenge/{v.id}/ladeort", data={"plz": "12"})
-    assert "keine gültige PLZ für Österreich" in antwort.text
+    antwort = angemeldet.post(f"/ladevorgaenge/{v.id}/ladeort", data={"plz": "12", "ort": "Testdorf"})
+    assert antwort.status_code == 422 and "keine gültige PLZ für Österreich" in antwort.text
+    assert 'name="plz" value="12"' in antwort.text and 'name="ort" value="Testdorf"' in antwort.text  # Eingaben bleiben
+    assert 'aria-invalid="true"' in antwort.text
     antwort = angemeldet.post(f"/ladevorgaenge/{v.id}/ladeort", data={"plz": "4040"})
     db.refresh(ort1)
     assert ort1.plz_manuell == "4040" and ort1.plz_wirksam == "4040" and "(manuell)" in antwort.text
