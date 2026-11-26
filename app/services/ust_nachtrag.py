@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.formatierung import anzahl as anzahl_text
 from app.models import Gebuehr, Import, ImportStatus, Ladeart, Ladevorgang
 from app.parsers import PARSER
 from app.services import kosten
@@ -28,8 +29,8 @@ class Bericht:
 
     @property
     def text(self) -> str:
-        t = (f"USt. nachgetragen: {self.vorgaenge} Ladevorgänge und {self.gebuehren} Gebühren aus {self.importe} "
-             "Rechnungen.")
+        t = (f"USt. nachgetragen: {anzahl_text(self.vorgaenge, 'Ladevorgang')} und {anzahl_text(self.gebuehren, 'Gebühr')} "
+             f"aus {anzahl_text(self.importe, 'Rechnung', dativ=True)}.")
         if self.fehler:
             t += f" Nicht lesbar: {len(self.fehler)} ({', '.join(self.fehler[:5])}{' …' if len(self.fehler) > 5 else ''})."
         return t

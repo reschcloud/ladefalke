@@ -24,6 +24,7 @@ templates.env.filters.update(
     datum=formatierung.datum,
     datumzeit=formatierung.datumzeit,
     zahl=formatierung.zahl,
+    anzahl=formatierung.anzahl,  # {{ n | anzahl("Ladevorgang") }} → „1 Ladevorgang“ / „3 Ladevorgänge“
     geld=formatierung.geld,
     monat=formatierung.monat,
     dauer=formatierung.dauer,
@@ -68,6 +69,17 @@ def _protokoll_globals():
 
 
 _protokoll_globals()
+ROLLEN_TEXT = {"admin": "Admin", "operator": "Operator", "viewer": "Viewer"}
+
+
+def nur_admin_text(request: Request) -> str:
+    """Grund für gesperrte Admin-Aktionen (Tooltip, Hinweis) – ein Schema für die ganze App:
+    „Nur für Admins – du bist als Operator angemeldet.“ (Gegenstück für Viewer: NUR_LESEN in base.html)."""
+    rolle = getattr(getattr(request.state, "benutzer", None), "rolle", "")
+    return f"Nur für Admins – du bist als {ROLLEN_TEXT.get(rolle, rolle)} angemeldet."
+
+
+templates.env.globals["nur_admin_text"] = nur_admin_text
 templates.env.globals["STROMART_TEXT"] = {"AC": "AC", "DC": "DC", None: "ohne Angabe"}
 
 

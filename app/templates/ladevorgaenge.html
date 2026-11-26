@@ -53,7 +53,7 @@
   <input type="hidden" id="sortierung-feld" name="sortierung" value="{{ sortierung }}"{{ " disabled" if not sortierung }}>
 
   <button type="submit" class="unsichtbar" tabindex="-1">Filtern</button>{# für Enter im Suchfeld #}
-  <a href="/ladevorgaenge" role="button" class="outline secondary klein">Filter zurücksetzen</a>
+  {% if filter_gesetzt %}<a href="/ladevorgaenge" role="button" class="outline secondary klein">Filter zurücksetzen</a>{% endif %}
   </div>
 </form>
 {% if fehler %}<p class="meldung meldung-fehler">{{ fehler }}</p>{% endif %}
@@ -89,7 +89,7 @@
   <div id="karte" class="karte" data-modus="interaktiv" data-bereich="{{ bereich }}"
        aria-label="Karte der gefilterten Ladevorgänge je Ort und Stromart"></div>
   <script type="application/json" id="karte-daten">{{ ladungen | tojson }}</script>
-  <p class="karte-legende"><small>{{ ladungen | length }} Ladevorgänge auf der Karte
+  <p class="karte-legende"><small>{{ ladungen | length | anzahl("Ladevorgang") }} auf der Karte
     {%- if ohne_ort %} · <a href="/aufgaben#ladeorte">{{ ohne_ort }} ohne genauen Ort</a> (stehen immer in der Liste){% endif %}.
     Die Liste zeigt den Kartenausschnitt.
     {%- if preis_schnitt %} Vergleichswert für „Farbe nach Preis“ (Ø der Karte):

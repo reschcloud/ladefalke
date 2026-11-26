@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.formatierung import anzahl as anzahl_text
 from app.db import get_db
 from app.models import Fahrzeug, Gebuehr, Import, Ladekarte, Ladeort, Ladevorgang, Msp, ZuordnungQuelle
 from app.routers.ladevorgaenge import ladeort_plz_speichern
@@ -122,7 +123,7 @@ def zuweisen(request: Request, vorgang_ids: list[int] = Form(default=[]), fahrze
     for v in db.scalars(select(Ladevorgang).where(Ladevorgang.id.in_(vorgang_ids))):
         fahrzeug_setzen(v, fahrzeug, ZuordnungQuelle.manuell)
     db.commit()
-    meldung(request, f"{len(vorgang_ids)} Ladevorgänge manuell Fahrzeug {fahrzeug.kennzeichen} zugeordnet.")
+    meldung(request, f"{anzahl_text(len(vorgang_ids), 'Ladevorgang')} manuell Fahrzeug {fahrzeug.kennzeichen} zugeordnet.")
     return weiter(_zurueck(zurueck))
 
 
@@ -132,8 +133,8 @@ def automatisch(request: Request, zurueck: str = Form(""), db: Session = Depends
     neu_zuordnen(db, Ladevorgang.fahrzeug_id.is_(None), Ladevorgang.zuordnung_quelle != ZuordnungQuelle.manuell)
     nachher = db.scalar(select(func.count()).select_from(Ladevorgang).where(*_ohne_fahrzeug()))
     db.commit()
-    meldung(request, f"{vorher - nachher} Ladevorgänge konnten automatisch zugeordnet werden; "
-                     f"{nachher} bleiben ohne Fahrzeug.")
+    meldung(request, f"{anzahl_text(vorher - nachher, 'Ladevorgang')} automatisch zugeordnet; "
+                     f"{anzahl_text(nachher, 'Ladevorgang')} ohne Fahrzeug.")
     return weiter(_zurueck(zurueck))
 
 
@@ -203,7 +204,7 @@ def stromart_setzen(request: Request, msp_id: int = Form(...), stromart_vorgabe:
         return weiter("/aufgaben#stromart")
     anzahl = stromart.vorgabe_anwenden(db, art, Ladevorgang.msp_id == msp_id)
     db.commit()
-    meldung(request, f"{anzahl} Ladevorgänge auf {art} gesetzt.")
+    meldung(request, f"{anzahl_text(anzahl, 'Ladevorgang')} auf {art} gesetzt.")
     return weiter("/aufgaben#stromart")
 
 
@@ -219,7 +220,7 @@ def stromart_einzeln(request: Request, vorgang_ids: list[int] = Form(default=[])
     for v in vorgaenge:
         stromart.manuell_setzen(v, stromart_wert)
     db.commit()
-    meldung(request, f"{len(vorgaenge)} Ladevorgänge manuell auf {stromart.wert(stromart_wert) or 'keine Angabe'} gesetzt.")
+    meldung(request, f"{anzahl_text(len(vorgaenge), 'Ladevorgang')} manuell auf {stromart.wert(stromart_wert) or 'keine Angabe'} gesetzt.")
     return weiter(ziel)
 
 

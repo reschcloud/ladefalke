@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import heute
 from app.db import get_db
-from app.formatierung import datum_lesen
+from app.formatierung import anzahl as anzahl_text, datum_lesen, wurde
 from app.models import Fahrer, Fahrzeug, Gebuehr, KennungTyp, Ladekarte, Ladevorgang, Msp, ZuordnungKarte
 from app.routers.ladevorgaenge import mehrfach_bedingung
 from app.services import mini_zeitleiste
@@ -106,8 +106,7 @@ def _detail(request, db, karte, werte, fehler=None, status_code=200, zuordnung_w
                                              if karte else (None, None))
     ohne = db.scalar(select(func.count()).select_from(Ladevorgang).where(
         Ladevorgang.ladekarte_id == karte.id, *ohne_fahrzeug_bedingungen())) if karte else 0
-    kontext["offen"] = [Hinweis("rot", f"{ohne} Ladevorgang ohne Fahrzeug" if ohne == 1
-                                else f"{ohne} Ladevorgänge ohne Fahrzeug", f"/aufgaben?karte_id={karte.id}",
+    kontext["offen"] = [Hinweis("rot", f"{anzahl_text(ohne, 'Ladevorgang')} ohne Fahrzeug", f"/aufgaben?karte_id={karte.id}",
                                 "Unter „Aufgaben“ einem Fahrzeug zuordnen")] if ohne else []
     kontext["blaettern"] = blaettern(
         request, db, "ladekarten", "/stammdaten/ladekarten",
@@ -224,8 +223,8 @@ def zuordnen(request: Request, karte_id: int, ziel: str = Form(""), ab: str = Fo
         return _detail(request, db, karte, _werte_von(karte), status_code=422,
                        zuordnung_werte=zuordnung_werte, zuordnung_fehler=str(e), zurueck=zurueck)
     if neu_zuordnen:
-        neu_info = (f"{neu_zuordnen_karte(db, karte.id, ab_datum, bis_datum)} bereits importierte "
-                         "Ladevorgänge wurden neu zugeordnet.")
+        n = neu_zuordnen_karte(db, karte.id, ab_datum, bis_datum)
+        neu_info = f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet."
     db.commit()
     meldung(request, f"Ladekarte {karte.kennung} ist ab {ab_datum:%d.%m.%Y} {neu.ziel_name} zugeordnet.")
     if neu_zuordnen:
@@ -250,8 +249,7 @@ def loeschen(request: Request, karte_id: int, db: Session = Depends(get_db)):
     if karte.zuordnungen or _hat_buchungen(db, karte.id):
         karte.aktiv = False
         db.commit()
-        meldung(request, f"Ladekarte {karte.kennung} wird verwendet und wurde deaktiviert statt gelöscht.",
-                "warnung")
+        meldung(request, f"Ladekarte {karte.kennung} deaktiviert – sie bleibt mit ihren Daten in allen Auswertungen.")
         return weiter(f"/stammdaten/ladekarten/{karte.id}")
     db.delete(karte)
     db.commit()

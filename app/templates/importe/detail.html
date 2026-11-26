@@ -16,7 +16,7 @@
     {% if imp.strompreis_netto_kwh is not none %}<dt>Strompreis netto</dt><dd>{{ imp.strompreis_netto_kwh | zahl(4) }} €/kWh</dd>{% endif %}
     <dt>Originaldatei</dt><dd>{{ imp.dateiname }}
       <a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button"
-         class="outline klein extern-link" title="Originaldatei in neuem Tab öffnen">Originaldatei öffnen ↗</a></dd>
+         class="outline klein extern-link" title="Originaldatei in neuem Tab öffnen">Originaldatei ↗</a></dd>
   </dl>
 </div>
 
@@ -30,7 +30,7 @@
     <span class="kachel-zahl">{{ ohne_fahrzeug }}</span><span>ohne Fahrzeug</span>{% if ohne_fahrzeug %}</a>{% else %}</div>{% endif %}
 </div>
 {% if ohne_stromart %}
-<p class="aktionszeile"><span>{{ ohne_stromart }} Ladevorgänge dieses Imports haben keine AC/DC-Angabe.</span>
+<p class="aktionszeile"><span>{{ ohne_stromart | anzahl("Ladevorgang") }} dieses Imports {{ "hat" if ohne_stromart == 1 else "haben" }} keine AC/DC-Angabe.</span>
   {{ m.nav_knopf("/aufgaben" ~ ("?stromart_msp=%d" % imp.msp_id if imp.msp_id else "") ~ "#stromart", "In den Aufgaben setzen →") }}</p>
 {% endif %}
 

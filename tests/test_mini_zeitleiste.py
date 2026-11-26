@@ -48,7 +48,7 @@ def test_detailseiten(angemeldet, db):
 
     seite = angemeldet.get(f"/stammdaten/ladekarten/{k.id}").text  # Karte ohne Zuordnung: neutral
     assert '<tr class="luecken-zeile neutral">' in seite and 'data-luecke-fuellen="neue-karten-zuordnung"' in seite
-    assert ">zuordnen</button>" in seite and "nicht zugeordnet" in seite
+    assert ">Zuordnen</button>" in seite and "nicht zugeordnet" in seite
 
 
 def test_symbole_und_kartenansicht(angemeldet, db):

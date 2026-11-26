@@ -125,7 +125,7 @@ def test_einstellungen_cpo_liste(angemeldet, db, imp):
 
     antwort = angemeldet.post("/einstellungen/cpo-stromart", data={"name": " Ionity ", "kennungen": "at*ioy",
                                                                    "art": "DC"})
-    assert "CPO „Ionity“ = immer DC gespeichert – AC/DC von 1 Ladevorgängen neu bestimmt." in antwort.text
+    assert "CPO „Ionity“ = immer DC gespeichert – AC/DC von 1 Ladevorgang neu bestimmt." in antwort.text
     eintrag = db.scalar(select(CpoStromart))
     assert (eintrag.name, eintrag.kennungen) == ("Ionity", ["AT*IOY"])
     db.refresh(v)
@@ -158,7 +158,7 @@ def test_grenzen_aendern_bestimmt_neu(angemeldet, db, imp):
     werte = {k: (w if isinstance(w, str) else "") for k, w in app_einstellungen.STANDARD.items()}
     werte.update({"plausibel_ac_max_kw": "10,5", "firmenland": "AT", "gruppe": "ladevorgaenge"})
     antwort = angemeldet.post("/einstellungen", data=werte)
-    assert "AC/DC von 1 Ladevorgängen neu bestimmt." in antwort.text, antwort.text[:2000]
+    assert "AC/DC von 1 Ladevorgang neu bestimmt." in antwort.text, antwort.text[:2000]
     db.refresh(v)
     assert (v.stromart, v.stromart_quelle) == ("DC", "leistung")
 

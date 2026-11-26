@@ -13,7 +13,7 @@
     {% if fehler %}<small>{{ fehler }}</small>{% endif %}
   </label>
   <noscript><button type="submit" class="outline">Filtern</button></noscript>
-  {% if stichtag %}<a href="/stammdaten/zuordnungen" role="button" class="outline secondary klein">alle Zeiträume anzeigen</a>{% endif %}
+  {% if stichtag %}<a href="/stammdaten/zuordnungen" role="button" class="outline secondary klein">Alle Zeiträume anzeigen</a>{% endif %}
 </form>
 {% if stichtag %}<p>Zuordnungen, die am <strong>{{ stichtag | datum }}</strong> gültig sind.</p>{% endif %}
 
@@ -29,7 +29,7 @@
       <td>{{ z.ladekarte.msp.name }}</td>
       <td>{{ m.karten_ziel(z) }}</td>
       <td>{{ m.zeitraum_zelle(z) }}</td>
-      <td class="rechts"><a href="/stammdaten/zuordnungen/karte/{{ z.id }}" role="button" data-schreiben class="outline klein">bearbeiten</a></td>
+      <td class="rechts"><a href="/stammdaten/zuordnungen/karte/{{ z.id }}" role="button" data-schreiben class="outline klein">Bearbeiten</a></td>
     </tr>
   {% else %}
     <tr><td colspan="5">Keine Zuordnungen.</td></tr>
@@ -48,7 +48,7 @@
       <td><a href="/stammdaten/fahrer/{{ z.fahrer.id }}">{{ z.fahrer.name }}</a></td>
       <td><a href="/stammdaten/fahrzeuge/{{ z.fahrzeug.id }}">{{ z.fahrzeug.kennzeichen }}</a></td>
       <td>{{ m.zeitraum_zelle(z) }}</td>
-      <td class="rechts"><a href="/stammdaten/zuordnungen/fahrer/{{ z.id }}" role="button" data-schreiben class="outline klein">bearbeiten</a></td>
+      <td class="rechts"><a href="/stammdaten/zuordnungen/fahrer/{{ z.id }}" role="button" data-schreiben class="outline klein">Bearbeiten</a></td>
     </tr>
   {% else %}
     <tr><td colspan="4">Keine Zuordnungen.</td></tr>

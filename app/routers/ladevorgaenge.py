@@ -271,6 +271,7 @@ def liste(request: Request, von: str = "", bis: str = "", msp_id: list[str] = Qu
             "zeitraum_versteckt": [(k, x) for k, w in uebrige.items() for x in (w if isinstance(w, list) else [w])],
             "zeitraum_felder": zeitraum_werte(z), "histogramm": histogramm,
             "f": filter_werte, "fehler": fehler,
+            "filter_gesetzt": any(w for k, w in filter_werte.items() if k not in ZEITRAUM_SCHLUESSEL),
             "filter_karte": db.get(Ladekarte, int(ladekarte_id)) if ladekarte_id.isdigit() else None,
             "filter_import": db.get(Import, int(import_id)) if import_id.isdigit() else None,
             "ladungen": (ladungen := kartendaten.ladungen(db, bedingungen)),

@@ -82,9 +82,9 @@
       <td class="rechts">{% if ohne_fahrer %}<form method="post" action="{{ ohne_fahrer }}" class="inline">
         <input type="hidden" name="ab" value="{{ z.ab.isoformat() }}"><input type="hidden" name="bis" value="{{ z.bis.isoformat() if z.bis else '' }}">
         <button type="submit" class="outline secondary klein" data-schreiben
-                title="Das Fahrzeug war in diesem Zeitraum bewusst niemandem zugeordnet">ohne Fahrer:in</button></form>{% endif %}
+                title="Das Fahrzeug war in diesem Zeitraum bewusst niemandem zugeordnet">Ohne Fahrer:in</button></form>{% endif %}
         {%- if formular %} <button type="button" class="outline klein" data-schreiben data-luecke-fuellen="{{ formular }}"
-        data-von="{{ z.ab.isoformat() }}" data-bis="{{ z.bis.isoformat() if z.bis else '' }}">{{ "Lücke schließen" if mini.luecken_art == "warnung" else "zuordnen" }}</button>{% endif %}</td>
+        data-von="{{ z.ab.isoformat() }}" data-bis="{{ z.bis.isoformat() if z.bis else '' }}">{{ "Lücke schließen" if mini.luecken_art == "warnung" else "Zuordnen" }}</button>{% endif %}</td>
     </tr>
     {% endif %}
   {% else %}

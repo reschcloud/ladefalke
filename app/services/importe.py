@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import einstellungen
-from app.formatierung import datum, geld
+from app.formatierung import anzahl as anzahl_text, datum, geld, wurde
 from app.models import (Fahrer, Fahrzeug, Gebuehr, Import, ImportStatus, KennungTyp, Ladeart, Ladekarte, Ladeort, Ladevorgang,
                         Msp, ZuordnungQuelle)
 from app.parsers import PARSER
@@ -291,9 +291,9 @@ def vorschau_berechnen(db: Session, imp: Import) -> Vorschau:
 
     # ---------------------------------------------------------------- Plausibilität
     if ohne_preis:
-        vs.warnungen.append(f"{ohne_preis} Vorgänge ohne Kosten – bitte Strompreis angeben.")
+        vs.warnungen.append(f"{anzahl_text(ohne_preis, 'Vorgang')} ohne Kosten – bitte Strompreis angeben.")
     if duplikate := sum(1 for x in vs.vorgaenge if x.duplikat):
-        vs.warnungen.append(f"{duplikate} Vorgänge wurden bereits importiert und werden übersprungen.")
+        vs.warnungen.append(f"{anzahl_text(duplikate, 'Vorgang')} {wurde(duplikate)} bereits importiert und {'wird' if duplikate == 1 else 'werden'} übersprungen.")
     if r.summe_netto is not None:  # alle Positionen der Datei, auch bereits importierte
         positionen = sum((x.kosten for x in vs.vorgaenge), Decimal(0)) + \
             sum((x.g.betrag_netto for x in vs.gebuehren), Decimal(0))

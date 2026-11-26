@@ -90,6 +90,12 @@ abbr.geschaetzt { text-decoration: none; cursor: help; color: var(--warnung-text
 abbr.hilfe { display: inline-block; width: 1.1em; height: 1.1em; line-height: 1.1em; border-radius: 50%;
   border: 1px solid var(--pico-muted-color); color: var(--pico-muted-color); font-size: .75em; font-weight: bold;
   text-align: center; text-decoration: none; cursor: help; vertical-align: .1em; }
+abbr.hilfe[aria-expanded="true"] { border-color: var(--pico-primary); color: var(--pico-primary); }
+/* Popover zum Hilfe-„?“ (base.html): auch per Tippen und Tastatur erreichbar, nicht nur als Maus-Tooltip */
+.hilfe-popover { position: absolute; z-index: 1200; max-width: min(22rem, calc(100vw - 1rem)); padding: .5rem .7rem;
+  border-radius: var(--pico-border-radius); background: var(--pico-card-background-color); color: var(--pico-color);
+  border: 1px solid var(--pico-muted-border-color); box-shadow: 0 4px 14px rgb(0 0 0 / .18);
+  font-size: var(--schrift-s); line-height: 1.4; white-space: pre-line; }
 /* Abstand zwischen Abschnitten einer Seite (section, Abschnittstitel, Verlauf) */
 :root { --abstand-abschnitt: 2rem; }
 section { margin-bottom: var(--abstand-abschnitt); }
@@ -794,7 +800,6 @@ main :is(article, .abschnitt-karte, .diagramm, .einstellung-gruppe, form.formula
 .formular-fuss > button { margin: 0; }
 
 /* Kurzer Hinweis mit ausführlichem Text im Tooltip */
-.mit-tooltip { cursor: help; color: var(--pico-muted-color); }
 .theme-wahl .umschalter button { min-width: 2.8rem; padding-block: .15rem; font-size: 1.2rem; line-height: 1.3; }
 .zeitraum-wahl .umschalter button { font-size: var(--schrift-l); padding-inline: .7rem; line-height: 1.6; }
 

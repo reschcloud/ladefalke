@@ -29,7 +29,7 @@
   </div>
   <small class="formular-hinweis">Mindestens {{ mindestlaenge }} Zeichen. Die Person kann es danach unter „Mein Konto“ ändern.</small>
   {% endif %}
-  <button type="submit">{{ "Speichern" if b else "Anlegen" }}</button>
+  <button type="submit">Speichern</button>
 </form>
 {% if b and b.id != request.state.benutzer.id %}<div class="entfernen-zeile">
   {% if b.aktiv %}<small class="hinweis-knopf">Löschen geht erst, wenn die Person deaktiviert ist (Haken „aktiv“ entfernen und speichern).</small>

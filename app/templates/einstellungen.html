@@ -12,7 +12,7 @@
   <div class="mit-einheit">
     <input type="text" id="e-{{ name }}" name="{{ name }}" value="{{ werte.get(name) or '' }}" inputmode="decimal"
            {% if empfehlung %}data-standard="{{ standard.get(name) or '' }}" {% endif %}{% if not leer_text %}required{% endif %}
-           {% if request.state.benutzer.rolle != "admin" %}disabled title="Unzureichende Berechtigungen"{% endif %}
+           {% if request.state.benutzer.rolle != "admin" %}disabled title="{{ nur_admin_text(request) }}"{% endif %}
            {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
     <span class="einheit">{{ einheit }}</span>
   </div>
@@ -33,7 +33,7 @@
     <fieldset class="feldgruppe">
       <legend>{{ titel }}</legend>
       <label class="haken haupt"><input type="checkbox" name="{{ name }}" {% if werte.get(name) %}checked{% endif %}
-        {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> {{ schalter }}</label>
+        {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> {{ schalter }}</label>
       <div class="versand-details" data-zeigen-wenn="{{ name }}" {% if not werte.get(name) %}hidden{% endif %}>
         <small class="versand-hinweis">{{ erklaerung }}</small>
         <div class="einstellung-felder">{{ caller() }}</div>
@@ -92,28 +92,27 @@
       {% for e in c.eintraege %}
         <tr><td>{{ e.name }}</td><td>{{ e.kennungen | join(", ") or "–" }}</td><td>{{ m.stromart(e.stromart) }}</td>
           <td class="rechts">{{ c.treffer.get(e.id, 0) }}</td>
-          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="cpo-stromart-loeschen-{{ e.id }}" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+          <td class="rechts"><button data-nur-admin type="submit" form="cpo-stromart-loeschen-{{ e.id }}" data-bestaetigen="CPO „{{ e.name }}“ entfernen? AC/DC der betroffenen Ladevorgänge wird neu bestimmt." data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button></td></tr>
       {% endfor %}
-      {% if not nur_lesen %}
-        <tr><td><input type="text" name="name" form="cpo-stromart-neu" aria-label="Name des CPO" placeholder="z. B. Ionity" maxlength="60" required></td>
+      {% if not c.eintraege %}
+        <tr><td colspan="5">Noch keine Einträge.</td></tr>
+      {% endif %}
+        <tr data-nur-admin><td><input type="text" name="name" form="cpo-stromart-neu" aria-label="Name des CPO" placeholder="z. B. Ionity" maxlength="60" required></td>
           <td><input type="text" name="kennungen" form="cpo-stromart-neu" aria-label="Kennungen, durch Komma getrennt"
                      placeholder="IOY, AT*ION" list="cpo-vorschlaege" autocomplete="off"></td>
           <td><select name="art" form="cpo-stromart-neu" aria-label="Stromart"><option value="DC">DC</option><option value="AC">AC</option></select></td>
           <td></td>
-          <td class="rechts"><button type="submit" form="cpo-stromart-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Speichern</button></td></tr>
-      {% elif not c.eintraege %}
-        <tr><td colspan="5">Noch keine Einträge.</td></tr>
-      {% endif %}
+          <td class="rechts"><button type="submit" form="cpo-stromart-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Hinzufügen</button></td></tr>
       </tbody>
     </table></div>
-    <datalist id="cpo-vorschlaege">{% for k, n, bekannt in c.vorschlaege if not bekannt %}<option value="{{ k }}">{{ n }} Ladevorgänge</option>{% endfor %}</datalist>
+    <datalist id="cpo-vorschlaege">{% for k, n, bekannt in c.vorschlaege if not bekannt %}<option value="{{ k }}">{{ n | anzahl("Ladevorgang") }}</option>{% endfor %}</datalist>
     {% if c.vorschlaege %}
     <p class="gruppe-text"><small>Häufige CPO ohne AC/DC-Angabe der Rechnung:
       {% for k, n, bekannt in c.vorschlaege %}{{ k }} ({{ n }}){% if bekannt %} ✓{% endif %}{{ ", " if not loop.last }}{% endfor %}</small></p>
     {% endif %}
-    <p class="gruppe-text"><small>Automatisch bestimmt wird für {{ c.betroffen }} Ladevorgänge ohne AC/DC der Rechnung
+    <p class="gruppe-text"><small>Automatisch bestimmt wird für {{ c.betroffen | anzahl("Ladevorgang") }} ohne AC/DC der Rechnung
       (beim Import und nach jeder Änderung hier oder an den Grenzen oben).</small>
-      {% if not nur_lesen %}<button type="submit" form="stromart-neu-bestimmen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">AC/DC jetzt neu bestimmen</button>{% endif %}</p>
+      <button data-nur-admin type="submit" form="stromart-neu-bestimmen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">AC/DC jetzt neu bestimmen</button></p>
     </fieldset>
     <fieldset class="feldgruppe">
       <legend>kWh-Schätzung – Ersatzwerte</legend>
@@ -136,7 +135,7 @@
     <div class="einstellung-felder">
       <div class="einstellung{{ ' geaendert' if geaendert }}">
         <label for="e-firmenland">Land des Unternehmens {{ m.hilfe("USt. dieses Landes ist als Vorsteuer abziehbar; USt. anderer Länder zählt als Kosten.") }}</label>
-        <select id="e-firmenland" name="firmenland" data-standard="{{ standard.firmenland }}" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+        <select id="e-firmenland" name="firmenland" data-standard="{{ standard.firmenland }}" {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for code, name in laender %}<option value="{{ code }}" {% if werte.get("firmenland") == code %}selected{% endif %}>{{ name }}</option>{% endfor %}
         </select>
         <small class="standardwert">Empfehlung: Österreich <span class="geaendert-marker">· abweichend</span></small>
@@ -154,20 +153,18 @@
       {% for s in steuersaetze %}
         <tr><td>{{ laender_namen.get(s.land, s.land) }} <small>({{ s.land }})</small></td><td>{{ s.gueltig_ab | datum }}</td>
           <td class="rechts">{{ s.satz | zahl(1 if s.satz % 1 else 0) }} %</td>
-          <td class="rechts">{% if not nur_lesen %}<button type="submit" form="steuersatz-loeschen-{{ s.id }}" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+          <td class="rechts"><button data-nur-admin type="submit" form="steuersatz-loeschen-{{ s.id }}" data-bestaetigen="Steuersatz {{ laender_namen.get(s.land, s.land) }} ab {{ s.gueltig_ab | datum }} entfernen? Geschätzte USt. wird neu berechnet." data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button></td></tr>
       {% endfor %}
-      {% if not nur_lesen %}
-        <tr><td><select name="land" form="steuersatz-neu" aria-label="Land">{% for code, name in laender %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></td>
+        <tr data-nur-admin><td><select name="land" form="steuersatz-neu" aria-label="Land">{% for code, name in laender %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></td>
           <td><input type="date" name="gueltig_ab" form="steuersatz-neu" aria-label="gültig ab" required></td>
           <td><input type="text" name="satz" form="steuersatz-neu" inputmode="decimal" aria-label="Satz in Prozent" placeholder="%" required class="kurz"></td>
           <td class="rechts"><button type="submit" form="steuersatz-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Hinzufügen</button></td></tr>
-      {% endif %}
       </tbody>
     </table></div>
     <p class="gruppe-text"><small>Rechnungen, die vor der USt.-Erfassung (11/2026) importiert wurden, liest die App
       einmal nach dem Update erneut und übernimmt die USt.{% if werte.get("ust_nachgetragen") %} (zuletzt am
       {{ werte.ust_nachgetragen }}){% endif %}.</small>
-      {% if not nur_lesen %}<button type="submit" form="ust-nachtragen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button>{% endif %}</p>
+      <button data-nur-admin type="submit" form="ust-nachtragen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">USt. aus den Originalrechnungen nachtragen</button></p>
     </fieldset>
   </details>
 
@@ -219,13 +216,13 @@
     {% call feature("feature_tank", "Gesparte Tankkosten", "Gesparte Tankkosten schätzen", "Tankkosten eines Verbrenners für dieselbe Strecke (Spritpreis am Tag der Ladung) abzüglich der tatsächlichen Ladekosten – Kachel in Dashboard und Auswertungen, in der Flottenbilanz statt Ø kWh je Fahrzeug.") %}
       <div class="einstellung">
         <label for="e-sprit_art">Kraftstoff des Vergleichsfahrzeugs</label>
-        <select id="e-sprit_art" name="sprit_art" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+        <select id="e-sprit_art" name="sprit_art" {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for wert, text in oil_bulletin.arten.items() %}<option value="{{ wert }}" {% if werte.get("sprit_art") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
         </select>
       </div>
       <div class="einstellung spritpreise" id="tankkosten">
         <label class="haken"><input type="checkbox" name="oil_bulletin_auto" {% if werte.get("oil_bulletin_auto") %}checked{% endif %}
-          {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Spritpreise automatisch laden (EU Weekly Oil Bulletin)</label>
+          {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> Spritpreise automatisch laden (EU Weekly Oil Bulletin)</label>
         <small class="formular-hinweis">Einmal pro Woche lädt die App die Preisdatei der Europäischen Kommission
           (<a href="{{ oil_bulletin.seite }}" target="_blank" rel="noopener" hx-boost="false">Weekly Oil Bulletin ↗</a>,
           Verbraucherpreise inklusive Steuern) von energy.ec.europa.eu und übernimmt je Monat den Durchschnitt für
@@ -235,28 +232,24 @@
         {% if st.zeit %}<p class="oil-status"><small>{{ icon("ok" if st.ok else "warnung") }} Zuletzt
           {{ {"automatisch": "automatisch geladen", "download": "geladen", "datei": "aus Datei übernommen"}.get(st.quelle, "geladen") }}
           am {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}: {{ st.text }}</small></p>{% endif %}
-        {% if not nur_lesen %}
-        <div class="oil-knoepfe">
+                <div class="oil-knoepfe" data-nur-admin>
           <button type="submit" form="oil-laden" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Jetzt laden</button>
           <input type="file" name="datei" form="oil-hochladen" accept=".xlsx" aria-label="Datei des Oil Bulletin">
           <button type="submit" form="oil-hochladen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Datei übernehmen</button>
         </div>
-        {% endif %}
         <label>Spritpreise {{ m.hilfe("Was ihr für einen Liter Kraftstoff tatsächlich bezahlen würdet, ab dem jeweiligen Datum. Vor dem ersten Eintrag gilt der früheste. Einträge aus dem Oil Bulletin gelten je Monat ab dem 1.") }}</label>
         <div class="tabelle spritpreis-liste"><table class="steuersaetze">
           <thead><tr><th>gültig ab</th><th class="rechts">Preis</th><th></th></tr></thead>
           <tbody>
           {% for p in spritpreise %}
             <tr><td>{{ p.gueltig_ab | datum }}{% if p.quelle == "oil_bulletin" %} <small>Oil Bulletin</small>{% endif %}</td><td class="rechts">{{ p.preis | zahl(3) }} €/l</td>
-              <td class="rechts">{% if not nur_lesen %}<button type="submit" form="spritpreis-loeschen-{{ p.id }}" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button>{% endif %}</td></tr>
+              <td class="rechts"><button data-nur-admin type="submit" form="spritpreis-loeschen-{{ p.id }}" data-bestaetigen="Spritpreis ab {{ p.gueltig_ab | datum }} entfernen?" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Entfernen</button></td></tr>
           {% else %}
             <tr><td colspan="3"><small>Noch kein Spritpreis – ohne Preis bleibt die Schätzung aus.</small></td></tr>
           {% endfor %}
-          {% if not nur_lesen %}
-            <tr><td><input type="date" name="gueltig_ab" form="spritpreis-neu" aria-label="gültig ab" required></td>
+            <tr data-nur-admin><td><input type="date" name="gueltig_ab" form="spritpreis-neu" aria-label="gültig ab" required></td>
               <td><input type="text" name="preis" form="spritpreis-neu" inputmode="decimal" aria-label="Preis je Liter" placeholder="€/l" required class="kurz"></td>
               <td class="rechts"><button type="submit" form="spritpreis-neu" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="klein">Hinzufügen</button></td></tr>
-          {% endif %}
           </tbody>
         </table></div>
       </div>
@@ -270,7 +263,7 @@
     <label for="e-{{ name }}">{{ label }}{% if hilfe %} {{ m.hilfe(hilfe) }}{% endif %}</label>
     <input type="{{ typ }}" id="e-{{ name }}" name="{{ name }}" value="{{ werte.get(name) or '' }}" placeholder="{{ platzhalter }}"
            {% if empfehlung is not none %}data-standard="{{ empfehlung }}"{% endif %}
-           {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}
+           {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}
            {% if fehler.get(name) %}aria-invalid="true" aria-describedby="{{ name }}-fehler"{% endif %}>
     {% if fehler.get(name) %}<small id="{{ name }}-fehler" class="fehler">{{ fehler[name] }}</small>{% endif %}
     {% if empfehlung is not none %}<small class="standardwert">Empfehlung: {{ empfehlung }} <span class="geaendert-marker">· abweichend</span></small>{% endif %}
@@ -280,7 +273,7 @@
   <details class="einstellung-gruppe"{{ " open" if fehler }}>
     {{ gruppe_kopf("reports", "Reports", none) }}
     {% set aus = nur_lesen %}
-    {% set gesperrt %}{% if aus %}disabled title="Unzureichende Berechtigungen"{% endif %}{% endset %}
+    {% set gesperrt %}{% if aus %}disabled title="{{ nur_admin_text(request) }}"{% endif %}{% endset %}
 
     <fieldset class="feldgruppe">
     <legend>Kennzeichnung</legend>
@@ -386,7 +379,7 @@
       <div class="einstellung{{ ' geaendert' if werte.get('mail_verbindung') != 'starttls' }}">
         <label for="e-mail_verbindung">Verbindung</label>
         <select id="e-mail_verbindung" name="mail_verbindung" data-standard="starttls"
-                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+                {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for wert, text in mail.verbindungen.items() %}<option value="{{ wert }}" {% if werte.get("mail_verbindung") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
         </select>
         <small class="standardwert">Empfehlung: STARTTLS <span class="geaendert-marker">· abweichend</span></small>
@@ -398,11 +391,11 @@
         <label for="e-mail_passwort">Passwort</label>
         <input type="password" id="e-mail_passwort" name="mail_passwort" autocomplete="new-password"
                placeholder="{{ '•••••• gespeichert' if k and k.passwort else 'Passwort' }}"
-               {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+               {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
         {% if k and k.passwort %}<small class="standardwert">Gespeichert – leer lassen, um es zu behalten.</small>{% endif %}
         {% if k and (k.passwort or k.passwort_unlesbar) %}
         <label class="haken klein"><input type="checkbox" name="mail_passwort_entfernen"
-          {% if nur_lesen %}disabled{% endif %}> gespeichertes Passwort entfernen</label>{% endif %}
+          {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> gespeichertes Passwort entfernen</label>{% endif %}
       </div>
     </div>
     <div class="einstellung-felder">
@@ -414,7 +407,7 @@
       Änderungen erst speichern, dann testen.</small></p>
     <div class="mail-test" data-nur-admin>
       <input type="email" name="an" form="mail-test" value="{{ mail.an }}" placeholder="Empfänger der Testmail"
-             aria-label="Empfänger der Testmail" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+             aria-label="Empfänger der Testmail" {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
       <button type="submit" form="mail-test" class="outline" title="Testmail mit den gespeicherten Einstellungen senden"
               data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst speichern – die Testmail verwendet die gespeicherten Einstellungen.">Testmail senden</button>
     </div>
@@ -441,7 +434,7 @@
       <div class="einstellung{{ ' geaendert' if werte.get('syslog_protokoll') != 'tcp' }}">
         <label for="e-syslog_protokoll">Verbindung {{ m.hilfe("UDP ist einfach, aber Meldungen können unbemerkt verloren gehen. TCP stellt zuverlässig zu, TLS zusätzlich verschlüsselt (rsyslog: imtcp mit StreamDriver gtls bzw. ossl).") }}</label>
         <select id="e-syslog_protokoll" name="syslog_protokoll" data-standard="tcp"
-                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+                {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for wert, text in sl.protokolle.items() %}<option value="{{ wert }}" {% if werte.get("syslog_protokoll") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
         </select>
         <small class="standardwert">Empfehlung: TCP, bei Übertragung über fremde Netze TLS <span class="geaendert-marker">· abweichend</span></small>
@@ -455,7 +448,7 @@
       <div class="einstellung{{ ' geaendert' if werte.get('syslog_format') != '5424' }}">
         <label for="e-syslog_format">Format {{ m.hilfe("RFC 5424 mit strukturierten Daten (Benutzer:in, Aktion, Objekt, Felder) – von rsyslog direkt auswertbar. RFC 3164 nur für sehr alte Empfänger.") }}</label>
         <select id="e-syslog_format" name="syslog_format" data-standard="5424"
-                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+                {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for wert, text in sl.formate.items() %}<option value="{{ wert }}" {% if werte.get("syslog_format") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
         </select>
         <small class="standardwert">Empfehlung: RFC 5424 <span class="geaendert-marker">· abweichend</span></small>
@@ -463,7 +456,7 @@
       <div class="einstellung{{ ' geaendert' if werte.get('syslog_facility') != 'local0' }}">
         <label for="e-syslog_facility">Facility</label>
         <select id="e-syslog_facility" name="syslog_facility" data-standard="local0"
-                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+                {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for wert in sl.facilities %}<option value="{{ wert }}" {% if werte.get("syslog_facility") == wert %}selected{% endif %}>{{ wert }}</option>{% endfor %}
         </select>
         <small class="standardwert">Empfehlung: local0 <span class="geaendert-marker">· abweichend</span></small>
@@ -474,19 +467,19 @@
       <label for="e-syslog_ca">CA-Zertifikat für TLS {{ m.hilfe("Nur nötig, wenn das Zertifikat des Syslog-Servers von einer eigenen CA stammt (selbst signiert). Sonst gelten die üblichen öffentlichen CAs. Der Servername muss zum Zertifikat passen.") }}</label>
       <textarea id="e-syslog_ca" name="syslog_ca" rows="3" spellcheck="false"
                 placeholder="{{ '•••••• eigene CA gespeichert – leer lassen, um sie zu behalten' if sl.ca else '-----BEGIN CERTIFICATE----- … (optional)' }}"
-                {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}
+                {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}
                 {% if fehler.get("syslog_ca") %}aria-invalid="true"{% endif %}></textarea>
       {% if fehler.get("syslog_ca") %}<small class="fehler">{{ fehler.syslog_ca }}</small>{% endif %}
       {% if sl.ca %}<label class="haken klein"><input type="checkbox" name="syslog_ca_entfernen"
-        {% if nur_lesen %}disabled{% endif %}> gespeicherte CA entfernen</label>{% endif %}
+        {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> gespeicherte CA entfernen</label>{% endif %}
     </div>
     </details>
     <label class="haken"><input type="checkbox" name="syslog_aenderungen" {% if werte.get("syslog_aenderungen") %}checked{% endif %}
-      {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Änderungsprotokoll senden (inkl. Anmeldungen)</label>
+      {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> Änderungsprotokoll senden (inkl. Anmeldungen)</label>
     <label class="haken"><input type="checkbox" name="syslog_werte" {% if werte.get("syslog_werte") %}checked{% endif %}
-      {% if nur_lesen %}disabled{% endif %}> mit alten und neuen Werten (sonst nur die Namen der geänderten Felder)</label>
+      {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> mit alten und neuen Werten (sonst nur die Namen der geänderten Felder)</label>
     <label class="haken"><input type="checkbox" name="syslog_app" {% if werte.get("syslog_app") %}checked{% endif %}
-      {% if nur_lesen %}disabled{% endif %}> Meldungen der App senden (Fehler, Sicherungen, Report-Versand)</label>
+      {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> Meldungen der App senden (Fehler, Sicherungen, Report-Versand)</label>
     {% set st = sl.status %}
     <p class="syslog-status"><small>
       {%- if not werte.get("syslog_server") %}Syslog ist aus.
@@ -512,20 +505,20 @@
     <div class="einstellung-felder">
       <div class="einstellung">
         <label for="e-backup_zeitplan">Automatisch sichern</label>
-        <select id="e-backup_zeitplan" name="backup_zeitplan" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+        <select id="e-backup_zeitplan" name="backup_zeitplan" {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for wert, text in bk.zeitplaene.items() %}<option value="{{ wert }}" {% if werte.get("backup_zeitplan") == wert %}selected{% endif %}>{{ text }}</option>{% endfor %}
         </select>
       </div>
       <div class="einstellung" data-zeigen-bei="backup_zeitplan:woechentlich" {% if werte.get("backup_zeitplan") != "woechentlich" %}hidden{% endif %}>
         <label for="e-backup_wochentag">Wochentag</label>
-        <select id="e-backup_wochentag" name="backup_wochentag" {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}>
+        <select id="e-backup_wochentag" name="backup_wochentag" {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}>
           {% for text in bk.wochentage %}<option value="{{ loop.index0 }}" {% if werte.get("backup_wochentag") == loop.index0 | string %}selected{% endif %}>{{ text }}</option>{% endfor %}
         </select>
       </div>
       <div class="einstellung">
         <label for="e-backup_uhrzeit">Uhrzeit</label>
         <input type="time" id="e-backup_uhrzeit" name="backup_uhrzeit" value="{{ werte.get('backup_uhrzeit') }}" required
-               {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}
+               {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}
                {% if fehler.get("backup_uhrzeit") %}aria-invalid="true"{% endif %}>
         {% if fehler.get("backup_uhrzeit") %}<small class="fehler">{{ fehler.backup_uhrzeit }}</small>{% endif %}
       </div>
@@ -593,11 +586,11 @@
       <code>curl -fsSL https://raw.githubusercontent.com/reschcloud/ladefalke/main/setup.sh | sh</code></small></p>
     {% endif %}
     <label class="haken"><input type="checkbox" name="update_pruefen" {% if werte.get("update_pruefen") %}checked{% endif %}
-      {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Täglich nach neuen Versionen sehen (GitHub)</label>
+      {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> Täglich nach neuen Versionen sehen (GitHub)</label>
     {% set st = sy.release %}
     {% if st.zeit %}<p class="system-status"><small>{{ icon("ok" if st.ok else "warnung") }} Zuletzt nachgesehen am
       {{ st.zeit[8:10] }}.{{ st.zeit[5:7] }}.{{ st.zeit[:4] }} {{ st.zeit[11:16] }}{% if st.ok %}{% if st.neueste %}: neuestes Release {{ st.neueste }}{% endif %}{% else %}: {{ st.fehler }}{% endif %}</small></p>{% endif %}
-    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="update-pruefen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Jetzt nachsehen</button></div>{% endif %}
+    <div class="system-knoepfe" data-nur-admin><button type="submit" form="update-pruefen" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein">Jetzt nachsehen</button></div>
 
     <h3>Geodaten</h3>
     <p class="gruppe-text"><small>Postleitzahlen und Orte von GeoNames (CC-BY 4.0, © GeoNames) für die Verortung der
@@ -606,7 +599,7 @@
       dort nach <code>data/geo/</code> legen – die App nimmt dann diese Datei. Kartengrundlagen (Grenzen, Orte, Relief)
       sind in der App enthalten.</small></p>
     <label class="haken"><input type="checkbox" name="geodaten_auto" {% if werte.get("geodaten_auto") %}checked{% endif %}
-      {% if nur_lesen %}disabled title="Unzureichende Berechtigungen"{% endif %}> Geodaten automatisch laden und aktuell halten</label>
+      {% if nur_lesen %}disabled title="{{ nur_admin_text(request) }}"{% endif %}> Geodaten automatisch laden und aktuell halten</label>
     {% set st = sy.geodaten %}
     <p class="system-status"><small>
       {% if st.laeuft %}{{ icon("dauer") }} Wird gerade geladen …
@@ -616,15 +609,15 @@
       {% elif st.anzahl %}{{ icon("ok") }} {{ st.anzahl | zahl(0) }} Postleitzahlen vorhanden.
       {% else %}{{ icon("warnung") }} Noch keine Geodaten{% if werte.get("geodaten_auto") %} – werden kurz nach dem Start geladen{% endif %}.{% endif %}
       {% if st.zeit and not st.ok and st.anzahl %}Es gilt weiter der bisherige Stand ({{ st.anzahl | zahl(0) }} Postleitzahlen).{% endif %}</small></p>
-    {% if not nur_lesen %}<div class="system-knoepfe"><button type="submit" form="geodaten-laden" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein"
-      {% if st.laeuft %}disabled{% endif %}>Jetzt aktualisieren</button></div>{% endif %}
+    <div class="system-knoepfe" data-nur-admin><button type="submit" form="geodaten-laden" data-erst-speichern="einstellungen-form" data-erst-speichern-text="Zuerst die geänderten Einstellungen speichern – sonst gehen die Änderungen verloren." class="outline secondary klein"
+      {% if st.laeuft %}disabled{% endif %}>Jetzt aktualisieren</button></div>
   </details>
 </fieldset>
 
   <div class="speichern-leiste">
     {% if nur_lesen %}
-    <button type="submit" class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen">Speichern</button>
-    <small>{{ icon("schloss") }} Unzureichende Berechtigungen – nur lesen.</small>
+    <button type="submit" class="ausgegraut" aria-disabled="true" title="{{ nur_admin_text(request) }}">Speichern</button>
+    <small>{{ icon("schloss") }} {{ nur_admin_text(request) }}</small>
     {% else %}
     <button type="submit" data-speichern {% if not fehler %}class="ausgegraut" aria-disabled="true"
             title="Noch keine Änderungen – erst nach einer Änderung speicherbar"{% endif %}>Speichern</button>

@@ -42,12 +42,12 @@
     <label>E-Mail-Adresse
       <input type="email" name="email" value="{{ ich.email or '' }}" placeholder="name@example.com"
              {% if fehler.get("email") %}aria-invalid="true" aria-describedby="email-fehler"{% endif %}
-             {% if not darf %}disabled title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin"{% endif %}>
+             {% if not darf %}disabled title="Nur für Operator und Admin – die Adresse eines Viewers pflegt ein Admin"{% endif %}>
       {% if fehler.get("email") %}<small id="email-fehler" class="fehler">{{ fehler.email }}</small>{% endif %}
     </label>
     <small class="formular-hinweis">Für Mails der App an dich (z. B. Reports). Leer lassen und speichern entfernt die Adresse.</small>
     <div class="formular-fuss">{% if darf %}<button type="submit" class="knopf-mittel">Speichern</button>
-    {% else %}<button type="submit" class="knopf-mittel ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin">Speichern</button>{% endif %}</div>
+    {% else %}<button type="submit" class="knopf-mittel ausgegraut" aria-disabled="true" title="Nur für Operator und Admin – die Adresse eines Viewers pflegt ein Admin">Speichern</button>{% endif %}</div>
   </form>
   {# Abos: erst die Benachrichtigung, dann Reports nach Zeitplan, dann die Monatsreports #}
   {% macro abo(aktion, an, titel, hinweis) %}

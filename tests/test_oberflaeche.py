@@ -116,7 +116,7 @@ def test_originaldokument_link_auf_detailseite(angemeldet, db):
         test_maps_link_auf_detailseite(angemeldet, db)
         v = db.scalar(select(Ladevorgang).order_by(Ladevorgang.id.desc()))
     seite = angemeldet.get(f"/ladevorgaenge/{v.id}").text
-    assert f'href="/import/{v.import_id}/datei?anzeigen=1" target="_blank"' in seite and "Originaldokument ↗</a>" in seite
+    assert f'href="/import/{v.import_id}/datei?anzeigen=1" target="_blank"' in seite and "Originaldatei ↗</a>" in seite
 
 
 

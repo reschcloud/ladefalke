@@ -95,7 +95,7 @@
       <span class="zurueck-aktionen">
         <form method="post" action="/import/{{ imp.id }}/wieder-pruefen" class="inline">
           <button type="submit" class="outline secondary klein" title="Wieder als offene Vorschau prüfen">Wieder prüfen</button></form>
-        {{ m.loeschen_knopf("/import/%d/loeschen" % imp.id, "„%s“ als erledigt von der Liste nehmen und die Datei löschen?" % imp.dateiname, "Erledigt") }}
+        {{ m.loeschen_knopf("/import/%d/loeschen" % imp.id, "„%s“ als erledigt von der Liste nehmen und die Datei löschen?" % imp.dateiname, "Erledigt", gefahr=false) }}
       </span></li>
   {% endfor %}
   </ul>
@@ -112,7 +112,7 @@
     <input type="file" id="datei-upload" name="datei_upload" accept=".csv,.pdf" multiple required data-feldname="Datei"
            aria-describedby="upload-hinweis">
     <ul id="datei-liste" class="datei-liste" aria-live="polite" hidden></ul>
-    <small id="upload-hinweis" class="mit-tooltip" title="Unterstützte Formate: {{ formate }}. Jede Datei wird danach einzeln geprüft und bestätigt.">Format wird je Datei automatisch erkannt {{ icon("info") }}</small>
+    <small id="upload-hinweis">Format wird je Datei automatisch erkannt {{ m.hilfe("Unterstützte Formate: " ~ formate ~ ". Jede Datei wird danach einzeln geprüft und bestätigt.") }}</small>
     <button type="submit">Hochladen und Vorschau anzeigen</button>
   </form>
 </article>

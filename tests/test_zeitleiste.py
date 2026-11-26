@@ -160,7 +160,7 @@ def test_zuordnungen_eine_seite_zwei_ansichten(angemeldet):
     """„Zuordnungen“ ist ein Menüpunkt mit den Ansichten Zeitleiste (Standard) und Liste."""
     zeitleiste = angemeldet.get("/stammdaten/zuordnungen/zeitleiste").text
     liste = angemeldet.get("/stammdaten/zuordnungen").text
-    assert '<a href="/stammdaten/zuordnungen/zeitleiste"><svg class="symbol symbol-zuordnung"' in zeitleiste  # Menü
+    assert '<a href="/stammdaten/zuordnungen/zeitleiste" aria-current="page"><svg class="symbol symbol-zuordnung"' in zeitleiste  # Menü (aktiv)
     assert 'href="/stammdaten/zuordnungen/zeitleiste" aria-current="page">' in zeitleiste
     assert 'href="/stammdaten/zuordnungen" aria-current="page">' in liste and "Fahrzeuge bei der Person" in liste
     for seite in (zeitleiste, liste):

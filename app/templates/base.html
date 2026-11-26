@@ -80,7 +80,7 @@
     document.addEventListener("htmx:afterSettle", nurLesen);
     // Nur für Admins (data-nur-admin, z. B. MSP-Verwaltung): für alle anderen Felder gesperrt, Knöpfe und Links
     // ausgegraut mit Tooltip. Der Server weist Änderungen ohnehin ab (auth.admin_fuer_aenderungen).
-    const OHNE_RECHT = "Unzureichende Berechtigungen";
+    const OHNE_RECHT = {{ nur_admin_text(request) | tojson }};
     const nurAdmin = () => {
       if (document.body?.classList.contains("als-admin")) return;
       document.querySelectorAll("[data-nur-admin]").forEach((bereich) => {
@@ -740,6 +740,54 @@
       const ueber = r.right - (document.documentElement.clientWidth - rand);
       if (ueber > 0) liste.style.translate = `-${Math.max(0, Math.min(ueber, r.left - rand))}px 0`;
     }, true);
+    // Hilfe-„?“ (Makro hilfe): Erklärung als Popover bei Klick/Tippen und bei Tastaturfokus; schließt bei Klick
+    // daneben, Esc, Verlassen. Der title bleibt für Maus-Tooltips – solange das Popover offen ist, ausgeblendet.
+    let hilfeOffen = null;
+    const hilfePopover = () => document.getElementById("hilfe-popover") || document.body.appendChild(Object.assign(
+      document.createElement("div"), { id: "hilfe-popover", className: "hilfe-popover", hidden: true, role: "tooltip" }));
+    const hilfeZu = () => {
+      if (!hilfeOffen) return;
+      hilfeOffen.title = hilfeOffen.dataset.text;
+      hilfeOffen.setAttribute("aria-expanded", "false");
+      hilfeOffen.removeAttribute("aria-describedby");
+      hilfeOffen = null;
+      hilfePopover().hidden = true;
+    };
+    const hilfeAuf = (el) => {
+      if (hilfeOffen === el) return;
+      hilfeZu();
+      const pop = hilfePopover();
+      el.dataset.text = el.dataset.text || el.title;
+      pop.textContent = el.dataset.text;
+      el.title = "";
+      el.setAttribute("aria-expanded", "true");
+      el.setAttribute("aria-describedby", "hilfe-popover");
+      pop.hidden = false;
+      const r = el.getBoundingClientRect(), breite = document.documentElement.clientWidth;
+      const links = Math.max(8, Math.min(r.left + window.scrollX - 12, breite + window.scrollX - pop.offsetWidth - 8));
+      let oben = r.bottom + window.scrollY + 6;
+      if (r.bottom + pop.offsetHeight + 12 > window.innerHeight && r.top > pop.offsetHeight + 12) oben = r.top + window.scrollY - pop.offsetHeight - 6;
+      pop.style.left = `${links}px`;
+      pop.style.top = `${oben}px`;
+      hilfeOffen = el;
+    };
+    document.addEventListener("click", (e) => {
+      const el = e.target.closest?.("abbr.hilfe");
+      if (el) { e.preventDefault(); e.stopPropagation(); if (hilfeOffen === el) hilfeZu(); else hilfeAuf(el); return; }
+      if (!e.target.closest?.("#hilfe-popover")) hilfeZu();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hilfeZu();
+      const el = e.target.closest?.("abbr.hilfe");
+      if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); hilfeOffen === el ? hilfeZu() : hilfeAuf(el); }
+    });
+    document.addEventListener("focusin", (e) => {
+      const el = e.target.closest?.("abbr.hilfe");
+      if (el && el.matches(":focus-visible")) hilfeAuf(el);
+    });
+    document.addEventListener("focusout", (e) => { if (e.target === hilfeOffen) hilfeZu(); });
+    window.addEventListener("scroll", hilfeZu, { passive: true });
+    document.addEventListener("htmx:beforeSwap", hilfeZu);
     // Meldungs-Karten (rechts unten) mit „×“ schließen
     document.addEventListener("click", (e) => {
       const toast = e.target.closest?.(".toast-zu")?.closest(".toast");
@@ -825,11 +873,11 @@
             <ul>
               {% set bs = request.state.bestand or {} %}
               {% macro menue_anzahl(n, text) %}{% if n is not none %}<span class="menue-anzahl" title="{{ n }} {{ text }}">{{ n }}</span>{% endif %}{% endmacro %}
-              <li><a href="/stammdaten/msp">{{ m.symbol("msp") }}{{ MSP }}{{ menue_anzahl(bs.get("msp"), "MSP") }}</a></li>
-              <li><a href="/stammdaten/ladekarten">{{ m.symbol("karte") }}Ladekarten{{ menue_anzahl(bs.get("ladekarten"), "aktive Ladekarten") }}</a></li>
-              <li><a href="/stammdaten/fahrzeuge">{{ m.symbol("auto") }}Fahrzeuge{{ menue_anzahl(bs.get("fahrzeuge"), "aktive Fahrzeuge") }}</a></li>
-              <li><a href="/stammdaten/fahrer">{{ m.symbol("person") }}Fahrer:innen{{ menue_anzahl(bs.get("fahrer"), "aktive Fahrer:innen") }}</a></li>
-              <li><a href="/stammdaten/zuordnungen/zeitleiste">{{ m.symbol("zuordnung") }}Zuordnungen</a></li>{# Zeitleiste und Liste #}
+              <li><a href="/stammdaten/msp"{% if pfad.startswith("/stammdaten/msp") %} aria-current="page"{% endif %}>{{ m.symbol("msp") }}{{ MSP }}{{ menue_anzahl(bs.get("msp"), "MSP") }}</a></li>
+              <li><a href="/stammdaten/ladekarten"{% if pfad.startswith("/stammdaten/ladekarten") %} aria-current="page"{% endif %}>{{ m.symbol("karte") }}Ladekarten{{ menue_anzahl(bs.get("ladekarten"), "aktive Ladekarten") }}</a></li>
+              <li><a href="/stammdaten/fahrzeuge"{% if pfad.startswith("/stammdaten/fahrzeuge") %} aria-current="page"{% endif %}>{{ m.symbol("auto") }}Fahrzeuge{{ menue_anzahl(bs.get("fahrzeuge"), "aktive Fahrzeuge") }}</a></li>
+              <li><a href="/stammdaten/fahrer"{% if pfad.startswith("/stammdaten/fahrer") %} aria-current="page"{% endif %}>{{ m.symbol("person") }}Fahrer:innen{{ menue_anzahl(bs.get("fahrer"), "aktive Fahrer:innen") }}</a></li>
+              <li><a href="/stammdaten/zuordnungen/zeitleiste"{% if pfad.startswith("/stammdaten/zuordnungen") %} aria-current="page"{% endif %}>{{ m.symbol("zuordnung") }}Zuordnungen</a></li>{# Zeitleiste und Liste #}
             </ul>
           </details>
         </li>
@@ -843,9 +891,9 @@
             <ul{% if not links %} dir="rtl"{% endif %}>
               <li dir="ltr"><a href="/konto">Mein Konto</a></li>
               {% if ich.rolle == "admin" %}<li dir="ltr"><a href="/benutzer">Benutzer:innen</a></li>
-              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Benutzerverwaltung nur für Admins">Benutzer:innen {{ icon("schloss", "gesperrt") }}</span></li>{% endif %}
+              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Benutzerverwaltung: {{ nur_admin_text(request) }}">Benutzer:innen {{ icon("schloss", "gesperrt") }}</span></li>{% endif %}
               {% if ich.rolle == "admin" %}<li dir="ltr"><a href="/protokoll">Protokoll</a></li>
-              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Änderungsprotokoll nur für Admins">Protokoll {{ icon("schloss", "gesperrt") }}</span></li>{% endif %}
+              {% else %}<li dir="ltr"><span class="gesperrt-eintrag" title="Änderungsprotokoll: {{ nur_admin_text(request) }}">Protokoll {{ icon("schloss", "gesperrt") }}</span></li>{% endif %}
               <li dir="ltr"><form method="post" action="/logout" class="inline" data-immer>
                 <button type="submit" class="outline secondary klein">Abmelden</button></form></li>
             </ul>

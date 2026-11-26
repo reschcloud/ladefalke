@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import heute
 from app.db import get_db
-from app.formatierung import email_lesen, datum_lesen
+from app.formatierung import anzahl as anzahl_text, datum_lesen, email_lesen, wurde
 from app.models import Fahrer, FahrerOhneFahrzeug, Fahrzeug, Ladekarte, ZuordnungFahrerFahrzeug, ZuordnungKarte
 from app.services import app_einstellungen, fahrzeug_hinweise, mini_zeitleiste
 from app.services import kartenanzeige, kennzahlen, protokoll
@@ -281,7 +281,7 @@ def fahrzeug_zuordnen(request: Request, fahrer_id: int, fahrzeug_id: str = Form(
     if neu_zuordnen:
         n = neu_zuordnen_fahrer(db, fahrer.id, ab_datum, bis_datum)
         n += sum(neu_zuordnen_fahrer(db, fid, ab_datum, None) for fid in ausgetragen)
-        neu_info = f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet."
+        neu_info = f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet."
     db.commit()
     meldung(request, f"{fahrer.name} ist ab {ab_datum:%d.%m.%Y} Fahrzeug {fahrzeug.kennzeichen} zugeordnet.")
     if neu_zuordnen:
@@ -335,7 +335,7 @@ def loeschen(request: Request, fahrer_id: int, db: Session = Depends(get_db)):
     if _ist_referenziert(db, fahrer.id):
         fahrer.aktiv = False
         db.commit()
-        meldung(request, f"{fahrer.name} hat Zuordnungen und wurde deaktiviert statt gelöscht.", "warnung")
+        meldung(request, f"{fahrer.name} deaktiviert – bleibt mit allen Daten in den Auswertungen.")
         return weiter(f"/stammdaten/fahrer/{fahrer.id}")
     db.delete(fahrer)
     db.commit()

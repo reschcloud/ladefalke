@@ -110,7 +110,7 @@
         <input type="hidden" name="ab" value="{{ l.von.isoformat() }}"><input type="hidden" name="bis" value="{{ '' if l.endlos else l.bis.isoformat() }}">
         <input type="hidden" name="zurueck" value="/aufgaben">
         <button type="submit" class="outline secondary klein" data-schreiben
-                title="Das Fahrzeug war in diesem Zeitraum bewusst niemandem zugeordnet – dann ist das keine Lücke">ohne Fahrer:in</button></form></li>
+                title="Das Fahrzeug war in diesem Zeitraum bewusst niemandem zugeordnet – dann ist das keine Lücke">Ohne Fahrer:in</button></form></li>
   {% endfor %}
   </ul>
   <small>Geprüft ab Leasingbeginn (sonst ab der ersten Zuordnung) bis zum Leasing-Ende – auch künftige Zeiträume –,
@@ -138,7 +138,7 @@
   Mietauto, dieses als Ersatz-/Mietfahrzeug anlegen und zuordnen). Einzelne Vorgänge lassen sich unten auch manuell
   zuweisen.</p>
 {% if gaeste[0] %}
-  <p><small>Nicht enthalten: {{ gaeste[0] }} Ladevorgänge von Gastkarten ({{ gaeste[1] | zahl(0) }} kWh,
+  <p><small>Nicht enthalten: {{ gaeste[0] | anzahl("Ladevorgang") }} von Gastkarten ({{ gaeste[1] | zahl(0) }} kWh,
     {{ gaeste[2] | geld }}) – sie bleiben bewusst ohne Fahrzeug (Topf „Gäste“).</small></p>
 {% endif %}
 
@@ -164,18 +164,18 @@
       <td class="rechts">{{ kwh | zahl(0) }}</td>
       <td class="rechts">{{ kosten | geld }}</td>
       <td class="rechts">
-        {% if k %}<a href="/aufgaben?karte_id={{ k.id }}#vorgaenge" role="button" class="outline klein">anzeigen</a>
+        {% if k %}<a href="/aufgaben?karte_id={{ k.id }}#vorgaenge" role="button" class="outline klein">Anzeigen</a>
           {% for f, f_von, f_bis in u.personen %}
           <a href="/stammdaten/fahrer/{{ f.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ f_von.isoformat() }}&bis={{ f_bis.isoformat() }}#neue-fahrzeug-zuordnung"
              role="button" data-schreiben class="outline klein" title="{{ f.name }} für den Zeitraum der offenen Ladevorgänge ein Fahrzeug zuordnen, danach zurück hierher">Fahrzeug zuordnen</a>
           <a href="/stammdaten/fahrer/{{ f.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ f_von.isoformat() }}&bis={{ f_bis.isoformat() }}#ohne-dienstwagen"
-             role="button" data-schreiben class="outline secondary klein" title="{{ f.name }} hatte in dieser Zeit bewusst keinen Dienstwagen – die Ladungen sind begründet und keine Aufgabe mehr">ohne Dienstwagen</a>
+             role="button" data-schreiben class="outline secondary klein" title="{{ f.name }} hatte in dieser Zeit bewusst keinen Dienstwagen – die Ladungen sind begründet und keine Aufgabe mehr">Ohne Dienstwagen</a>
           {% endfor %}
           {% if u.ohne_zuordnung or not u.personen %}
           <a href="/stammdaten/ladekarten/{{ k.id }}?zurueck=%2Faufgaben%23ohne-fahrzeug&ab={{ (u.ohne_zuordnung[0] if u.ohne_zuordnung else von.date()).isoformat() }}#neue-karten-zuordnung"
              role="button" data-schreiben class="outline klein" title="Zuordnung ab dem ersten offenen Ladevorgang ohne Kartenzuordnung anlegen, danach zurück hierher">Karte zuordnen</a>
           {% endif %}
-        {% else %}<a href="/aufgaben?roh={{ (roh or '') | urlencode }}#vorgaenge" role="button" class="outline klein">anzeigen</a>{% endif %}
+        {% else %}<a href="/aufgaben?roh={{ (roh or '') | urlencode }}#vorgaenge" role="button" class="outline klein">Anzeigen</a>{% endif %}
       </td>
     </tr>
   {% else %}
@@ -197,7 +197,7 @@
         {% for fz in fahrzeuge %}<option value="{{ fz.id }}">{{ fz.kennzeichen }}{% if fz.modell %} ({{ fz.modell }}){% endif %}</option>{% endfor %}
       </select>
     </label>
-    <button type="submit">Manuell zuweisen</button>
+    <button type="submit" data-bestaetigen="Markierte Ladevorgänge ({n}) manuell dem gewählten Fahrzeug zuweisen? Sie behalten das Fahrzeug auch bei „neu zuordnen“.">Manuell zuweisen</button>
   </div>
   <div class="tabelle">
   <table class="striped">
@@ -207,7 +207,7 @@
     <tbody>
     {% for v in vorgaenge %}
       <tr>
-        <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="auswählen"></td>
+        <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="Ladevorgang {{ v.start | datumzeit }} auswählen"></td>
         <td><a href="/ladevorgaenge/{{ v.id }}">{{ v.start | datumzeit }}</a></td>
         <td>{{ m.karte_vorgang(v, msp=false) }}</td>
         <td>{{ v.standort or "" }}</td>
@@ -242,7 +242,7 @@
         <form method="post" action="/aufgaben/gebuehr/{{ g.id }}" class="filterzeile">
           <input type="hidden" name="zurueck" value="/aufgaben#gebuehren">
           <select name="ladekarte_id" required aria-label="Ladekarte">
-            <option value="">– Karte –</option>
+            <option value="">– Ladekarte wählen –</option>
             {% for k in karten_je_msp.get(g.import_.msp_id, []) %}
               <option value="{{ k.id }}">{{ k.kennung }}{% if k.bezeichnung %} – {{ k.bezeichnung }}{% endif %}</option>
             {% endfor %}
@@ -275,13 +275,13 @@
       <td>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}</td>
       <td class="rechts">{{ v.kwh | zahl(3) }}</td>
       <td>{{ icon("warnung") }} {{ grund }}</td>
-      <td class="rechts nowrap"><a href="/ladevorgaenge/{{ v.id }}" role="button" data-schreiben class="outline klein">korrigieren</a>
+      <td class="rechts nowrap"><a href="/ladevorgaenge/{{ v.id }}" role="button" data-schreiben class="outline klein">Korrigieren</a>
         <form method="post" action="/ladevorgaenge/{{ v.id }}/profil" class="inline">
           <input type="hidden" name="ausnehmen" value="1"><input type="hidden" name="zurueck" value="/aufgaben#unplausibel">
           <button type="submit" class="outline secondary klein"
-                  title="Kosten und kWh bleiben in allen Auswertungen; nur das Ladeprofil des Fahrzeugs lässt den Vorgang weg. Rückgängig auf der Detailseite.">ausnehmen</button>
+                  title="Kosten und kWh bleiben in allen Auswertungen; nur das Ladeprofil des Fahrzeugs lässt den Vorgang weg. Rückgängig auf der Detailseite.">Ausnehmen</button>
         </form>
-        <a href="/import/{{ v.import_id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein">Original ↗</a></td>
+        <a href="/import/{{ v.import_id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein extern-link" title="Rechnung bzw. Datei, aus der dieser Ladevorgang stammt (neuer Tab)">Originaldatei ↗</a></td>
     </tr>
   {% endfor %}
   </tbody>
@@ -313,7 +313,7 @@
                   data-bestaetigen="Alle {{ anzahl }} Ladevorgänge von {{ msp.name }} ohne Angabe auf {wert} setzen?">Setzen</button>
         </form>
       </td>
-      <td class="rechts"><a href="/aufgaben?stromart_msp={{ msp.id }}#stromart-einzeln" role="button" class="outline klein">anzeigen</a></td>
+      <td class="rechts"><a href="/aufgaben?stromart_msp={{ msp.id }}#stromart-einzeln" role="button" class="outline klein">Anzeigen</a></td>
     </tr>
   {% endfor %}
   </tbody>
@@ -339,12 +339,12 @@
   <div class="aktionszeile">
     <span>Markierte setzen auf</span>
     <button type="submit" name="stromart_wert" value="AC" class="outline" aria-label="Markierte auf AC"
-            data-bestaetigen="{n} markierte Ladevorgänge auf {wert} setzen?">{{ m.stromart("AC") }}</button>
+            data-bestaetigen="Markierte Ladevorgänge ({n}) auf {wert} setzen?">{{ m.stromart("AC") }}</button>
     <button type="submit" name="stromart_wert" value="DC" class="outline" aria-label="Markierte auf DC"
-            data-bestaetigen="{n} markierte Ladevorgänge auf {wert} setzen?">{{ m.stromart("DC") }}</button>
+            data-bestaetigen="Markierte Ladevorgänge ({n}) auf {wert} setzen?">{{ m.stromart("DC") }}</button>
     <button type="submit" name="stromart_wert" value="" class="outline secondary"
-            data-bestaetigen="{n} markierte Ladevorgänge bewusst auf „keine Angabe“ setzen? Sie sind dann keine Aufgabe mehr."
-            title="Bewusst keine Angabe – die Vorgänge sind dann keine Aufgabe mehr">{{ m.stromart(none) }} keine Angabe</button>
+            data-bestaetigen="Markierte Ladevorgänge ({n}) bewusst auf „keine Angabe“ setzen? Sie sind dann keine Aufgabe mehr."
+            title="Bewusst keine Angabe – die Vorgänge sind dann keine Aufgabe mehr">{{ m.stromart(none) }} Keine Angabe</button>
   </div>
   <div class="tabelle">
   <table class="striped">
@@ -358,7 +358,7 @@
     <tbody>
     {% for v, kw, vorschlag, grund in stromart_vorgaenge %}
       <tr>
-        <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="auswählen"
+        <td><input type="checkbox" name="vorgang_ids" value="{{ v.id }}" aria-label="Ladevorgang {{ v.start | datumzeit }} auswählen"
                    data-vorschlag="{{ vorschlag or '' }}"></td>
         <td><a href="/ladevorgaenge/{{ v.id }}">{{ v.start | datumzeit }}</a></td>
         <td>{{ v.msp.name }}</td>
@@ -423,7 +423,7 @@
         <form method="post" action="/aufgaben/ladeort/{{ o.id }}/verzichten" class="inline">
           <button type="submit" class="outline secondary klein"
                   data-bestaetigen="„{{ o.adresse }}“ bewusst ohne Verortung lassen? Er ist dann keine Aufgabe mehr und erscheint nicht auf der Karte."
-                  title="Keine Aufgabe mehr, nicht auf der Karte; rückgängig durch Eintragen von PLZ oder Ort">nicht verorten</button>
+                  title="Keine Aufgabe mehr, nicht auf der Karte; rückgängig durch Eintragen von PLZ oder Ort">Nicht verorten</button>
         </form>
       </td>
     </tr>
@@ -448,7 +448,7 @@
       <tr><td><a href="/ladevorgaenge?ladeort_id={{ o.id }}">{{ o.adresse }}</a></td>
         <td>{{ o.land | landname if o.land else "unbekannt" }}</td><td class="rechts">{{ anzahl }}</td>
         <td class="rechts"><form method="post" action="/aufgaben/ladeort/{{ o.id }}/wieder-verorten" class="inline">
-          <button type="submit" class="outline secondary klein" data-schreiben>wieder verorten</button></form></td></tr>
+          <button type="submit" class="outline secondary klein" data-schreiben>Wieder verorten</button></form></td></tr>
     {% endfor %}
     </tbody>
   </table>

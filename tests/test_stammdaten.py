@@ -69,7 +69,7 @@ def test_fahrzeug_mit_zuordnung_wird_deaktiviert(angemeldet, db):
     db.add(ZuordnungFahrerFahrzeug(fahrer_id=fahrer.id, fahrzeug_id=fz.id, gueltig_ab=date(2026, 1, 1)))
     db.flush()
     antwort = angemeldet.post(f"/stammdaten/fahrzeuge/{fz.id}/loeschen")
-    assert "deaktiviert statt gelöscht" in antwort.text
+    assert "deaktiviert – es bleibt mit seinen Daten in allen Auswertungen" in antwort.text
     db.refresh(fz)
     assert not fz.aktiv
     # Knopf zeigt, was er tut: aktiv mit Daten → Deaktivieren, inaktiv → Wieder aktivieren

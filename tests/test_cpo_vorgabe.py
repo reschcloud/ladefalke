@@ -54,7 +54,7 @@ def test_vorgabe_beim_msp_nachtraeglich(angemeldet, db):
 
     # ohne Vorgabe: nur Hinweis
     text = angemeldet.get(f"/stammdaten/msp/{msp.id}").text
-    assert "1 Ladevorgänge dieses" in text and 'form="cpo-anwenden"' not in text
+    assert "1 Ladevorgang dieses" in text and 'form="cpo-anwenden"' not in text
 
     # Vorgabe speichern (normiert) und anwenden: ersetzt fehlende und frühere Vorgaben, nicht die Rechnung
     angemeldet.post(f"/stammdaten/msp/{msp.id}", data={"name": msp.name, "parser_key": "linz_ag",

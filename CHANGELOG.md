@@ -42,6 +42,12 @@ Update von Hand zu tun ist. Updates selbst: README „Betrieb → Update“.
   Fehler- und Hinweistexte an Feldern, Symbol im Seitentitel (auch Auswertung von Fahrzeug und Fahrer:in, Ladevorgang,
   Benutzer:innen, Zuordnungsformulare), kleine Kacheln beim Import, leere Zustände. „← Alle MSP“ führt wie bei den
   übrigen Stammdaten zur zuletzt angesehenen Liste.
+- Texte und Bedienung: Knöpfe einheitlich beschriftet (groß am Anfang, „Speichern“/„Hinzufügen“, „Originaldatei ↗“),
+  „1 Ladevorgang“ statt „1 Ladevorgänge“, Deaktivieren meldet sich als Info statt Warnung. Rückfragen vor dem Entfernen
+  in den Einstellungen, vor „Manuell zuweisen“ (mit Anzahl) und vor PLZ/Ort am Ladeort. Gesperrte Aktionen nennen den
+  Grund einheitlich („Nur für Admins – du bist als Operator angemeldet.“); Einstellungen und MSP zeigen sie Nicht-Admins
+  ausgegraut statt gar nicht. Das „?“ öffnet die Erklärung auch per Tippen und Tastatur. „Filter zurücksetzen“ nur bei
+  gesetztem Filter; Auswahlkästchen und neue Karten in der Import-Vorschau für Screenreader benannt.
 
 ### Behoben
 

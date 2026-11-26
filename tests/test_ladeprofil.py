@@ -162,7 +162,7 @@ def test_korrigieren_und_ausnehmen(angemeldet, db, mit_unplausiblem):
     assert f'href="/import/{falsch.import_id}/datei?anzeigen=1" target="_blank"' in text  # Originaldokument
     # Liste unter „Aufgaben“, Zähler in der Menüleiste
     text = angemeldet.get("/aufgaben").text
-    assert '<span class="kachel-zahl">1</span>\n  <strong>Unplausible AC/DC-Angaben</strong>' in text and f'<a href="/ladevorgaenge/{falsch.id}" role="button" data-schreiben class="outline klein">korrigieren</a>' in text
+    assert '<span class="kachel-zahl">1</span>\n  <strong>Unplausible AC/DC-Angaben</strong>' in text and f'<a href="/ladevorgaenge/{falsch.id}" role="button" data-schreiben class="outline klein">Korrigieren</a>' in text
     assert "1 unplausible AC/DC-Angaben" in text
 
     # Ausnehmen: Markierung weg, Profil unverändert

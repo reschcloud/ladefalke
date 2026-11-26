@@ -15,7 +15,7 @@ from app.services.fristen import jahresvignette, leasing_ende_vorschlag
 from app.services.ladeprofil import ohne_angabe, schaetzgrundlage, unplausible_anzahl
 from app.services.ladevorgaenge import letzte_vorgaenge
 from app.services.schaetzung import MINDESTANZAHL
-from app.formatierung import datum_lesen, decimal_lesen, zahl, zeitraum
+from app.formatierung import anzahl as anzahl_text, datum_lesen, decimal_lesen, wurde, zahl, zeitraum
 from app.routers.ladevorgaenge import mehrfach_bedingung
 from app.services.aufloesung import neu_zuordnen_fahrer
 from app.services.zuordnung import (ZuordnungsFehler, bisherige_fahrer_austragen, fahrer_von_fahrzeug_am,
@@ -281,7 +281,7 @@ def bisherige_austragen_route(request: Request, fahrzeug_id: int, ab: str = Form
     for h in hinweise:
         meldung(request, h)
     if n:
-        meldung(request, f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet.")
+        meldung(request, f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet.")
     return weiter(ziel)
 
 
@@ -314,7 +314,7 @@ def ohne_fahrer(request: Request, fahrzeug_id: int, ab: str = Form(""), bis: str
     db.commit()
     meldung(request, f"Fahrzeug {fz.kennzeichen} ist {zeitraum(ab_datum, bis_datum)} ohne Fahrer:in.")
     if n:
-        meldung(request, f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet.")
+        meldung(request, f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet.")
     for h in hinweise:
         meldung(request, h, "warnung")
     return weiter(ziel)
@@ -335,8 +335,7 @@ def loeschen(request: Request, fahrzeug_id: int, db: Session = Depends(get_db)):
     if _ist_referenziert(db, fz.id):
         fz.aktiv = False
         db.commit()
-        meldung(request, f"Fahrzeug {fz.kennzeichen} wird verwendet und wurde deaktiviert statt gelöscht.",
-                "warnung")
+        meldung(request, f"Fahrzeug {fz.kennzeichen} deaktiviert – es bleibt mit seinen Daten in allen Auswertungen.")
         return weiter(f"/stammdaten/fahrzeuge/{fz.id}")
     db.delete(fz)
     db.commit()

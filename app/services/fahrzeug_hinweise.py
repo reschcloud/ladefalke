@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.formatierung import datum, spanne
+from app.formatierung import anzahl as anzahl_text, datum, spanne
 from app.config import heute
 from app.models import Fahrzeug, FahrzeugOhneFahrer, Ladevorgang, ZuordnungFahrerFahrzeug
 from app.services import kartenpruefung, leasingpruefung, luecken, stromart
@@ -113,7 +113,7 @@ def ermitteln(db: Session, fahrzeuge: list[Fahrzeug], e: AppEinstellungen) -> di
             h.append(Hinweis("gelb", f"{len(frueher)} Lücke{'n' if len(frueher) != 1 else ''} in der Zuordnung",
                              "/stammdaten/zuordnungen/zeitleiste?ansicht=alles",
                              "; ".join(f"{datum(l.von)} – {datum(l.bis)}" for l in frueher)
-                             + (f" – {betroffen} Ladevorgänge ohne Person" if betroffen else "")))
+                             + (f" – {anzahl_text(betroffen, 'Ladevorgang')} ohne Person" if betroffen else "")))
         # Ladekarten: aktueller Befund einzeln, übrige Zeiträume zusammengefasst; außerhalb des Leasings
         befunde = karten_befunde.get(fz.id, [])
         karten_seite = f"{seite}#ladekarten"

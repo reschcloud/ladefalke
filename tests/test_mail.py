@@ -74,7 +74,7 @@ def test_email_bei_fahrer_und_benutzer(rollen, db):  # noqa: F811
     db.refresh(olga)
     assert olga.email == "olga.neu@example.com"
     assert viewer.post("/konto/email", data={"email": "v@example.com"}).status_code == 422
-    assert 'disabled title="Unzureichende Berechtigungen – die Adresse pflegt ein Admin"' in viewer.get("/konto").text
+    assert 'disabled title="Nur für Operator und Admin – die Adresse eines Viewers pflegt ein Admin"' in viewer.get("/konto").text
 
 
 def test_mail_einstellungen_passwort_verschluesselt(angemeldet, db, monkeypatch):

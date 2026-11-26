@@ -48,7 +48,7 @@
   <dl>
     <dt>Import</dt><dd><a href="/import/{{ v.import_id }}">{{ v.import_.bezeichnung }}</a>{% if v.externe_id %} · ID {{ v.externe_id }}{% endif %}
       <a href="/import/{{ v.import_id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false"
-         role="button" class="outline klein extern-link" title="Rechnung bzw. Datei, aus der dieser Ladevorgang stammt (neuer Tab)">Originaldokument ↗</a></dd>
+         role="button" class="outline klein extern-link" title="Rechnung bzw. Datei, aus der dieser Ladevorgang stammt (neuer Tab)">Originaldatei ↗</a></dd>
     <dt>Fahrzeug</dt>
     <dd>{% if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>{% else %}–{% endif %}
         <small>({{ {"automatisch": "automatisch ermittelt", "manuell": "manuell gesetzt", "keine": "nicht ermittelbar"}[v.zuordnung_quelle.value] }})</small></dd>
@@ -60,7 +60,7 @@
 
 {% if grund and not v.profil_ausgenommen %}
 <p class="meldung meldung-warnung" role="alert">{{ icon("warnung") }} Unplausibel: {{ grund }}. Der Vorgang zählt nicht für das
-  Ladeprofil, bis die Stromart korrigiert oder er ausdrücklich ausgenommen ist (Prüfen: Originaldokument oben).</p>
+  Ladeprofil, bis die Stromart korrigiert oder er ausdrücklich ausgenommen ist (Prüfen: Originaldatei oben).</p>
 {% endif %}
 <article data-schreiben>  {# nur zum Ändern – für Viewer ausgegraut #}
   <header><strong>Fahrzeug ändern</strong></header>
@@ -100,7 +100,7 @@
       <input type="text" name="ort" value="{{ lw.ort or '' }}" maxlength="120"
              placeholder="{{ v.ladeort.ort or '' }}" aria-describedby="ladeort-hinweis">
     </label>
-    <button type="submit" class="outline">Speichern</button>
+    <button type="submit" class="outline" data-bestaetigen="PLZ/Ort für alle Ladevorgänge an „{{ v.ladeort.adresse }}“ übernehmen?">Speichern</button>
   </form>
   {% if v.ladeort.genauigkeit == "verzichtet" %}<small class="formular-hinweis">Derzeit bewusst ohne Verortung – Speichern
     mit PLZ oder Ort verortet ihn wieder.</small>{% endif %}

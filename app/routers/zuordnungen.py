@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import heute
 from app.db import get_db
-from app.formatierung import datum_lesen
+from app.formatierung import anzahl as anzahl_text, datum_lesen, wurde
 from app.models import (FahrerOhneFahrzeug, Fahrzeug, FahrzeugOhneFahrer, Ladekarte, Ladevorgang,
                         ZuordnungFahrerFahrzeug, ZuordnungKarte)
 from app.routers.ladekarten import ziel_lesen, ziele
@@ -118,7 +118,7 @@ def karten_zuordnung_speichern(request: Request, zuordnung_id: int, ziel: str = 
         return _karten_formular(request, db, z, werte, str(e), 422)
     if neu_zuordnen:
         n = neu_zuordnen_karte(db, z.ladekarte_id, *zeitraum_vereinigen(alt, (z.gueltig_ab, z.gueltig_bis)))
-        neu_info = f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet."
+        neu_info = f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet."
     db.commit()
     meldung(request, "Zuordnung gespeichert.")
     if neu_zuordnen:
@@ -135,8 +135,8 @@ def karten_zuordnung_loeschen(request: Request, zuordnung_id: int, neu_zuordnen:
     karte_id, von, bis = z.ladekarte_id, z.gueltig_ab, z.gueltig_bis
     db.delete(z)
     if neu_zuordnen:
-        meldung(request, f"{neu_zuordnen_karte(db, karte_id, von, bis)} bereits importierte Ladevorgänge "
-                         "wurden neu zugeordnet.")
+        n = neu_zuordnen_karte(db, karte_id, von, bis)
+        meldung(request, f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet.")
     db.commit()
     meldung(request, "Zuordnung gelöscht.")
     return weiter(_zurueck(request, "/stammdaten/zuordnungen"))
@@ -191,7 +191,7 @@ def fahrer_zuordnung_speichern(request: Request, zuordnung_id: int, fahrzeug_id:
         return _fahrer_formular(request, db, z, werte, str(e), 422)
     if neu_zuordnen:
         n = neu_zuordnen_fahrer(db, z.fahrer_id, *zeitraum_vereinigen(alt, (z.gueltig_ab, z.gueltig_bis)))
-        neu_info = f"{n} bereits importierte Ladevorgänge wurden neu zugeordnet."
+        neu_info = f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet."
     db.commit()
     meldung(request, "Zuordnung gespeichert.")
     if neu_zuordnen:
@@ -208,8 +208,8 @@ def fahrer_zuordnung_loeschen(request: Request, zuordnung_id: int, neu_zuordnen:
     fahrer_id, von, bis = z.fahrer_id, z.gueltig_ab, z.gueltig_bis
     db.delete(z)
     if neu_zuordnen:
-        meldung(request, f"{neu_zuordnen_fahrer(db, fahrer_id, von, bis)} bereits importierte Ladevorgänge "
-                         "wurden neu zugeordnet.")
+        n = neu_zuordnen_fahrer(db, fahrer_id, von, bis)
+        meldung(request, f"{anzahl_text(n, 'Ladevorgang')} (bereits importiert) {wurde(n)} neu zugeordnet.")
     db.commit()
     meldung(request, "Zuordnung gelöscht.")
     return weiter(_zurueck(request, "/stammdaten/zuordnungen"))

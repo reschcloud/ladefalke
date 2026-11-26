@@ -90,6 +90,23 @@ def geld(wert: Decimal | None, stellen: int = 2) -> str:
     return f"{zahl(wert, stellen)} €" if wert is not None else ""
 
 
+# Mehrzahl: (Einzahl, Mehrzahl) – im Dativ nach „von“/„mit“ die eigene Spalte (Ladevorgang/Ladevorgängen)
+WOERTER = {"Ladevorgang": "Ladevorgänge", "Vorgang": "Vorgänge", "Gebühr": "Gebühren", "Ladekarte": "Ladekarten",
+           "Rechnung": "Rechnungen", "Datei": "Dateien", "Lücke": "Lücken"}
+DATIV = {"Ladevorgang": "Ladevorgängen", "Vorgang": "Vorgängen", "Gebühr": "Gebühren", "Ladekarte": "Ladekarten",
+         "Rechnung": "Rechnungen", "Datei": "Dateien", "Lücke": "Lücken"}
+
+
+def anzahl(n: int, einzahl: str, dativ: bool = False) -> str:
+    """„1 Ladevorgang“, „3 Ladevorgänge“ (dativ: „von 3 Ladevorgängen“). Bekannte Wörter siehe WOERTER."""
+    return f"{n} {einzahl if n == 1 else (DATIV if dativ else WOERTER)[einzahl]}"
+
+
+def wurde(n: int) -> str:
+    """Verb passend zur Anzahl: „wurde“ bzw. „wurden“."""
+    return "wurde" if n == 1 else "wurden"
+
+
 def zeitraum(ab: date, bis: date | None) -> str:
     return f"{datum(ab)} – {datum(bis) if bis else 'offen'}"
 

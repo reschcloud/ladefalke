@@ -9,7 +9,7 @@ from app import auth
 from app.db import get_db
 from decimal import Decimal
 
-from app.formatierung import decimal_lesen, zahl
+from app.formatierung import anzahl as anzahl_text, decimal_lesen, zahl
 from app.parsers import PARSER
 from app.models import Import, Ladeart, Ladekarte, Ladevorgang, Msp
 from app.services.ladevorgaenge import letzte_vorgaenge
@@ -165,7 +165,7 @@ def cpo_anwenden(request: Request, msp_id: int, db: Session = Depends(get_db)):
     else:
         anzahl = cpo.vorgabe_anwenden(db, msp.cpo_standard, Ladevorgang.msp_id == msp.id)
         db.commit()
-        meldung(request, f"{anzahl} Ladevorgänge von „{msp.name}“ auf CPO „{msp.cpo_standard}“ gesetzt.")
+        meldung(request, f"{anzahl_text(anzahl, 'Ladevorgang')} von „{msp.name}“ auf CPO „{msp.cpo_standard}“ gesetzt.")
     return weiter(f"/stammdaten/msp/{msp.id}")
 
 

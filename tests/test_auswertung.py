@@ -431,7 +431,7 @@ def test_seiten(angemeldet, db, daten):
     assert 'name="nr"' not in angemeldet.get("/?art=jahr&jahr=2026").text  # Jahr: nur Jahresauswahl
     antwort = angemeldet.get(f"/auswertungen?{p}")
     assert "Günstigste" in antwort.text and "Topliste öffentliches Laden" in antwort.text
-    assert '<abbr class="hilfe" tabindex="0" title="Score = (Kosten + m × Ø-Preis aller) / (kWh + m)' in antwort.text
+    assert '<abbr class="hilfe" tabindex="0" role="button" aria-label="Erklärung: Score = (Kosten + m × Ø-Preis aller) / (kWh + m)' in antwort.text
     assert "noch keine Daten" in angemeldet.get("/?art=monat&jahr=2020&nr=1").text
 
 

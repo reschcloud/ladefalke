@@ -49,9 +49,10 @@
 </nav>
 {% endmacro %}
 
-{% macro loeschen_knopf(aktion, frage, text="Löschen") %}
+{# gefahr=false: kein roter Hover (z. B. „Erledigt“ – die Aktion ist gewollt, nicht gefährlich) #}
+{% macro loeschen_knopf(aktion, frage, text="Löschen", gefahr=true) %}
 <form method="post" action="{{ aktion }}" class="inline" hx-confirm="{{ frage }}">
-  <button type="submit" class="outline secondary klein gefahr">{{ text }}</button>
+  <button type="submit" class="outline secondary klein{{ ' gefahr' if gefahr }}">{{ text }}</button>
 </form>
 {% endmacro %}
 
@@ -126,7 +127,7 @@
   {% if ziel %}<a href="{{ ziel.url }}" role="button" class="outline secondary klein nav-knopf" title="{{ wort }}: {{ ziel.text }}"
      data-blaettern="{{ richtung }}"
      aria-label="{{ wort }}: {{ ziel.text }}">{{ zeichen }}</a>
-  {%- else %}<a role="button" class="outline secondary klein nav-knopf" aria-disabled="true">{{ zeichen }}</a>{% endif %}
+  {%- else %}<a role="button" class="outline secondary klein nav-knopf" aria-disabled="true" aria-label="{{ wort }}: keine">{{ zeichen }}</a>{% endif %}
   {%- endfor %}</span>{% endif %}
 {%- endmacro %}
 
@@ -149,7 +150,8 @@
 {%- endmacro %}
 
 {# Fragezeichen mit Erklärung als Tooltip (Zeilenumbrüche im Text bleiben erhalten) #}
-{% macro hilfe(text) %}<abbr class="hilfe" tabindex="0" title="{{ text }}">?</abbr>{% endmacro %}
+{# Erklärung zum Anklicken: Popover bei Klick/Tippen und bei Tastaturfokus (base.html), Tooltip bei Mausberührung #}
+{% macro hilfe(text) %}<abbr class="hilfe" tabindex="0" role="button" aria-label="Erklärung: {{ text }}" title="{{ text }}">?</abbr>{% endmacro %}
 {% macro hilfe_symbol(text) %}{{ hilfe(text) }}{% endmacro %}{# für Makros mit einem Parameter „hilfe“ #}
 {# Die eine Erklärung, wem eine Ladung zählt (Auswertungen pro Fahrer:in, Dashboard, Reports) #}
 {% macro zurechnung() %}{{ hilfe("Eine Ladung zählt für die Person, die zum Ladezeitpunkt (Stichtag Ladebeginn) gefahren ist: bei personengebundener Karte deren Person, sonst die Fahrer:in des Fahrzeugs. Keiner Person zugerechnet: Poolfahrzeuge mit Fahrzeugkarte und mehreren Fahrer:innen, Gäste, Gebühren und Pauschalen.") }}{% endmacro %}

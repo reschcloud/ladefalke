@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app import auth
 from app.db import get_db
-from app.formatierung import datum, decimal_lesen, email_lesen, zahl
+from app.formatierung import anzahl as anzahl_text, datum, decimal_lesen, email_lesen, zahl
 from app.config import einstellungen as konfiguration
 from sqlalchemy import func, select
 
@@ -334,7 +334,7 @@ def speichern(request: Request, topliste_m: str = Form(""),
                                                               Decimal(daten["plausibel_dc_min_kw"])):
         db.flush()  # AC/DC aus der Ø-Leistung hängt an diesen Grenzen
         if n := _stromart_neu(db):
-            text += f" AC/DC von {n} Ladevorgängen neu bestimmt."
+            text += f" AC/DC von {anzahl_text(n, 'Ladevorgang', dativ=True)} neu bestimmt."
     db.commit()
     syslog.laden(db)
     meldung(request, text)
@@ -528,7 +528,7 @@ def cpo_stromart_speichern(request: Request, name: str = Form(""), kennungen: st
     db.flush()
     n = _stromart_neu(db)
     db.commit()
-    meldung(request, f"CPO „{name}“ = immer {art} gespeichert" + (f" – AC/DC von {n} Ladevorgängen neu bestimmt." if n else "."))
+    meldung(request, f"CPO „{name}“ = immer {art} gespeichert" + (f" – AC/DC von {anzahl_text(n, 'Ladevorgang', dativ=True)} neu bestimmt." if n else "."))
     return weiter("/einstellungen#cpo-stromart")
 
 
@@ -542,7 +542,7 @@ def cpo_stromart_loeschen(request: Request, eintrag_id: int, db: Session = Depen
     db.flush()
     n = _stromart_neu(db)
     db.commit()
-    meldung(request, f"CPO „{name}“ entfernt" + (f" – AC/DC von {n} Ladevorgängen neu bestimmt." if n else "."))
+    meldung(request, f"CPO „{name}“ entfernt" + (f" – AC/DC von {anzahl_text(n, 'Ladevorgang', dativ=True)} neu bestimmt." if n else "."))
     return weiter("/einstellungen#cpo-stromart")
 
 
@@ -550,7 +550,7 @@ def cpo_stromart_loeschen(request: Request, eintrag_id: int, db: Session = Depen
 def stromart_neu_bestimmen(request: Request, db: Session = Depends(get_db)):
     n = _stromart_neu(db)
     db.commit()
-    meldung(request, f"AC/DC von {n} Ladevorgängen neu bestimmt." if n else "AC/DC geprüft – keine Änderungen.")
+    meldung(request, f"AC/DC von {anzahl_text(n, 'Ladevorgang', dativ=True)} neu bestimmt." if n else "AC/DC geprüft – keine Änderungen.")
     return weiter("/einstellungen#cpo-stromart")
 
 

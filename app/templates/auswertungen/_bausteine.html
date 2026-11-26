@@ -170,7 +170,7 @@ Zu den eigenen Ladungen werden m kWh zum Schnittpreis aller Fahrer:innen dazuger
   Gebühren, je Person zum Ladezeitpunkt {{ m.zurechnung() }}.</small></p>
 {% endif %}
 {% if t.nicht_eindeutig.kwh %}
-<p><small>Nicht enthalten: {{ t.nicht_eindeutig.anzahl }} Ladevorgänge ({{ t.nicht_eindeutig.kwh | zahl(0) }} kWh) mit
+<p><small>Nicht enthalten: {{ t.nicht_eindeutig.anzahl | anzahl("Ladevorgang") }} ({{ t.nicht_eindeutig.kwh | zahl(0) }} kWh) mit
   Fahrzeugkarte an Poolfahrzeugen mit mehreren Fahrer:innen – keiner Person eindeutig zuzurechnen.</small></p>
 {% endif %}
 {% endmacro %}

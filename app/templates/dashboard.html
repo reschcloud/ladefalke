@@ -6,7 +6,7 @@
 {% macro monat_details(st) %}
   {% if st.offen %}<p>{{ icon("offen") }} Laufender Monat – Rechnungen folgen erst im Folgemonat.</p>{% endif %}
   {% if st.luecken %}
-  <p><strong>{{ icon("warnung") }} Fehlende Daten</strong> <a href="/import" role="button" class="outline klein">zum Import</a></p>
+  <p><strong>{{ icon("warnung") }} Fehlende Daten</strong> <a href="/import" role="button" class="outline klein">Zum Import</a></p>
   <ul>
     {% for l in st.luecken %}
     <li><a href="/stammdaten/msp/{{ l.msp.id }}">{{ l.msp.name }}</a>:
@@ -23,7 +23,7 @@
       {% for fz in st.fahrzeuge_ohne %}<a href="/stammdaten/fahrzeuge/{{ fz.id }}">{{ fz.kennzeichen }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endif %}
     {% if st.fahrer_ohne %}<li>Fahrer:innen mit Fahrzeug oder Karte, aber ohne Ladung:
       {% for f in st.fahrer_ohne %}<a href="/stammdaten/fahrer/{{ f.id }}">{{ f.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endif %}
-    {% if st.ohne_fahrzeug %}<li><a href="/aufgaben#ohne-fahrzeug">{{ st.ohne_fahrzeug }} Ladevorgänge ohne Fahrzeug</a></li>{% endif %}
+    {% if st.ohne_fahrzeug %}<li><a href="/aufgaben#ohne-fahrzeug">{{ st.ohne_fahrzeug | anzahl("Ladevorgang") }} ohne Fahrzeug</a></li>{% endif %}
   </ul>
   {% endif %}
   {% if st.status == "ok" and not st.hinweise %}<p>{{ icon("ok") }} Alle erwarteten Daten sind vorhanden.</p>{% endif %}

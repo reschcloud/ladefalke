@@ -26,7 +26,7 @@
       <td>
         {%- if mit_fahrzeug -%}
           {%- if v.fahrzeug %}<a href="/stammdaten/fahrzeuge/{{ v.fahrzeug.id }}">{{ v.fahrzeug.kennzeichen }}</a>
-          {%- elif v.ladekarte and v.ladekarte.ist_gastkarte %}Gäste{% else %}<span class="marker inaktiv">keines</span>{% endif %}
+          {%- elif v.ladekarte and v.ladekarte.ist_gastkarte %}Gäste{% else %}–{% endif %}
           {%- if mit_fahrer and fahrer %} <small>({{ fahrer | map(attribute="name") | join(", ") }})</small>{% endif %}
         {%- else -%}
           {{ fahrer | map(attribute="name") | join(", ") or "–" }}

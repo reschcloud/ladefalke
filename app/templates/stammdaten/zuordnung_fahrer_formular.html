@@ -27,7 +27,7 @@
     <tr><td>{{ m.symbol("auto") }} <a href="/stammdaten/fahrzeuge/{{ w.fahrzeug.id }}">{{ w.fahrzeug.kennzeichen }}</a></td>
       <td>{{ m.zeitraum_zelle(w) }}</td>
       <td class="rechts"><a href="/stammdaten/zuordnungen/fahrer/{{ w.id }}?zurueck={{ zurueck | urlencode }}" role="button"
-        data-schreiben class="outline klein">bearbeiten</a></td></tr>
+        data-schreiben class="outline klein">Bearbeiten</a></td></tr>
   {% else %}
     <tr><td colspan="3">Keine weiteren.</td></tr>
   {% endfor %}

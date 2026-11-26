@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from app.db import get_db
-from app.formatierung import decimal_lesen
+from app.formatierung import anzahl as anzahl_text, decimal_lesen
 from app.models import Gebuehr, Import, ImportStatus, Ladeart, Ladekarte, Ladevorgang, Msp, ZuordnungKarte
 from app.parsers import PARSER
 from app.services import parser_verwaltung
@@ -305,8 +305,9 @@ async def bestaetigen_route(request: Request, import_id: int, db: Session = Depe
         return _vorschau_seite(request, db, imp, str(e), 422)
     db.commit()
     neue_karten = sum(1 for e in entscheidungen.values() if e.anlegen)
-    meldung(request, f"{imp.dateiname} übernommen: {len(vs.neue)} Ladevorgänge, "
-                     f"{len(vs.gebuehren)} Gebühren" + (f", {neue_karten} neue Ladekarten" if neue_karten else "") + ".")
+    meldung(request, f"{imp.dateiname} übernommen: {anzahl_text(len(vs.neue), 'Ladevorgang')}, "
+                     f"{anzahl_text(len(vs.gebuehren), 'Gebühr')}"
+                     + (f", {neue_karten} neue {'Ladekarte' if neue_karten == 1 else 'Ladekarten'}" if neue_karten else "") + ".")
     return _vorschau_erledigt(request, db, imp.id, import_id=imp.id)
 
 

@@ -10,6 +10,7 @@
   (sein Modul liegt nicht in der App bzw. wurde beim Start nicht geladen): Dateien dieses Formats werden nicht erkannt. Importierte Daten bleiben vollständig erhalten.
   {% if msp.parser_aktiv %}Zum Aufräumen den Parser unten deaktivieren und speichern; danach lässt sich die Verknüpfung entfernen.{% endif %}</p>
 {% endif %}
+{% if request.state.benutzer.rolle != "admin" %}<p class="meldung meldung-info">Nur lesen – {{ MSP }} ändern kann ein Admin.</p>{% endif %}
 <form method="post" class="formular" data-nur-admin action="{{ '/stammdaten/msp/%d' % msp.id if msp else '/stammdaten/msp/neu' }}">
   {{ m.feld("name", "Name", werte, fehler, pflicht=true) }}
   <fieldset class="feldgruppe">
@@ -43,7 +44,7 @@
   </label>
   {# Knöpfe gehören zu eigenen Formularen unter diesem (form-Attribut) – Formulare lassen sich nicht schachteln #}
   {% if msp and ohne_stromart %}
-  <div class="aktionszeile vorgabe"><span>{{ ohne_stromart }} Ladevorgänge dieses {{ MSP }} haben keine AC/DC-Angabe.</span>
+  <div class="aktionszeile vorgabe"><span>{{ ohne_stromart | anzahl("Ladevorgang") }} dieses {{ MSP }} {{ "hat" if ohne_stromart == 1 else "haben" }} keine AC/DC-Angabe.</span>
     {{ m.nav_knopf("/aufgaben?stromart_msp=%d#stromart" % msp.id, "In den Aufgaben setzen →") }}
   </div>
   {% endif %}
@@ -63,13 +64,13 @@
       Gilt bei neuen Importen; nachträglich hier anwendbar. Ein {{ CPO }} aus der Rechnung hat immer Vorrang.</small>
   </label>
   {% if msp and msp.cpo_standard and cpo_abweichend %}
-  <div class="aktionszeile vorgabe"><span>{{ cpo_abweichend }} Ladevorgänge dieses {{ MSP }} ohne {{ CPO }} aus der
-    Rechnung haben noch nicht die Vorgabe.</span>
+  <div class="aktionszeile vorgabe"><span>{{ cpo_abweichend | anzahl("Ladevorgang") }} dieses {{ MSP }} ohne {{ CPO }} aus der
+    Rechnung {{ "hat" if cpo_abweichend == 1 else "haben" }} noch nicht die Vorgabe.</span>
     <button type="submit" form="cpo-anwenden" class="outline klein"
             data-bestaetigen="{{ CPO | striptags }} von {{ cpo_abweichend }} Ladevorgängen auf „{{ msp.cpo_standard }}“ setzen?">Vorgabe „{{ msp.cpo_standard }}“ anwenden</button>
   </div>
   {% elif msp and ohne_cpo %}
-  <div class="aktionszeile vorgabe"><span>{{ ohne_cpo }} Ladevorgänge dieses {{ MSP }} haben keinen {{ CPO }}.</span>
+  <div class="aktionszeile vorgabe"><span>{{ ohne_cpo | anzahl("Ladevorgang") }} dieses {{ MSP }} {{ "hat" if ohne_cpo == 1 else "haben" }} keinen {{ CPO }}.</span>
     <small>(zuerst einen Standard-{{ CPO }} eintragen und speichern)</small></div>
   {% endif %}
   </fieldset>

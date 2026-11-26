@@ -54,7 +54,7 @@ def test_rueckdatierte_kartenzuordnung_mit_option(angemeldet, db, basis):
     karte, fz = basis["karte"], basis["fz"]
     antwort = angemeldet.post(f"/stammdaten/ladekarten/{karte.id}/zuordnung", data={
         "ziel": f"fahrzeug:{fz.id}", "ab": "2026-09-10", "neu_zuordnen": "on"})
-    assert "1 bereits importierte Ladevorgänge wurden neu zugeordnet" in antwort.text
+    assert "1 Ladevorgang (bereits importiert) wurde neu zugeordnet" in antwort.text
     frueh, spaet = basis["v"]
     db.refresh(frueh), db.refresh(spaet)
     assert frueh.fahrzeug_id is None and frueh.kwh == D("35.150")  # vor dem Zuordnungsbeginn: Flottenschnitt
@@ -92,7 +92,7 @@ def test_ueber_fahrer_und_loeschen(angemeldet, db, basis):
 
     z = db.scalar(select(ZuordnungFahrerFahrzeug).where(ZuordnungFahrerFahrzeug.fahrer_id == fahrer.id))
     antwort = angemeldet.post(f"/stammdaten/zuordnungen/fahrer/{z.id}/loeschen", data={"neu_zuordnen": "on"})
-    assert "2 bereits importierte Ladevorgänge wurden neu zugeordnet" in antwort.text
+    assert "2 Ladevorgänge (bereits importiert) wurden neu zugeordnet" in antwort.text
     for v in basis["v"]:
         db.refresh(v)
         assert v.fahrzeug_id is None and v.zuordnung_quelle == ZuordnungQuelle.keine
@@ -141,7 +141,7 @@ def test_automatisch_erneut(angemeldet, db, basis):
     db.add(ZuordnungKarte(ladekarte_id=basis["karte"].id, fahrzeug_id=basis["fz"].id, gueltig_ab=date(2026, 9, 1)))
     db.flush()
     antwort = angemeldet.post("/aufgaben/automatisch")
-    assert "2 Ladevorgänge konnten automatisch zugeordnet werden; 0 bleiben ohne Fahrzeug" in antwort.text
+    assert "2 Ladevorgänge automatisch zugeordnet; 0 Ladevorgänge ohne Fahrzeug" in antwort.text
 
 
 def test_gebuehr_zuweisen(angemeldet, db, basis):
@@ -176,7 +176,7 @@ def test_fahrerwechsel_mit_neuzuordnung(angemeldet, db, basis):
     db.flush()
     antwort = angemeldet.post(f"/stammdaten/fahrer/{fahrer.id}/fahrzeug", data={
         "fahrzeug_id": str(fz.id), "ab": "2026-09-01", "bisherige_austragen": "on", "neu_zuordnen": "on"})
-    assert "2 bereits importierte Ladevorgänge wurden neu zugeordnet" in antwort.text
+    assert "2 Ladevorgänge (bereits importiert) wurden neu zugeordnet" in antwort.text
     for v in basis["v"]:
         db.refresh(v)
         assert v.fahrzeug_id == fz.id

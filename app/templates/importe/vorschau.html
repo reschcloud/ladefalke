@@ -8,7 +8,7 @@
 <p class="nav-leiste">{{ m.nav_knopf("/import", "← Import-Übersicht") }}</p>
 {{ s.schritte(2, navigation) }}
 <h1>Vorschau: {{ imp.dateiname }}</h1>
-<p><a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein">Originaldatei öffnen ↗</a>
+<p><a href="/import/{{ imp.id }}/datei?anzeigen=1" target="_blank" rel="noopener" hx-boost="false" role="button" class="outline klein" title="Originaldatei in neuem Tab öffnen">Originaldatei ↗</a>
   <small>(neuer Tab)</small></p>
 {% if fehler %}<p class="meldung meldung-fehler" role="alert">{{ fehler }}</p>{% endif %}
 
@@ -34,7 +34,7 @@
       {{ m.auswahl("msp_id", MSP, msps, {"msp_id": imp.msp_id}, {}, pflicht=true) }}
       {{ m.auswahl("ladeart", "Ladeart", ladearten, {"ladeart": imp.ladeart.value}, {}, pflicht=true) }}
       <label class="strompreis">Strompreis netto €/kWh{% if imp.ladeart.value == "privat" %} *{% endif %}
-        <span class="mit-tooltip" title="Nur für Dateien ohne Kostenangabe: kWh × Strompreis ergibt die Kosten.">{{ icon("info") }}</span>
+        {{ m.hilfe("Nur für Dateien ohne Kostenangabe: kWh × Strompreis ergibt die Kosten.") }}
         <input type="text" inputmode="decimal" name="strompreis"
                value="{{ imp.strompreis_netto_kwh | zahl(4) if imp.strompreis_netto_kwh is not none }}"
                placeholder="z. B. 0,30"></label>
@@ -92,9 +92,10 @@
             {% set n = loop.index %}
             <input form="import-bestaetigen" type="hidden" name="karte_{{ n }}_kennung" value="{{ k.kennung }}">
             <fieldset class="neue-karte">
+              <legend class="unsichtbar">Neue Karte {{ k.kennung }}</legend>
               <label><input form="import-bestaetigen" type="radio" name="karte_{{ n }}_aktion" value="anlegen" checked> neu anlegen <span class="zusatz-hinweis">(Zuordnung später)</span></label>
               <label><input form="import-bestaetigen" type="radio" name="karte_{{ n }}_aktion" value="ignorieren"> ignorieren (ohne Karte importieren)</label>
-              <input form="import-bestaetigen" type="text" name="karte_{{ n }}_bezeichnung" value="{{ k.bezeichnung or '' }}" placeholder="Bezeichnung" aria-label="Bezeichnung">
+              <input form="import-bestaetigen" type="text" name="karte_{{ n }}_bezeichnung" value="{{ k.bezeichnung or '' }}" placeholder="Bezeichnung" aria-label="Bezeichnung der Karte {{ k.kennung }}">
               <label><input form="import-bestaetigen" type="checkbox" name="karte_{{ n }}_gast" {% if k.gast %}checked{% endif %}> Gastkarte</label>
             </fieldset>
           {% endif %}
@@ -156,7 +157,7 @@
     <a href="/einstellungen#cpo-stromart">CPO-Liste</a></small></p>
   {% endif %}
   {% if ohne_stromart %}
-  <label class="stromart-vorgabe">AC/DC für {{ ohne_stromart }} Ladevorgänge, für die weder Rechnung noch CPO-Liste noch Ø-Leistung etwas ergeben
+  <label class="stromart-vorgabe">AC/DC für {{ ohne_stromart | anzahl("Ladevorgang") }}, für die weder Rechnung noch CPO-Liste noch Ø-Leistung etwas ergeben
     <select name="stromart_vorgabe" form="import-bestaetigen">
       {% for wert, text in [("", "keine Angabe"), ("AC", "AC"), ("DC", "DC")] %}
         <option value="{{ wert }}" {% if (standard or "") == wert %}selected{% endif %}>{{ text }}</option>

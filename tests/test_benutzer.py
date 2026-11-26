@@ -87,7 +87,7 @@ def test_operator_alles_ausser_verwaltung(rollen, db):
     assert operator.post("/stammdaten/fahrer/neu", data={"name": "Neu Operator", "aktiv": "on"}).status_code == 200
     assert db.scalar(select(Benutzer).where(Benutzer.benutzername == "olga")).rolle == "operator"
     einst = operator.get("/einstellungen").text  # sehen ja, Felder gesperrt
-    assert 'class="einstellungen einstellungen-nur-lesen"' in einst and 'disabled title="Unzureichende Berechtigungen"' in einst
+    assert 'class="einstellungen einstellungen-nur-lesen"' in einst and 'disabled title="Nur für Admins – du bist als Operator angemeldet."' in einst
     for pfad in ("/benutzer", "/benutzer/neu"):
         assert operator.get(pfad).status_code == 403, pfad
     assert operator.post("/einstellungen", data={"stichtag": "beginn"}).status_code == 403
@@ -96,7 +96,7 @@ def test_operator_alles_ausser_verwaltung(rollen, db):
     assert 'href="/benutzer"' not in seite and 'class="nur-lesen"' not in seite and 'class="als-admin"' not in seite
     admin_seite = rollen["admin"].get("/einstellungen").text
     assert 'href="/benutzer"' in admin_seite and '<body hx-boost="true" class="als-admin menue-links">' in admin_seite  # rote Leiste
-    assert "einstellungen-nur-lesen" not in admin_seite and 'disabled title="Unzureichende Berechtigungen"' not in admin_seite
+    assert "einstellungen-nur-lesen" not in admin_seite and 'disabled title="Nur für Admins' not in admin_seite
 
 
 def test_letzter_admin_und_eigenes_konto(rollen, db):
@@ -174,9 +174,9 @@ def test_gesperrtes_sichtbar_statt_versteckt(rollen):
     assert 'role="button" data-schreiben>Neues Fahrzeug</a>' in seite  # Link da, wird per Skript gesperrt
     assert "display: none" not in viewer.get("/static/app.css").text.split("Rollen */")[1].split("Einstellungen für")[0]
     for c in (viewer, operator):  # Benutzerverwaltung im Menü sichtbar, aber gesperrt
-        assert 'title="Benutzerverwaltung nur für Admins">Benutzer:innen <svg class="symbol symbol-schloss"' in c.get("/").text
+        assert 'angemeldet.">Benutzer:innen <svg class="symbol symbol-schloss"' in c.get("/").text and 'title="Benutzerverwaltung: Nur für Admins – du bist als ' in c.get("/").text
     einst = operator.get("/einstellungen").text
-    assert 'class="ausgegraut" aria-disabled="true" title="Unzureichende Berechtigungen">Speichern</button>' in einst
+    assert 'class="ausgegraut" aria-disabled="true" title="Nur für Admins – du bist als Operator angemeldet.">Speichern</button>' in einst
 
 
 def test_benutzermenue_ohne_rolle(angemeldet):

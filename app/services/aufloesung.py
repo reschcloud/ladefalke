@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import Date, and_, cast, exists, not_, or_, select
 from sqlalchemy.orm import Session
 
+from app.formatierung import anzahl as anzahl_text
 from app.models import (Fahrer, Fahrzeug, Ladekarte, Ladevorgang, ZuordnungFahrerFahrzeug, ZuordnungKarte,
                         ZuordnungQuelle)
 from app.services.zuordnung import (fahrer_von_fahrzeug_am, fahrzeug_von_fahrer_am, gueltig_am,
@@ -144,7 +145,7 @@ def neu_zuordnen(db: Session, *bedingungen) -> int:
     with protokoll.still(db, Ladevorgang):
         anzahl = sum(vorgang_aktualisieren(db, v) for v in db.scalars(select(Ladevorgang).where(*bedingungen)))
     if anzahl:
-        protokoll.eintragen(db, "geaendert", "ladevorgang", f"{anzahl} Ladevorgänge automatisch neu zugeordnet",
+        protokoll.eintragen(db, "geaendert", "ladevorgang", f"{anzahl_text(anzahl, 'Ladevorgang')} automatisch neu zugeordnet",
                             felder={"Fahrzeug": [None, "neu ermittelt"]})
     return anzahl
 

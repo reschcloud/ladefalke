@@ -138,7 +138,7 @@ def test_ust_nachtragen(angemeldet, db, daten, monkeypatch):
                         lambda self, pfad, name=None: Ergebnis(rechnung=Rechnung(), vorgaenge=[quelle]))
     monkeypatch.setattr(importe, "datei", lambda i: type("P", (), {"exists": lambda self: True})())
     antwort = angemeldet.post("/einstellungen/ust-nachtragen")
-    assert "USt. nachgetragen: 1 Ladevorgänge" in antwort.text
+    assert "USt. nachgetragen: 1 Ladevorgang" in antwort.text
     db.refresh(v)
     assert (v.ust_betrag, v.ust_satz, v.kosten) == (D("1.00"), D(10), D(11))  # 0 % Vorsteuerabzug
     assert db.get(Ladevorgang, daten["v_ausland"].id).ust_land == "DE"  # vorhandene USt. unverändert
